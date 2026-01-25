@@ -7,7 +7,7 @@ const BOT_TOKEN = '7633424551:AAH8JptpFazBaf7FlfCVrDjhquI1JYxf3RM';
 const BOT_CHAT_ID = '6434781065';
 const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
 const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
-const ADMIN_TOKENS = ['HMS7Q00JOXWSVMUW'];
+const ADMIN_TOKENS = ['HMS7Q00JOXWSVMUW', 'vvP4vcDqmWsDi05B'];
 
 const RULES_TEXT = {
   ru: `📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
