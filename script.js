@@ -395,6 +395,47 @@ const i18n = {
     failedToCreateInvoice: 'Failed to create invoice'
   }
 };
+// ==========================
+// User Token / User ID init
+// ==========================
+
+// Генерация случайной строки
+function generateRandomString(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// Генерация числового ID
+function generateNumericID(length) {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += Math.floor(Math.random() * 10);
+  }
+  return result;
+}
+
+// Проверка и создание токена
+if (!localStorage.getItem('get_UserToken')) {
+  const token = generateRandomString(16);
+  localStorage.setItem('get_UserToken', token);
+}
+
+// Проверка и создание User ID
+if (!localStorage.getItem('get_UserID')) {
+  const userID = generateNumericID(12);
+  localStorage.setItem('get_UserID', userID);
+}
+
+// Для удобства
+const USER_TOKEN = localStorage.getItem('get_UserToken');
+const USER_ID = localStorage.getItem('get_UserID');
+
+console.log('USER_TOKEN:', USER_TOKEN);
+console.log('USER_ID:', USER_ID);
 
 function applyLang(lang) {
 // Перевод элементов с data-i18n
