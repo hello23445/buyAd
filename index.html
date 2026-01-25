@@ -1,0 +1,537 @@
+<!-- index.html -->
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Buy Ads Mini App</title>
+
+  <!-- Telegram WebApp -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Font Awesome (для toggles и иконок) -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- PRELOADER (показывать до полной загрузки + при сохранении рекламы) -->
+  <div id="preloader" class="preloader" aria-hidden="false">
+    <div class="preloader__card">
+      <div class="spinner" aria-label="Loading"></div>
+      <div class="preloader__text" data-i18n="loading">Загрузка…</div>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="appmark">
+        <div class="appmark__dot"></div>
+        <div id="app-title" class="appmark__title" data-i18n="appTitle"></div>
+      </div>
+    </div>
+
+    <div class="topbar__right">
+      <button id="btn-open-settings" class="icon-btn" type="button" aria-label="Settings">
+        <i class="fa-solid fa-gear"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <main class="app" id="app">
+    <!-- FIRST ENTRY: LANGUAGE PICKER -->
+    <section id="screen-first" class="screen screen--center" hidden>
+      <div class="card card--wide">
+        <div class="card__title" data-i18n="chooseLangTitle">Выберите язык</div>
+        <div class="card__subtitle" data-i18n="chooseLangSubtitle">
+          Язык можно будет изменить в настройках.
+        </div>
+
+        <div class="grid2">
+          <button id="lang-ru" class="btn btn--primary" type="button">
+            Русский
+          </button>
+          <button id="lang-en" class="btn btn--ghost" type="button">
+            English
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCKED SCREEN -->
+    <section id="screen-blocked" class="screen screen--center" hidden>
+      <div class="card card--wide">
+        <div class="card__title" data-i18n="blockedTitle">Вы заблокированы</div>
+        <div class="card__subtitle" data-i18n="blockedSubtitle">You have been blocked</div>
+        <button id="btn-support" class="btn btn--primary btn--full" type="button" data-i18n="supportBtn">Служба поддержки / Support</button>
+        <div class="field">
+          <div class="field__label" data-i18n="tokenTitle">Ваш токен / Your token</div>
+          <div class="tokenbox">
+            <code id="user-token-blocked">—</code>
+            <button id="btn-copy-token-blocked" class="btn btn--ghost" type="button">
+              <i class="fa-solid fa-copy"></i>
+              <span data-i18n="copy">Копировать / Copy</span>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="field__label" data-i18n="langSetting">Язык / Language</div>
+          <div class="btn-group" id="blocked-lang-buttons">
+            <button type="button" class="seg" data-value="ru">Русский</button>
+            <button type="button" class="seg" data-value="en">English</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN MENU -->
+    <section id="screen-main" class="screen" hidden>
+      <div class="stack">
+        <div class="card">
+          <div class="stats">
+            <div class="stat">
+              <div class="stat__label" data-i18n="adsCreatedLabel">Создано реклам</div>
+              <div class="stat__value">
+                <span id="ads-count">0</span><span class="muted">/15</span>
+              </div>
+            </div>
+
+            <div class="stat">
+              <div class="stat__label" data-i18n="crystalsLabel">Кристаллы</div>
+              <div class="stat__value">
+                <span id="crystals-count">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="menu">
+            <button id="nav-create" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-plus"></i></span>
+              <span class="menu__text" data-i18n="btnCreateAd">Создать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="nav-myads" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-rectangle-list"></i></span>
+              <span class="menu__text" data-i18n="btnMyAds">Мои рекламы</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="nav-report" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-bug"></i></span>
+              <span class="menu__text" data-i18n="btnReport">Сообщить об ошибке</span>
+              <span class="menu__chev"><i class="fa-solid fa-arrow-up-right-from-square"></i></span>
+            </button>
+
+            <button id="nav-admin" class="menu__item" type="button" hidden>
+              <span class="menu__icon"><i class="fa-solid fa-shield-halved"></i></span>
+              <span class="menu__text" data-i18n="btnAdmin">Меню админа</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="nav-rules" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-book"></i></span>
+              <span class="menu__text" data-i18n="btnRules">Правила бота</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="nav-crystals" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-gem"></i></span>
+              <span class="menu__text" data-i18n="btnCrystals">Кристаллы</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="nav-settings" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-sliders"></i></span>
+              <span class="menu__text" data-i18n="btnSettings">Настройки</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CREATE AD -->
+    <section id="screen-create" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-create" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="createTitle">Создать рекламу</div>
+        </div>
+
+        <div class="card">
+          <div class="stat">
+            <div class="stat__label" data-i18n="crystalsLabel">Кристаллы</div>
+            <div class="stat__value">
+              <span id="crystals-in-create">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="field__label" data-i18n="adTextLabel">Текст рекламы (обязательно)</div>
+            <textarea id="ad-text" class="textarea" rows="6" maxlength="500"
+              placeholder="..." data-i18n-placeholder="adTextPlaceholder"></textarea>
+            <div class="field__hint" data-i18n="adTextHint">
+              До 500 символов. Нужна ссылка вида https://, t.me/ или @...
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="field__label" data-i18n="videoLabel">Видео-реклама (обязательно)</div>
+
+            <!-- вместо input file — кнопка -->
+            <div class="row">
+              <button id="btn-pick-video" class="btn btn--primary" type="button">
+                <i class="fa-solid fa-video"></i>
+                <span data-i18n="pickFile">Выберите файл</span>
+              </button>
+
+              <button id="btn-remove-video" class="btn btn--ghost" type="button" hidden>
+                <i class="fa-solid fa-trash"></i>
+                <span data-i18n="removeVideo">Удалить видео-рекламу</span>
+              </button>
+            </div>
+
+            <!-- скрытый инпут (его будет дергать кнопка) -->
+            <input id="video-input" type="file" accept="video/*" hidden />
+
+            <div class="chips" id="video-meta" hidden>
+              <div class="chip"><i class="fa-solid fa-file"></i> <span id="video-name">video.mp4</span></div>
+              <div class="chip"><i class="fa-solid fa-database"></i> <span id="video-size">0 MB</span></div>
+              <div class="chip"><i class="fa-solid fa-clock"></i> <span id="video-duration">0s</span></div>
+            </div>
+
+            <div class="field__hint" data-i18n="videoHint">
+              Только видео. Макс. 50MB. Длительность: 5–60 сек.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="field__label" data-i18n="priorityLabel">Приоритет</div>
+            <div class="btn-group" id="priority-buttons">
+              <button type="button" class="seg" data-value="Слабый" data-i18n="prioWeak">Слабый</button>
+              <button type="button" class="seg" data-value="Нормальный" data-i18n="prioNormal">Нормальный</button>
+              <button type="button" class="seg" data-value="Хороший" data-cost="10" data-i18n="prioGood">Хороший (10💎)</button>
+              <button type="button" class="seg" data-value="Высокий" data-cost="20" data-i18n="prioHigh">Высокий (20💎)</button>
+              <button type="button" class="seg" data-value="Очень высокий" data-cost="40" data-i18n="prioVeryHigh">Очень высокий (40💎)</button>
+              <button type="button" class="seg" data-value="УЛЬТРА" data-cost="60" data-i18n="prioUltra">УЛЬТРА (60💎)</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="field__label" data-i18n="platformLabel">Площадка рекламы</div>
+            <div class="btn-group" id="platform-buttons">
+              <button type="button" class="seg" data-value="Не важно" data-i18n="plAny">Не важно</button>
+              <button type="button" class="seg" data-value="Канал 'Создать никнейм'" data-i18n="plChNick">Канал “Создать никнейм”</button>
+              <button type="button" class="seg" data-value="Канал 'Millioner City News'" data-i18n="plChMCN">Канал “Millioner City News”</button>
+              <button type="button" class="seg" data-value="Канал 'НОВОСТИ ИГРОВОГО БОТА'" data-i18n="plChGameNews">Канал “НОВОСТИ ИГРОВОГО БОТА”</button>
+              <button type="button" class="seg" data-value="Бот 'Создать никнейм'" data-i18n="plBotNick">Бот “Создать никнейм”</button>
+              <button type="button" class="seg" data-value="Бот 'Создай свой город'" data-i18n="plBotCity">Бот “Создай свой город”</button>
+              <button type="button" class="seg" data-value="Бот 'Игровой бот'" data-i18n="plBotGame">Бот “Игровой бот”</button>
+              <button type="button" class="seg" data-value="Мини-приложение 'Сгенерировать фото'" data-i18n="plMiniPhoto">Мини-приложение “Сгенерировать фото”</button>
+              <button type="button" class="seg" data-value="Бот 'Служба поддержки'" data-cost="20" data-i18n="plSupport">Бот “Служба поддержки” (20💎)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="field__label" data-i18n="adFooterLabel">Рекламный текст</div>
+
+            <div id="ad-footer-empty" class="note note--warn" data-i18n="adFooterNeedText">
+              Сначала добавьте текст рекламы
+            </div>
+
+            <div id="ad-footer-controls" class="stack-sm" hidden>
+              <div class="note">
+                <div class="note__title" data-i18n="adFooterInfoTitle">Текст приписки:</div>
+                <div class="note__text">
+                  <span data-i18n="adFooterText">Эта реклама создана на площадке: @buyAdss_bot .</span>
+                </div>
+              </div>
+
+              <div class="row row--wrap">
+                <button id="footer-top" class="btn btn--ghost" type="button" data-i18n="footerTop">Сверху</button>
+                <button id="footer-bottom" class="btn btn--ghost" type="button" data-i18n="footerBottom">Снизу</button>
+                <button id="footer-remove" class="btn btn--danger" type="button">
+                  <span data-i18n="footerRemove">Убрать текст рекламы</span>
+                  <span class="badge">10💎</span>
+                </button>
+              </div>
+
+              <div class="note">
+                <div class="note__title" data-i18n="previewTitle">Предпросмотр:</div>
+                <div id="preview-text" class="note__text"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="row row--between">
+              <div class="field__label" data-i18n="commentsLabel">Включить комментарии</div>
+              <!-- toggle справа -->
+              <button id="toggle-comments" class="toggle" type="button" aria-pressed="false">
+                <i id="toggle-comments-ico" class="fa-solid fa-toggle-off fa-2xl" style="color:#343ca2;"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <button id="btn-create-ad" class="btn btn--primary btn--full" type="button">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span data-i18n="createBtn">Создать рекламу</span>
+          </button>
+          <div class="hint" data-i18n="createHint">
+            После создания реклама уйдёт на проверку.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MY ADS -->
+    <section id="screen-myads" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-myads" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="myAdsTitle">Мои рекламы</div>
+        </div>
+
+        <div id="myads-list" class="stack">
+          <!-- JS: карточки рекламы -->
+          <!-- пример структуры:
+          <div class="card ad-card">
+            <div class="ad-card__head">
+              <div class="ad-card__name">Ad_123...</div>
+              <div class="pill pill--pending">На проверке</div>
+            </div>
+            <div class="ad-card__meta">Площадка: ... • Приоритет: ...</div>
+            <div class="row">
+              <button class="btn btn--ghost">Редактировать</button>
+              <button class="btn btn--danger">Удалить</button>
+            </div>
+          </div>
+          -->
+        </div>
+
+        <div id="myads-empty" class="card" hidden>
+          <div class="empty">
+            <i class="fa-solid fa-inbox"></i>
+            <div class="empty__title" data-i18n="noAdsTitle">Пока нет реклам</div>
+            <div class="empty__text" data-i18n="noAdsText">Создайте первую рекламу в главном меню.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRYSTALS -->
+    <section id="screen-crystals" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-crystals" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="crystalsTitle">Кристаллы</div>
+        </div>
+
+        <div class="card">
+          <div class="bigline">
+            <div class="bigline__label" data-i18n="crystalsNow">Текущее количество ваших кристаллов:</div>
+            <div class="bigline__value"><span id="crystals-now">0</span></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="card__subtitle" data-i18n="buyCrystalsTitle">
+            Выберите сколько кристаллов вы хотите купить.
+          </div>
+          <div class="hint" data-i18n="starsOnly">(Принимаются только Telegram Stars🌟)</div>
+
+          <div id="crystals-buttons" class="stack-sm">
+            <!-- JS: кнопки из массива CRYSTALS_BUTTONS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="screen-settings" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-settings" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="settingsTitle">Настройки</div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="field__label" data-i18n="langSetting">Язык</div>
+            <div class="btn-group" id="settings-lang-buttons">
+              <button type="button" class="seg" data-value="ru">Русский</button>
+              <button type="button" class="seg" data-value="en">English</button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="field__label" data-i18n="themeSetting">Тема</div>
+            <div class="btn-group" id="settings-theme-buttons">
+              <button type="button" class="seg" data-value="system" data-i18n="themeSystem">Как на устройстве</button>
+              <button type="button" class="seg" data-value="dark" data-i18n="themeDark">Тёмная</button>
+              <button type="button" class="seg" data-value="light" data-i18n="themeLight">Светлая</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="field">
+            <div class="field__label" data-i18n="tokenTitle">Ваш токен</div>
+            <div class="tokenbox">
+              <code id="user-token">—</code>
+              <button id="btn-copy-token" class="btn btn--ghost" type="button">
+                <i class="fa-solid fa-copy"></i>
+                <span data-i18n="copy">Копировать</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN MENU -->
+    <section id="screen-admin" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-admin" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="adminTitle">Меню админа</div>
+        </div>
+
+        <div class="card">
+          <div class="menu">
+            <button id="admin-check" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-clipboard-check"></i></span>
+              <span class="menu__text" data-i18n="adminCheck">Проверить рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-restricted" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-lock"></i></span>
+              <span class="menu__text" data-i18n="adminRestricted">Список ограниченных</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-toggle-create" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span id="admin-toggle-create-text" class="menu__text">Включить/Выключить создание реклам</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-ban-forever" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-skull-crossbones"></i></span>
+              <span class="menu__text" data-i18n="adminBanForever">Запретить создавать рекламы (навсегда)</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-block-app" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
+              <span class="menu__text" data-i18n="adminBlockApp">Заблокировать в приложении</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-close-app" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-door-closed"></i></span>
+              <span id="admin-close-app-text" class="menu__text">Закрыть/Открыть приложение</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ADMIN: CHECK AD (панель) -->
+        <div id="admin-panel-check" class="card" hidden>
+          <div class="card__title" data-i18n="adminCheckTitle">Проверка рекламы</div>
+          <div class="hint" data-i18n="adminCheckHint">Выберите рекламу и решение.</div>
+
+          <div id="admin-check-list" class="stack-sm">
+            <!-- JS: список ожидающих -->
+          </div>
+        </div>
+
+        <!-- ADMIN: RESTRICTED (панель) -->
+        <div id="admin-panel-restricted" class="card" hidden>
+          <div class="card__title" data-i18n="adminRestrictedTitle">Список ограниченных</div>
+          <div id="admin-restricted-list" class="stack-sm">
+            <!-- JS: {token} {id} кнопка снять -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL LAYER -->
+  <div id="modal-overlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal__head">
+        <div id="modal-title" class="modal__title">—</div>
+        <button id="modal-close" class="icon-btn" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="modal-body" class="modal__body">
+        <!-- JS: текст/контент -->
+      </div>
+
+      <div id="modal-actions" class="modal__actions">
+        <!-- JS: кнопки -->
+        <button id="modal-ok" class="btn btn--primary" type="button">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES MODAL (можно открывать как отдельную модалку/контент) -->
+  <template id="tpl-rules">
+    <div class="rules">
+      <pre id="rules-text" class="rules__text"></pre>
+    </div>
+  </template>
+
+  <!-- SIMPLE CONFIRM TEMPLATE -->
+  <template id="tpl-confirm">
+    <div class="confirm">
+      <div class="confirm__text" id="confirm-text"></div>
+      <div class="row">
+        <button class="btn btn--ghost" id="confirm-cancel" type="button" data-i18n="cancel">Отмена</button>
+        <button class="btn btn--danger" id="confirm-yes" type="button" data-i18n="yes">Да</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- SCRIPT -->
+  <script src="script.js"></script>
+</body>
+</html>
