@@ -395,6 +395,7 @@ const i18n = {
     failedToCreateInvoice: 'Failed to create invoice'
   }
 };
+function applyLang(lang) {
 // ==========================
 // User Token / User ID init
 // ==========================
@@ -437,7 +438,6 @@ const USER_ID = localStorage.getItem('get_UserID');
 console.log('USER_TOKEN:', USER_TOKEN);
 console.log('USER_ID:', USER_ID);
 
-function applyLang(lang) {
 // Перевод элементов с data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
