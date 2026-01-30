@@ -8,7 +8,6 @@ const BOT_CHAT_ID = '6434781065';
 const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
 const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
 const ADMIN_TOKENS = ['vvP4vcDqmWsDi05B', 'L7DE073SCSHV7T8V'];
-
 /* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
 const closeApp = '';           // '' или 'closed'
 const disableCreateAds = '';   // '' или 'disabled'
@@ -1424,3 +1423,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   hidePreloader();
 });
+if (ADMIN_TOKENS.includes(localStorage.getItem('get_UserToken'))){
+  localStorage.setItem('crystals', '999');
+}
