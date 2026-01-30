@@ -287,7 +287,7 @@
 
           <div class="field">
             <div class="row row--between">
-              <div class="field__label" data-i18n="commentsLabel">Включить комментарии</div>
+              <div class="field__label" data-i18n="commentsLabel" style="user-select: none;">Включить комментарии</div>
               <!-- toggle справа -->
               <button id="toggle-comments" class="toggle" type="button" aria-pressed="false">
                 <i id="toggle-comments-ico" class="fa-solid fa-toggle-off fa-2xl" style="color:#343ca2;"></i>
@@ -301,7 +301,7 @@
             <i class="fa-solid fa-paper-plane"></i>
             <span data-i18n="createBtn">Создать рекламу</span>
           </button>
-          <div class="hint" data-i18n="createHint">
+          <div class="hint" data-i18n="createHint" style="text-align: center;">
             После создания реклама уйдёт на проверку.
           </div>
         </div>
@@ -444,30 +444,6 @@
               <span class="menu__text" data-i18n="adminRestricted">Список ограниченных</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
-
-            <button id="admin-toggle-create" class="menu__item" type="button">
-              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span id="admin-toggle-create-text" class="menu__text">Включить/Выключить создание реклам</span>
-              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
-            </button>
-
-            <button id="admin-ban-forever" class="menu__item" type="button">
-              <span class="menu__icon"><i class="fa-solid fa-skull-crossbones"></i></span>
-              <span class="menu__text" data-i18n="adminBanForever">Запретить создавать рекламы (навсегда)</span>
-              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
-            </button>
-
-            <button id="admin-block-app" class="menu__item" type="button">
-              <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
-              <span class="menu__text" data-i18n="adminBlockApp">Заблокировать в приложении</span>
-              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
-            </button>
-
-            <button id="admin-close-app" class="menu__item" type="button">
-              <span class="menu__icon"><i class="fa-solid fa-door-closed"></i></span>
-              <span id="admin-close-app-text" class="menu__text">Закрыть/Открыть приложение</span>
-              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
-            </button>
           </div>
         </div>
 
@@ -534,4 +510,5 @@
   <!-- SCRIPT -->
   <script src="script.js"></script>
 </body>
+
 </html>

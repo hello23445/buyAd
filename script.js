@@ -7,62 +7,57 @@ const BOT_TOKEN = '7633424551:AAH8JptpFazBaf7FlfCVrDjhquI1JYxf3RM';
 const BOT_CHAT_ID = '6434781065';
 const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
 const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
-const ADMIN_TOKENS = ['vvP4vcDqmWsDi05B'];
+const ADMIN_TOKENS = ['vvP4vcDqmWsDi05B', 'L7DE073SCSHV7T8V'];
 
+/* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
+const closeApp = '';           // '' или 'closed'
+const disableCreateAds = '';   // '' или 'disabled'
+const banForeverAds = [];
+const blockInApp = [];
+
+/* ========== RULES TEXT ========== */
 const RULES_TEXT = {
   ru: `📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
-
 🔹 1. Общие положения
 1.1. Размещая рекламу через бота, вы соглашаетесь с данными правилами.
 1.2. Администрация оставляет за собой право отказать в размещении без объяснения причин.
-
 🔹 2. Требования к рекламе
 2.1. Реклама не должна нарушать законодательство и правила Telegram.
 2.2. Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем.
-
 🔹 3. Размещение и оплата
 3.1. Изменение платного контента на бесплатный не вернёт вам утерянные средства.
 3.2. В случае удаления поста по вине рекламодателя (например, из-за жалоб пользователей) утерянные средства не возвращаются.
-
 🔹 4. Отказ и блокировка
 4.1. При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
-4.2. При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.
-
-🔹 5. Обратная связь
-5.1. По всем вопросам обращайтесь в поддержку: @Clickerstart_bot.`,
-
+4.2. При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
   en: `📌 ADVERTISEMENT PLACEMENT RULES
-
 🔹 1. General Provisions
 1.1. By placing advertisements through the bot, you agree to these rules.
 1.2. The administration reserves the right to refuse advertisement placement without providing any reason.
-
 🔹 2. Advertising Requirements
 2.1. Advertisements must comply with applicable laws and Telegram rules.
 2.2. Advertising of fraudulent schemes, betting, pyramid schemes, drugs, weapons, 18+ content, and other prohibited topics is strictly forbidden.
-
 🔹 3. Placement and Payment
 3.1. Changing paid content to free content does not entitle you to a refund of the spent funds.
 3.2. If an advertisement is removed due to the advertiser’s fault (for example, because of user complaints), the paid amount is non-refundable.
-
 🔹 4. Refusal and Blocking
 4.1. In case of violation of these rules, the administration has the right to refuse placement or block the advertiser without a refund.
-4.2. Repeated violations may result in permanent account blocking without the right to restoration.
-
-🔹 5. Feedback
-5.1. For all inquiries, please contact support: @Clickerstart_bot.`
+4.2. Repeated violations may result in permanent account blocking without the right to restoration.`
 };
 
+/* ========== CRYSTALS BUTTONS ========== */
 const CRYSTALS_BUTTONS = [
   { crystals: 10, price: 10 },
   { crystals: 50, price: 50 },
+  { crystals: 100, price: 90 },
+  { crystals: 200, price: 170 },
+  { crystals: 500, price: 400 },
+  { crystals: 1000, price: 750 }
 ];
 
-const GAS_SYS_URL =
-  'https://script.google.com/macros/s/AKfycbz-_mGdrZ5_EhllBCbYcqm0F22N89xocvK11Iz7gqGFXTGr3ki00CZed91jsYiYZ9r9Tw/exec';
-
-const GAS_ADS_URL =
-  'https://script.google.com/macros/s/AKfycbxYdza5qUzIoCie-wMl-d0gBFQDgiy1jLf3jHAvJnt_H1hIeGL88M6JRn-lJhNnA3MVWg/exec';
+/* ========== GAS URLS ========== */
+const GAS_SYS_URL = 'https://script.google.com/macros/s/AKfycbz-_mGdrZ5_EhllBCbYcqm0F22N89xocvK11Iz7gqGFXTGr3ki00CZed91jsYiYZ9r9Tw/exec';
+const GAS_ADS_URL = 'https://script.google.com/macros/s/AKfycbxYdza5qUzIoCie-wMl-d0gBFQDgiy1jLf3jHAvJnt_H1hIeGL88M6JRn-lJhNnA3MVWg/exec';
 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
@@ -73,13 +68,11 @@ if (tg) {
 
 /* ========== HELPERS ========== */
 const $ = id => document.getElementById(id);
-
-function show(el) { el.hidden = false; }
-function hide(el) { el.hidden = true; }
-
+function show(el) { if (!el) return; try { el.hidden = false; } catch (e) { /* ignore */ } }
+function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
 function showPreloader() { show($('preloader')); }
 function hidePreloader() { hide($('preloader')); }
-
+let modalOnCloseCallback = null;
 function rand(len) {
   const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let s = '';
@@ -90,36 +83,45 @@ function rand(len) {
 }
 
 /* ========== MODAL ========== */
-function openModal(title, body, actions = []) {
+function openModal(title, body, actions = [], opts = {}) {
   $('modal-title').textContent = title;
-  $('modal-body').innerHTML = '';
+  const modalBody = $('modal-body');
+  if (modalBody) modalBody.innerHTML = '';
   if (typeof body === 'string') {
-    $('modal-body').textContent = body;
+    if (modalBody) modalBody.textContent = body;
   } else {
-    $('modal-body').appendChild(body);
+    if (modalBody) modalBody.appendChild(body);
   }
-
   const actionsBox = $('modal-actions');
-  actionsBox.innerHTML = '';
+  if (actionsBox) actionsBox.innerHTML = '';
   actions.forEach(a => {
     const b = document.createElement('button');
     b.className = a.class || 'btn btn--primary';
     b.textContent = a.text;
     b.disabled = a.disabled || false;
     b.onclick = () => {
-      if (a.onClick) a.onClick();
-      closeModal();
+      try {
+        if (a.onClick) a.onClick();
+      } finally {
+        // prevent close handler from running again when action already handled
+        modalOnCloseCallback = null;
+        closeModal();
+      }
     };
-    actionsBox.appendChild(b);
+    if (actionsBox) actionsBox.appendChild(b);
   });
-
+  // set optional on-close callback (for close icon behavior)
+  modalOnCloseCallback = opts.onClose || null;
   show($('modal-overlay'));
 }
-
 function closeModal() {
+  // if there's a special on-close callback, call it
+  if (modalOnCloseCallback) {
+    try { modalOnCloseCallback(); } catch (e) { /* ignore */ }
+    modalOnCloseCallback = null;
+  }
   hide($('modal-overlay'));
 }
-
 $('modal-close').onclick = closeModal;
 
 /* ========== STORAGE ========== */
@@ -130,7 +132,7 @@ const LS = {
   theme: 'theme'
 };
 
-/* ========== I18N (МИНИМАЛЬНО) ========== */
+/* ========== I18N ========== */
 const i18n = {
   ru: {
     appTitle: 'Покупка рекламы',
@@ -159,10 +161,10 @@ const i18n = {
     priorityLabel: 'Приоритет',
     prioWeak: 'Слабый',
     prioNormal: 'Нормальный',
-    prioGood: 'Хороший (10)',
-    prioHigh: 'Высокий (20)',
-    prioVeryHigh: 'Очень высокий (40)',
-    prioUltra: 'УЛЬТРА (60)',
+    prioGood: 'Хороший (10💎)',
+    prioHigh: 'Высокий (20💎)',
+    prioVeryHigh: 'Очень высокий (40💎)',
+    prioUltra: 'УЛЬТРА (60💎)',
     platformLabel: 'Площадка рекламы',
     plAny: 'Не важно',
     plChNick: 'Канал “Создать никнейм”',
@@ -172,16 +174,17 @@ const i18n = {
     plBotCity: 'Бот “Создай свой город”',
     plBotGame: 'Бот “Игровой бот”',
     plMiniPhoto: 'Мини-приложение “Сгенерировать фото”',
-    plSupport: 'Бот “Служба поддержки” (20)',
+    plSupport: 'Бот “Служба поддержки” (20💎)',
     adFooterLabel: 'Рекламный текст',
     adFooterNeedText: 'Сначала добавьте текст рекламы',
     adFooterInfoTitle: 'Текст приписки:',
     adFooterText: 'Эта реклама создана на площадке: @buyAdss_bot .',
     footerTop: 'Сверху',
     footerBottom: 'Снизу',
-    footerRemove: 'Убрать текст рекламы',
+    footerRemove: 'Убрать рекламный текст из текста рекламы',
     commentsLabel: 'Включить комментарии',
     createBtn: 'Создать рекламу',
+    saveChanges: 'Сохранить изменения',
     createHint: 'После создания реклама уйдёт на проверку.',
     myAdsTitle: 'Мои рекламы',
     noAdsTitle: 'Пока нет реклам',
@@ -190,6 +193,7 @@ const i18n = {
     crystalsNow: 'Текущее количество ваших кристаллов:',
     buyCrystalsTitle: 'Выберите сколько кристаллов вы хотите купить.',
     starsOnly: '(Принимаются только Telegram Stars🌟)',
+    buyCrystalsBtn: '{crystals} 💎 за {price} ⭐',
     settingsTitle: 'Настройки',
     langSetting: 'Язык',
     themeSetting: 'Тема',
@@ -234,6 +238,7 @@ const i18n = {
     youHavePending: 'У вас есть реклама на проверке. Дождитесь решения.',
     failedToSaveAd: 'Не удалось сохранить рекламу',
     adSentForReview: 'Реклама отправлена на проверку',
+    adEdited: 'Реклама отредактирована.',
     actionPerformed: 'Действие выполнено',
     failedToPerform: 'Не удалось выполнить действие',
     userBanned: 'Пользователь заблокирован',
@@ -261,7 +266,24 @@ const i18n = {
     buyCrystals: 'Купить кристаллы',
     crystalsAdded: 'Кристаллы добавлены!',
     failedToAddCrystals: 'Не удалось добавить кристаллы',
-    failedToCreateInvoice: 'Не удалось создать инвойс'
+    failedToCreateInvoice: 'Не удалось создать инвойс',
+    edit: 'Редактировать',
+    delete: 'Удалить',
+    deleteAll: 'Удалить все рекламы',
+    viewed: 'Рекламу посмотрели:',
+    enabled: 'Включены',
+    disabled: 'Выключены',
+    telegramID: 'Telegram ID',
+    tokenLabel: 'Токен',
+    footerLabel: 'Рекламный текст', //Для меню "Мои рекламы",
+    adName: 'Название рекламы',
+    comments: 'Комментарии',
+    footerText: 'Рекламный текст',
+    crystalsSpent: 'Кристаллов потрачено',
+    status: 'Статус',
+    noFooter: 'Убрано',
+    footerTop: 'Сверху',
+    footerBottom: 'Снизу'
   },
   en: {
     appTitle: 'Ad Purchase',
@@ -290,10 +312,10 @@ const i18n = {
     priorityLabel: 'Priority',
     prioWeak: 'Weak',
     prioNormal: 'Normal',
-    prioGood: 'Good (10)',
-    prioHigh: 'High (20)',
-    prioVeryHigh: 'Very high (40)',
-    prioUltra: 'ULTRA (60)',
+    prioGood: 'Good (10💎)',
+    prioHigh: 'High (20💎)',
+    prioVeryHigh: 'Very high (40💎)',
+    prioUltra: 'ULTRA (60💎)',
     platformLabel: 'Ad platform',
     plAny: 'Any',
     plChNick: 'Channel “Create nickname”',
@@ -303,16 +325,17 @@ const i18n = {
     plBotCity: 'Bot “Create your city”',
     plBotGame: 'Bot “Game bot”',
     plMiniPhoto: 'Mini-app “Generate photo”',
-    plSupport: 'Bot “Support” (20)',
+    plSupport: 'Bot “Support” (20💎)',
     adFooterLabel: 'Ad footer',
     adFooterNeedText: 'Add ad text first',
     adFooterInfoTitle: 'Footer text:',
     adFooterText: 'This ad was created on the platform: @buyAdss_bot .',
     footerTop: 'Top',
     footerBottom: 'Bottom',
-    footerRemove: 'Remove ad text',
+    footerRemove: 'Remove advertising text from the ad text',
     commentsLabel: 'Enable comments',
     createBtn: 'Create ad',
+    saveChanges: 'Save changes',
     createHint: 'After creation, the ad will go for review.',
     myAdsTitle: 'My ads',
     noAdsTitle: 'No ads yet',
@@ -321,6 +344,7 @@ const i18n = {
     crystalsNow: 'Your current crystals:',
     buyCrystalsTitle: 'Choose how many crystals to buy.',
     starsOnly: '(Only Telegram Stars🌟 accepted)',
+    buyCrystalsBtn: '{crystals} 💎 for {price} ⭐',
     settingsTitle: 'Settings',
     langSetting: 'Language',
     themeSetting: 'Theme',
@@ -365,6 +389,7 @@ const i18n = {
     youHavePending: 'You have a pending ad. Wait for review.',
     failedToSaveAd: 'Failed to save ad',
     adSentForReview: 'Ad sent for review',
+    adEdited: 'Ad edited.',
     actionPerformed: 'Action performed',
     failedToPerform: 'Failed to perform action',
     userBanned: 'User banned',
@@ -392,15 +417,52 @@ const i18n = {
     buyCrystals: 'Buy crystals',
     crystalsAdded: 'Crystals added!',
     failedToAddCrystals: 'Failed to add crystals',
-    failedToCreateInvoice: 'Failed to create invoice'
+    failedToCreateInvoice: 'Failed to create invoice',
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteAll: 'Delete all ads',
+    viewed: 'Ad viewed:',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    telegramID: 'Telegram ID',
+    tokenLabel: 'Token',
+    footerLabel: 'Advertising text', //Для меню "Мои рекламы",
+    adName: 'Ad name',
+    comments: 'Comments',
+    footerText: 'Ad footer',
+    crystalsSpent: 'Crystals spent',
+    status: 'Status',
+    noFooter: 'Removed',
+    footerTop: 'Top',
+    footerBottom: 'Bottom'
   }
 };
-function applyLang(lang) {
-// ==========================
-// User Token / User ID init
-// ==========================
 
-// Генерация случайной строки
+function applyLang(lang) {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (i18n[lang]?.[key]) {
+      el.textContent = i18n[lang][key];
+    }
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    if (i18n[lang]?.[key]) {
+      el.placeholder = i18n[lang][key];
+    }
+  });
+  document.title = i18n[lang].appTitle;
+  if (! $('screen-main').hidden) showMainMenu();
+  if (! $('screen-crystals').hidden) loadCrystals();
+  if (! $('screen-myads').hidden) loadMyAds();
+  if (! $('screen-create').hidden) {
+    const span = $('btn-create-ad').querySelector('span');
+    span.dataset.i18n = editMode ? 'saveChanges' : 'createBtn';
+    span.textContent = i18n[lang][editMode ? 'saveChanges' : 'createBtn'];
+  }
+}
+
+/* ========== USER TOKEN / ID (исправленный) ========== */
 function generateRandomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -410,70 +472,26 @@ function generateRandomString(length) {
   return result;
 }
 
-// Генерация числового ID
-function generateNumericID(length) {
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += Math.floor(Math.random() * 10);
-  }
-  return result;
-}
+let telegramUserId = tg?.initDataUnsafe?.user?.id;
 
-// Проверка и создание токена
+if (telegramUserId) {
+  localStorage.setItem('get_UserID', telegramUserId.toString());
+} else if (!localStorage.getItem('get_UserID')) {
+  // fallback только если Telegram ID отсутствует
+  localStorage.setItem('get_UserID', generateRandomString(12));
+}
+console.log('Telegram User ID:', telegramUserId);
+
 if (!localStorage.getItem('get_UserToken')) {
-  const token = generateRandomString(16);
-  localStorage.setItem('get_UserToken', token);
+  localStorage.setItem('get_UserToken', generateRandomString(16));
 }
-
-// Проверка и создание User ID
 if (!localStorage.getItem('get_UserID')) {
-  const userID = generateNumericID(12);
+  const userID = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id.toString() : generateRandomString(12);
   localStorage.setItem('get_UserID', userID);
 }
 
-// Для удобства
 const USER_TOKEN = localStorage.getItem('get_UserToken');
 const USER_ID = localStorage.getItem('get_UserID');
-
-console.log('USER_TOKEN:', USER_TOKEN);
-console.log('USER_ID:', USER_ID);
-
-// Перевод элементов с data-i18n
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    if (i18n[lang]?.[key]) {
-      el.textContent = i18n[lang][key];
-    }
-  });
-
-  // Перевод placeholder'ов
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    if (i18n[lang]?.[key]) {
-      el.placeholder = i18n[lang][key];
-    }
-  });
-
-  // Перевод <title>
-  const titleElement = document.querySelector('title[data-i18n="appTitle"]');
-  if (titleElement && i18n[lang]?.appTitle) {
-    titleElement.textContent = i18n[lang].appTitle;
-  } else if (i18n[lang]?.appTitle) {
-    document.title = i18n[lang].appTitle;
-  }
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    if (i18n[lang] && i18n[lang][key]) {
-      el.textContent = i18n[lang][key];
-    }
-  });
-  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    const key = el.dataset.i18nPlaceholder;
-    if (i18n[lang] && i18n[lang][key]) {
-      el.placeholder = i18n[lang][key];
-    }
-  });
-}
 
 /* ========== THEME ========== */
 function applyTheme(theme) {
@@ -482,7 +500,7 @@ function applyTheme(theme) {
     document.body.classList.add('theme-light');
   } else if (theme === 'dark') {
     document.body.classList.add('theme-dark');
-  } else { // system
+  } else {
     if (window.matchMedia('(prefers-color-scheme: light)').matches) {
       document.body.classList.add('theme-light');
     } else {
@@ -491,32 +509,15 @@ function applyTheme(theme) {
   }
 }
 
-/* ========== SYSTEM SETTINGS ========== */
-let systemSettings = { appOpen: true, createEnabled: true };
-
-async function fetchSystemSettings() {
-  showPreloader();
-  try {
-    const res = await fetch(`${GAS_SYS_URL}?action=getSystemSettings`, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    systemSettings = data;
-  } catch (e) {
-    console.warn('Failed to fetch system settings:', e);
-  } finally {
-    hidePreloader();
-  }
-}
-
-/* ========== CHECK USER STATUS ========== */
+/* ========== CHECK USER STATUS (локально) ========== */
 async function checkUserStatus(isAdmin) {
   const userID = localStorage.getItem(LS.id);
   const token = localStorage.getItem(LS.token);
   const lang = localStorage.getItem(LS.lang) || 'ru';
   showPreloader();
   try {
-    const res = await fetch(`${GAS_SYS_URL}?action=checkBan&userID=${userID}`, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    if (data.banned) {
+    const isBanned = banForeverAds.includes(userID) || blockInApp.includes(userID);
+    if (isBanned) {
       hideAllScreens();
       show($('screen-blocked'));
       $('user-token-blocked').textContent = token;
@@ -524,13 +525,8 @@ async function checkUserStatus(isAdmin) {
       $('btn-copy-token-blocked').onclick = () => {
         navigator.clipboard.writeText(token).then(() => {
           const span = $('btn-copy-token-blocked').querySelector('span');
-          const originalText = span.textContent;
-          span.dataset.i18n = 'copied';
           span.textContent = i18n[lang].copied;
-          setTimeout(() => {
-            span.dataset.i18n = 'copy';
-            span.textContent = i18n[lang].copy;
-          }, 3000);
+          setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
         }).catch(() => {
           openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
         });
@@ -539,30 +535,26 @@ async function checkUserStatus(isAdmin) {
         b.onclick = () => {
           document.querySelectorAll('#blocked-lang-buttons .seg').forEach(x => x.classList.remove('active'));
           b.classList.add('active');
-          const lang = b.dataset.value;
-          localStorage.setItem(LS.lang, lang);
-          applyLang(lang);
+          const langVal = b.dataset.value;
+          localStorage.setItem(LS.lang, langVal);
+          applyLang(langVal);
         };
       });
       return false;
     }
-    return true;
-  } catch (e) {
-    console.warn('Failed to check ban:', e);
     return true;
   } finally {
     hidePreloader();
   }
 }
 
-/* ========== CHECK APP OPEN ========== */
-async function checkAppOpen(isAdmin) {
+/* ========== CHECK APP OPEN (локально) ========== */
+function checkAppOpen(isAdmin) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  await fetchSystemSettings();
-  if (!systemSettings.appOpen && !isAdmin) {
+  if (closeApp === 'closed' && !isAdmin) {
     hideAllScreens();
     openModal(i18n[lang].attentionTitle, i18n[lang].appClosed, []);
-    $('modal-close').hidden = true; // Can't close
+    $('modal-close').hidden = true;
     return false;
   }
   return true;
@@ -572,14 +564,12 @@ async function checkAppOpen(isAdmin) {
 function firstEntry(lang) {
   localStorage.setItem(LS.lang, lang);
   localStorage.setItem(LS.token, rand(16));
-  localStorage.setItem(LS.id, rand(8));
-
-  openModal(
-    i18n[lang].rulesTitle,
-    RULES_TEXT[lang],
-    [{ text: 'OK' }]
-  );
-
+  localStorage.setItem('crystals', '50');
+  localStorage.setItem('adsCount', '0');
+  const pre = document.createElement('pre');
+  pre.className = 'rules__text';
+  pre.textContent = RULES_TEXT[lang];
+  openModal(i18n[lang].rulesTitle, pre, [{ text: 'OK' }]);
   applyLang(lang);
   showMainMenu();
 }
@@ -587,44 +577,55 @@ function firstEntry(lang) {
 /* ========== MAIN MENU ========== */
 let currentCrystals = 0;
 
+async function updateAdsCount() {
+  try {
+    // Fetch pending and all ads, then count only non-rejected ads + pending
+    const userID = localStorage.getItem(LS.id);
+    const [pendingRes, approvedRes] = await Promise.all([
+      fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${userID}`),
+      fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${userID}`)
+    ]);
+    const pending = await pendingRes.json();
+    const approved = await approvedRes.json();
+    // approved may include ads with status 'rejected' — exclude them
+    const approvedCount = Array.isArray(approved) ? approved.filter(a => (a.status || 'approved') !== 'rejected').length : 0;
+    const count = (Array.isArray(pending) ? pending.length : 0) + approvedCount;
+    $('ads-count').textContent = count;
+    localStorage.setItem('adsCount', String(count));
+  } catch (e) {
+    // Fallback: try legacy endpoint or localStorage
+    try {
+      const res = await fetch(`${GAS_SYS_URL}?action=getAdsCount&userID=${localStorage.getItem(LS.id)}`);
+      const data = await res.json();
+      $('ads-count').textContent = data.ads;
+      localStorage.setItem('adsCount', data.ads);
+    } catch (err) {
+      $('ads-count').textContent = localStorage.getItem('adsCount') || 0;
+    }
+  }
+  $('nav-myads').disabled = parseInt(localStorage.getItem('adsCount')) === 0;
+}
+
 async function showMainMenu() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
   const isAdmin = ADMIN_TOKENS.includes(token);
 
   if (!await checkUserStatus(isAdmin)) return;
-  if (!await checkAppOpen(isAdmin)) return;
+  if (!checkAppOpen(isAdmin)) return;
 
   hideAllScreens();
   show($('screen-main'));
-
   $('user-token').textContent = token;
-
   $('nav-admin').hidden = !isAdmin;
 
-  showPreloader();
-  try {
-    const url = `${GAS_SYS_URL}?action=getAdsCount&userID=${localStorage.getItem(LS.id)}`;
-    const res = await fetch(url, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    $('ads-count').textContent = data.ads || 0;
-    currentCrystals = data.crystals || 0;
-    $('crystals-count').textContent = currentCrystals;
-    $('crystals-now').textContent = currentCrystals;
+  await updateAdsCount();
+  currentCrystals = parseInt(localStorage.getItem('crystals')) || 0;
+  $('crystals-count').textContent = currentCrystals;
+  $('crystals-now').textContent = currentCrystals;
 
-    $('nav-myads').disabled = (data.ads || 0) === 0;
-  } catch (e) {
-    console.warn('GAS fetch error (CORS):', e);
-    $('ads-count').textContent = '0';
-    currentCrystals = 0;
-    $('crystals-count').textContent = '0';
-    $('nav-myads').disabled = true;
-  } finally {
-    hidePreloader();
-  }
-
-  // Disable create if not enabled
-  $('nav-create').disabled = !systemSettings.createEnabled;
+  // Локальное отключение создания
+  $('nav-create').disabled = disableCreateAds === 'disabled';
 }
 
 /* ========== NAVIGATION ========== */
@@ -633,6 +634,7 @@ function hideAllScreens() {
 }
 
 $('btn-open-settings').onclick = () => {
+  previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
   hideAllScreens();
   show($('screen-settings'));
 };
@@ -646,36 +648,48 @@ $('nav-admin').onclick = () => {
   }
   hideAllScreens();
   show($('screen-admin'));
-  updateAdminToggles(); // Update toggle texts
 };
 
-$('nav-create').onclick = async () => {
+$('nav-create').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (!systemSettings.createEnabled) {
+  if (disableCreateAds === 'disabled') {
     openModal(i18n[lang].errorTitle, i18n[lang].createDisabled);
     return;
   }
-  // Check if has pending
-  const userID = localStorage.getItem(LS.id);
-  showPreloader();
-  try {
-    const res = await fetch(`${GAS_SYS_URL}?action=hasPending&userID=${userID}`, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    if (data.hasPending) {
-      openModal(i18n[lang].errorTitle, i18n[lang].youHavePending);
-      return;
-    }
-  } catch (e) {
-    console.warn('Failed to check pending:', e);
-  } finally {
-    hidePreloader();
-  }
+  // Show create screen immediately
+  editMode = false;
+  resetCreateForm();
   hideAllScreens();
   show($('screen-create'));
-  $('btn-create-ad').disabled = !systemSettings.createEnabled;
-  if ($('crystals-in-create')) {
-    $('crystals-in-create').textContent = currentCrystals;
+  const createBtn = $('btn-create-ad');
+  if (createBtn) {
+    createBtn.disabled = true; // disable until pending-check completes
+    const span = createBtn.querySelector('span');
+    if (span) span.textContent = i18n[lang].loading;
   }
+  $('crystals-in-create').textContent = currentCrystals;
+
+  // Run pending check in background; if user has pending ad — inform and return to main
+  (async () => {
+    try {
+      const userID = localStorage.getItem(LS.id);
+      const res = await fetch(`${GAS_SYS_URL}?action=hasPending&userID=${userID}`);
+      const data = await res.json();
+      if (data.hasPending) {
+        openModal(i18n[lang].errorTitle, i18n[lang].youHavePending);
+        await showMainMenu();
+        return;
+      }
+    } catch (e) {
+      // network error — allow user to proceed but re-enable button
+    } finally {
+      if (createBtn) {
+        createBtn.disabled = disableCreateAds === 'disabled';
+        const span = createBtn.querySelector('span');
+        if (span) span.textContent = i18n[lang].createBtn;
+      }
+    }
+  })();
 };
 
 $('nav-myads').onclick = () => {
@@ -685,15 +699,17 @@ $('nav-myads').onclick = () => {
 };
 
 $('nav-settings').onclick = () => {
+  previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
   hideAllScreens();
   show($('screen-settings'));
 };
 
 $('nav-rules').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  openModal(i18n[lang].rulesTitle, RULES_TEXT[lang], [
-    { text: 'OK' }
-  ]);
+  const pre = document.createElement('pre');
+  pre.className = 'rules__text';
+  pre.textContent = RULES_TEXT[lang];
+  openModal(i18n[lang].rulesTitle, pre, [{ text: 'OK' }]);
 };
 
 $('nav-report').onclick = () => {
@@ -707,45 +723,94 @@ $('nav-crystals').onclick = () => {
 };
 
 /* BACK */
-[
-  'back-from-create',
-  'back-from-myads',
-  'back-from-settings',
-  'back-from-crystals',
-  'back-from-admin'
-].forEach(id => {
+let previousScreen = 'screen-main';
+['back-from-create','back-from-myads','back-from-crystals','back-from-admin'].forEach(id => {
   const el = $(id);
   if (el) el.onclick = showMainMenu;
 });
 
+// Special handling for back-from-settings
+$('back-from-settings').onclick = () => {
+  hideAllScreens();
+  show($(previousScreen));
+};
+
 /* ========== CREATE AD LOGIC ========== */
+let editMode = false;
+let editName = '';
+let editStatus = '';
+let editCost = 0; // Cost of the current ad being edited
 let commentsEnabled = false;
 let selectedPriority = null;
 let selectedPlatform = null;
 let videoFile = null;
 let footer = 'top';
+let currentVideoUrl = '';
 
-/* toggle comments */
+function resetCreateForm() {
+  $('ad-text').value = '';
+  videoFile = null;
+  $('video-input').value = '';
+  editCost = 0;
+  hide($('video-meta'));
+  hide($('btn-remove-video'));
+  hide($('current-video'));
+  commentsEnabled = false;
+  $('toggle-comments-ico').className = 'fa-solid fa-toggle-off fa-2xl';
+  document.querySelectorAll('#priority-buttons .seg').forEach(x => x.classList.remove('active'));
+  const prioFirst = document.querySelector('#priority-buttons .seg:first-child');
+  if (prioFirst) prioFirst.classList.add('active');
+  selectedPriority = prioFirst ? prioFirst.dataset.value : null;
+  document.querySelectorAll('#platform-buttons .seg').forEach(x => x.classList.remove('active'));
+  const platFirst = document.querySelector('#platform-buttons .seg:first-child');
+  if (platFirst) platFirst.classList.add('active');
+  selectedPlatform = platFirst ? platFirst.dataset.value : null;
+  document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
+  const footerTop = $('footer-top');
+  if (footerTop) footerTop.classList.add('active');
+  footer = 'top';
+  show($('ad-footer-empty'));
+  hide($('ad-footer-controls'));
+}
+
+// Обновляет превью текста с учётом позиции рекламного текста
+function updatePreview() {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const adFooterText = i18n[lang].adFooterText || 'Эта реклама создана на площадке: @buyAdss_bot .';
+  const text = ($('ad-text') && $('ad-text').value) ? $('ad-text').value : '';
+  const previewEl = $('preview-text');
+  if (!previewEl) return;
+  let out = '';
+  if (footer === 'top') {
+    out = adFooterText + '\n\n' + text;
+  } else if (footer === 'bottom') {
+    out = text + '\n\n' + adFooterText;
+  } else { // 'none'
+    out = text;
+  }
+  previewEl.textContent = out;
+}
+
 $('toggle-comments').onclick = () => {
   commentsEnabled = !commentsEnabled;
-  $('toggle-comments-ico').className =
-    commentsEnabled
-      ? 'fa-solid fa-toggle-on fa-2xl'
-      : 'fa-solid fa-toggle-off fa-2xl';
-  $('toggle-comments-ico').style.color = '#343ca2';
+  $('toggle-comments-ico').className = commentsEnabled ? 'fa-solid fa-toggle-on fa-2xl' : 'fa-solid fa-toggle-off fa-2xl';
 };
 
-/* priority buttons */
+const commentsLabel = document.querySelector('.row--between .field__label[data-i18n="commentsLabel"]');
+if (commentsLabel) commentsLabel.onclick = () => $('toggle-comments').click();
+
 document.querySelectorAll('#priority-buttons .seg').forEach(b => {
   b.onclick = async () => {
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const cost = parseInt(b.dataset.cost) || 0;
-    if (cost > currentCrystals) {
-      openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
-      return;
-    }
     let confirmed = true;
     if (cost > 0) {
+      // When editing, need to check if user has enough crystals (considering what was already spent)
+      const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
+      if (cost > availableCrystals) {
+        openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+        return;
+      }
       confirmed = await new Promise(resolve => {
         openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${b.textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}${cost}${i18n[lang].confirmCrystals}`, [
           { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
@@ -754,24 +819,24 @@ document.querySelectorAll('#priority-buttons .seg').forEach(b => {
       });
     }
     if (!confirmed) return;
-    document.querySelectorAll('#priority-buttons .seg')
-      .forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('#priority-buttons .seg').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     selectedPriority = b.dataset.value;
   };
 });
 
-/* platform buttons */
 document.querySelectorAll('#platform-buttons .seg').forEach(b => {
   b.onclick = async () => {
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const cost = parseInt(b.dataset.cost) || 0;
-    if (cost > currentCrystals) {
-      openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
-      return;
-    }
     let confirmed = true;
     if (cost > 0) {
+      // When editing, need to check if user has enough crystals (considering what was already spent)
+      const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
+      if (cost > availableCrystals) {
+        openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+        return;
+      }
       confirmed = await new Promise(resolve => {
         openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${b.textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}${cost}${i18n[lang].confirmCrystals}`, [
           { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
@@ -780,32 +845,25 @@ document.querySelectorAll('#platform-buttons .seg').forEach(b => {
       });
     }
     if (!confirmed) return;
-    document.querySelectorAll('#platform-buttons .seg')
-      .forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('#platform-buttons .seg').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     selectedPlatform = b.dataset.value;
   };
 });
 
-/* video */
 $('btn-pick-video').onclick = () => $('video-input').click();
-
 $('video-input').onchange = e => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const f = e.target.files[0];
   if (!f) return;
-
   if (!f.type.startsWith('video/')) {
     openModal(i18n[lang].errorTitle, i18n[lang].onlyVideoFiles);
     return;
   }
-
   if (f.size > 50 * 1024 * 1024) {
     openModal(i18n[lang].errorTitle, i18n[lang].maxFileSize);
     return;
   }
-
-  // Get duration
   const video = document.createElement('video');
   video.src = URL.createObjectURL(f);
   video.onloadedmetadata = () => {
@@ -816,12 +874,12 @@ $('video-input').onchange = e => {
     }
     $('video-duration').textContent = dur + 's';
   };
-
   videoFile = f;
   $('video-name').textContent = f.name;
   $('video-size').textContent = (f.size / 1024 / 1024).toFixed(1) + ' MB';
   show($('video-meta'));
   show($('btn-remove-video'));
+  hide($('current-video'));
 };
 
 $('btn-remove-video').onclick = () => {
@@ -829,181 +887,209 @@ $('btn-remove-video').onclick = () => {
   $('video-input').value = '';
   hide($('video-meta'));
   hide($('btn-remove-video'));
+  if (editMode && currentVideoUrl) show($('current-video'));
 };
 
-/* ad text input */
 $('ad-text').oninput = () => {
   const text = $('ad-text').value.trim();
   const valid = text.length > 0 && text.length <= 500 && /(https:\/\/|t\.me\/|@)/i.test(text);
   if (valid) {
     hide($('ad-footer-empty'));
     show($('ad-footer-controls'));
+    updatePreview();
   } else {
     show($('ad-footer-empty'));
     hide($('ad-footer-controls'));
   }
 };
-
-/* footer buttons */
 $('footer-top').onclick = () => {
-  document.querySelectorAll('#ad-footer-controls .btn')
-    .forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
   $('footer-top').classList.add('active');
   footer = 'top';
+  updatePreview();
 };
-
 $('footer-bottom').onclick = () => {
-  document.querySelectorAll('#ad-footer-controls .btn')
-    .forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
   $('footer-bottom').classList.add('active');
   footer = 'bottom';
+  updatePreview();
 };
-
 $('footer-remove').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (10 > currentCrystals) {
-    openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
-    return;
+  const cost = 10;
+  let confirmed = true;
+  if (!editMode) {
+    if (cost > currentCrystals) {
+      openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+      return;
+    }
+    confirmed = await new Promise(resolve => {
+      openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${$('footer-remove').textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}${cost}${i18n[lang].confirmCrystals}`, [
+        { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
+        { text: i18n[lang].yes, class: 'btn btn--primary', onClick: () => resolve(true) }
+      ]);
+    });
   }
-  let confirmed = false;
-  await new Promise(resolve => {
-    openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${$('footer-remove').textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}10${i18n[lang].confirmCrystals}`, [
-      { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
-      { text: i18n[lang].yes, class: 'btn btn--primary', onClick: () => resolve(true) }
-    ]);
-  });
   if (!confirmed) return;
-  document.querySelectorAll('#ad-footer-controls .btn')
-    .forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
   $('footer-remove').classList.add('active');
   footer = 'none';
+  updatePreview();
 };
 
-// Default footer top active
-if ($('footer-top')) $('footer-top').classList.add('active');
-
-/* CREATE */
 $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (!systemSettings.createEnabled) {
+
+  if (disableCreateAds === 'disabled') {
     openModal(i18n[lang].errorTitle, i18n[lang].createDisabled);
     return;
   }
 
   const text = $('ad-text').value.trim();
+  if (!text) return openModal(i18n[lang].errorTitle, i18n[lang].adTextRequired);
+  if (!/(https:\/\/|t\.me\/|@)/i.test(text)) return openModal(i18n[lang].errorTitle, i18n[lang].linkRequired);
+  if (!videoFile && !editMode) return openModal(i18n[lang].errorTitle, i18n[lang].videoRequired);
+  if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].errorTitle, i18n[lang].selectPrioAndPlat);
 
-  if (!text) {
-    openModal(i18n[lang].errorTitle, i18n[lang].adTextRequired);
-    return;
-  }
-
-  if (!/(https:\/\/|t\.me\/|@)/i.test(text)) {
-    openModal(i18n[lang].errorTitle, i18n[lang].linkRequired);
-    return;
-  }
-
-  if (!videoFile) {
-    openModal(i18n[lang].errorTitle, i18n[lang].videoRequired);
-    return;
-  }
-
-  if (!selectedPriority || !selectedPlatform) {
-    openModal(i18n[lang].errorTitle, i18n[lang].selectPrioAndPlat);
-    return;
+  let totalCost = 0;
+  if (!editMode) {
+    const prioCost = parseInt(document.querySelector('#priority-buttons .seg.active')?.dataset.cost) || 0;
+    const platCost = parseInt(document.querySelector('#platform-buttons .seg.active')?.dataset.cost) || 0;
+    const footerCost = footer === 'none' ? 10 : 0;
+    totalCost = prioCost + platCost + footerCost;
+    if (totalCost > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
   }
 
   showPreloader();
 
-  const adName = 'Ad_' + rand(12);
+  let adName = editMode ? editName : 'Ad_' + rand(12);
+  let url = editMode ? (editStatus === 'pending' ? GAS_SYS_URL : GAS_ADS_URL) : GAS_SYS_URL;
+  let action = editMode ? (editStatus === 'pending' ? 'updatePending' : 'updateAd') : 'saveAd';
 
   try {
-    // Upload video to Telegram bot
-    const formData = new FormData();
-    formData.append('chat_id', BOT_CHAT_ID);
-    formData.append('video', videoFile);
-    const uploadRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
-      method: 'POST',
-      body: formData
-    });
-    const uploadData = await uploadRes.json();
-    if (!uploadData.ok) {
-      throw new Error('Video upload failed');
+    if (!editMode) {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: `🆕 New ad\n${adName}\nID: ${USER_ID}` })
+      });
     }
-    const fileId = uploadData.result.video.file_id;
 
-    // Get file path
-    const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-    const fileData = await fileRes.json();
-    if (!fileData.ok) {
-      throw new Error('Get file failed');
+    let base64 = null;
+    if (videoFile) {
+      base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(videoFile);
+      });
     }
-    const filePath = fileData.result.file_path;
-    const videoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
 
-    // Notify admin
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: BOT_CHAT_ID,
-        text: `🆕 New ad\n${adName}\nID: ${localStorage.getItem(LS.id)}`
-      })
-    });
-
-    // Save to GAS (pending)
     const params = new URLSearchParams({
-      action: 'saveAd',
-      text,
-      videoUrl,
-      platform: selectedPlatform,
-      name: adName,
+      action, text, platform: selectedPlatform, name: adName,
       comments: commentsEnabled ? 1 : 0,
-      userID: localStorage.getItem(LS.id),
-      token: localStorage.getItem(LS.token),
-      priority: selectedPriority,
-      footer
+      userID: USER_ID, token: USER_TOKEN,
+      priority: selectedPriority, footer
     });
 
-    await fetch(`${GAS_SYS_URL}?${params.toString()}`, {
-      method: 'GET',
-      mode: 'cors'
+    if (videoFile) {
+      params.append('videoMimeType', videoFile.type);
+      params.append('videoFilename', videoFile.name);
+    }
+
+    const response = await fetch(`${url}?${params.toString()}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'   // ← это решает проблему CORS preflight
+      },
+      body: base64 || ''   // если видео нет — отправляем пустую строку
     });
 
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Failed to save');
+
+    if (!editMode) {
+      currentCrystals -= totalCost;
+      localStorage.setItem('crystals', currentCrystals.toString());
+      $('crystals-count').textContent = currentCrystals;
+      $('crystals-now').textContent = currentCrystals;
+      $('crystals-in-create').textContent = currentCrystals;
+    }
+
+    // ✅ Правильный вызов: OK и закрытие модалки → showMainMenu()
+    const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
     openModal(
       i18n[lang].doneTitle,
-      i18n[lang].adSentForReview,
-      [{ text: 'OK', onClick: showMainMenu }]
+      successMsg,
+      [{ text: 'OK', onClick: showMainMenu }],
+      { onClose: showMainMenu }
     );
 
-    // After create, check if app still open
-    await fetchSystemSettings();
-    checkAppOpen(ADMIN_TOKENS.includes(localStorage.getItem(LS.token)));
-
   } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToSaveAd);
+    openModal(i18n[lang].errorTitle, i18n[lang].failedToSaveAd + (e.message ? `: ${e.message}` : ''));
   } finally {
     hidePreloader();
   }
 };
+
+async function loadEditAd(ad) {
+  editCost = ad.cost || 0; // Store the cost of the current ad being edited
+  $('ad-text').value = ad.text;
+  currentVideoUrl = ad.videoUrl || '';
+  const currentVideo = $('current-video') || document.createElement('div');
+  currentVideo.id = 'current-video';
+  if (currentVideoUrl) {
+    currentVideo.innerHTML = `<a href="${currentVideoUrl}" target="_blank">${i18n[localStorage.getItem(LS.lang) || 'ru'].videoLabel}</a>`;
+    const videoField = document.querySelector('.field [data-i18n="videoLabel"]').parentNode;
+    videoField.appendChild(currentVideo);
+    show(currentVideo);
+  }
+  commentsEnabled = ad.comments == 1;
+  $('toggle-comments-ico').className = commentsEnabled ? 'fa-solid fa-toggle-on fa-2xl' : 'fa-solid fa-toggle-off fa-2xl';
+  const prioBtn = document.querySelector(`#priority-buttons .seg[data-value="${ad.priority}"]`);
+  if (prioBtn) {
+    document.querySelectorAll('#priority-buttons .seg').forEach(x => x.classList.remove('active'));
+    prioBtn.classList.add('active');
+    selectedPriority = ad.priority;
+  }
+  const platBtn = document.querySelector(`#platform-buttons .seg[data-value="${ad.platform}"]`);
+  if (platBtn) {
+    document.querySelectorAll('#platform-buttons .seg').forEach(x => x.classList.remove('active'));
+    platBtn.classList.add('active');
+    selectedPlatform = ad.platform;
+  }
+  document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
+  if (ad.footer) {
+    const footerBtn = $(`footer-${ad.footer}`);
+    if (footerBtn) footerBtn.classList.add('active');
+    footer = ad.footer;
+  } else {
+    const footerTop = $('footer-top');
+    if (footerTop) footerTop.classList.add('active');
+    footer = 'top';
+  }
+  if (editStatus === 'approved') {
+    const footerField = document.querySelector('.field [data-i18n="adFooterLabel"]').parentNode;
+    if (footerField) footerField.hidden = true;
+  }
+  if ($('ad-text').value) {
+    hide($('ad-footer-empty'));
+    show($('ad-footer-controls'));
+  }
+}
 
 /* ========== SETTINGS ========== */
 $('btn-copy-token').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   navigator.clipboard.writeText(localStorage.getItem(LS.token)).then(() => {
     const span = $('btn-copy-token').querySelector('span');
-    const originalText = span.textContent;
-    span.dataset.i18n = 'copied';
     span.textContent = i18n[lang].copied;
-    setTimeout(() => {
-      span.dataset.i18n = 'copy';
-      span.textContent = i18n[lang].copy;
-    }, 3000);
+    setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
   }).catch(() => {
     openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
   });
 };
 
-// Language buttons
 document.querySelectorAll('#settings-lang-buttons .seg').forEach(b => {
   b.onclick = () => {
     document.querySelectorAll('#settings-lang-buttons .seg').forEach(x => x.classList.remove('active'));
@@ -1014,7 +1100,6 @@ document.querySelectorAll('#settings-lang-buttons .seg').forEach(b => {
   };
 });
 
-// Theme buttons
 document.querySelectorAll('#settings-theme-buttons .seg').forEach(b => {
   b.onclick = () => {
     document.querySelectorAll('#settings-theme-buttons .seg').forEach(x => x.classList.remove('active'));
@@ -1032,27 +1117,103 @@ async function loadMyAds() {
   const list = $('myads-list');
   list.innerHTML = '';
   try {
-    const res = await fetch(`${GAS_SYS_URL}?action=getMyAds&userID=${localStorage.getItem(LS.id)}`, { method: 'GET', mode: 'cors' });
-    const data = await res.json();
-    if (data.length === 0) {
+    const pendingRes = await fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${localStorage.getItem(LS.id)}`);
+    const pending = await pendingRes.json();
+    const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${localStorage.getItem(LS.id)}`);
+    const approved = await approvedRes.json();
+    const allAds = [...pending, ...approved];
+    if (allAds.length === 0) {
       show($('myads-empty'));
     } else {
       hide($('myads-empty'));
-      data.forEach(ad => {
-        const status = ad.status || 'pending';
-        const statusClass = status === 'pending' ? 'pill--pending' : status === 'approved' ? 'pill--success' : 'pill--danger';
-        const statusText = i18n[lang][status + 'Status'];
+      allAds.forEach(ad => {
+        const status = ad.status || 'approved';
+        const statusClass = status === 'pending' ? 'pill--pending' : 'pill--success';
+        const statusText = i18n[lang][status + 'Status'] || status;
+        const commentsText = ad.comments == 1 ? i18n[lang].enabled : i18n[lang].disabled;
+        const footerText = !ad.footer ? i18n[lang].noFooter : (ad.footer === 'top' ? i18n[lang].footerTop : i18n[lang].footerBottom);
         const card = document.createElement('div');
         card.className = 'card ad-card';
         card.innerHTML = `
           <div class="ad-card__head">
-            <div class="ad-card__name">${ad.name}</div>
+            <div><strong>${i18n[lang].adName}:</strong> ${ad.name}</div>
             <div class="pill ${statusClass}">${statusText}</div>
           </div>
-          <div class="ad-card__meta">Platform: ${ad.platform} • Priority: ${ad.priority}</div>
+          <div class="ad-card__details">
+            <p><strong>${i18n[lang].platformLabel}:</strong> ${ad.platform}</p>
+            <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
+            <p><strong>${i18n[lang].comments}:</strong> ${commentsText}</p>
+            <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
+            <p><strong>${i18n[lang].crystalsSpent}:</strong> ${ad.cost || 0}</p>
+            <p><strong>${i18n[lang].status}:</strong> ${statusText}</p>
+          </div>
+          <div class="row">
+            <button class="btn btn--ghost edit-btn">${i18n[lang].edit}</button>
+            <button class="btn btn--danger delete-btn" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
+          </div>
+          ${status === 'approved' ? `<p style="font-size:12px; color:#888; margin-top:8px;">${i18n[lang].viewed} ${ad.views || 0}</p>` : ''}
         `;
+        card.querySelector('.edit-btn').onclick = () => {
+          editMode = true;
+          editName = ad.name;
+          editStatus = status;
+          hideAllScreens();
+          show($('screen-create'));
+          $('btn-create-ad').querySelector('span').textContent = i18n[lang].saveChanges;
+          $('crystals-in-create').textContent = currentCrystals;
+          loadEditAd(ad);
+        };
+        card.querySelector('.delete-btn').onclick = async () => {
+          if (status === 'pending') return; // Should not reach here due to disabled attribute
+          const confirmed = await new Promise(resolve => {
+            openModal(i18n[lang].confirmTitle, i18n[lang].delete + '?', [
+              { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
+              { text: i18n[lang].yes, class: 'btn btn--danger', onClick: () => resolve(true) }
+            ]);
+          });
+          if (!confirmed) return;
+          try {
+            await fetch(`https://script.google.com/macros/s/AKfycbzEd3CR8iqMQc9zMIRn2Dz_qf6LKMXKzmeKVD9EneofM8xuOIXOXh49lFtLqoZVE6tt/exec?elements=${encodeURIComponent(ad.name)}`);
+            await updateAdsCount();
+            loadMyAds();
+          } catch (e) {
+            console.warn('Failed to delete ad:', e);
+          }
+        };
         list.appendChild(card);
       });
+      
+      // Add "Delete All" button if there are ads
+      if (allAds.length > 0) {
+        const hasPending = allAds.some(ad => ad.status === 'pending');
+        const deleteAllCard = document.createElement('div');
+        deleteAllCard.className = 'card';
+        deleteAllCard.innerHTML = `
+          <button id="delete-all-btn" class="btn btn--danger btn--full" type="button" ${hasPending ? 'disabled' : ''}>
+            ${i18n[lang].deleteAll || 'Удалить все рекламы'}
+          </button>
+        `;
+        list.appendChild(deleteAllCard);
+        
+        $('delete-all-btn').onclick = async () => {
+          const confirmed = await new Promise(resolve => {
+            openModal(i18n[lang].confirmTitle, i18n[lang].deleteAll + '?', [
+              { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
+              { text: i18n[lang].yes, class: 'btn btn--danger', onClick: () => resolve(true) }
+            ]);
+          });
+          if (!confirmed) return;
+          try {
+            const adNames = allAds.map(ad => ad.name);
+            const elementsParam = JSON.stringify(adNames);
+            await fetch(`https://script.google.com/macros/s/AKfycbzEd3CR8iqMQc9zMIRn2Dz_qf6LKMXKzmeKVD9EneofM8xuOIXOXh49lFtLqoZVE6tt/exec?elements=${encodeURIComponent(elementsParam)}`);
+            await updateAdsCount();
+            loadMyAds();
+          } catch (e) {
+            console.warn('Failed to delete all ads:', e);
+          }
+        };
+      }
     }
   } catch (e) {
     console.warn('Failed to fetch my ads:', e);
@@ -1071,7 +1232,7 @@ function loadCrystals() {
   CRYSTALS_BUTTONS.forEach(item => {
     const b = document.createElement('button');
     b.className = 'btn btn--primary btn--full';
-    b.innerHTML = `${item.crystals} 💎 за ${item.price} ⭐`;
+    b.innerHTML = i18n[lang].buyCrystalsBtn.replace('{crystals}', item.crystals).replace('{price}', item.price);
     b.onclick = () => buyCrystals(item.crystals, item.price);
     container.appendChild(b);
   });
@@ -1098,8 +1259,8 @@ async function buyCrystals(amount, stars) {
       if (status.status === 'paid') {
         showPreloader();
         try {
-          await fetch(`${GAS_SYS_URL}?action=addCrystals&userID=${localStorage.getItem(LS.id)}&amount=${amount}`, {method: 'GET', mode: 'cors'});
           currentCrystals += amount;
+          localStorage.setItem('crystals', String(currentCrystals));
           $('crystals-now').textContent = currentCrystals;
           $('crystals-count').textContent = currentCrystals;
           if ($('crystals-in-create')) $('crystals-in-create').textContent = currentCrystals;
@@ -1117,13 +1278,6 @@ async function buyCrystals(amount, stars) {
 }
 
 /* ========== ADMIN FUNCTIONS ========== */
-async function updateAdminToggles() {
-  await fetchSystemSettings();
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  $('admin-toggle-create-text').textContent = systemSettings.createEnabled ? i18n[lang].adminDisableCreate : i18n[lang].adminEnableCreate;
-  $('admin-close-app-text').textContent = systemSettings.appOpen ? i18n[lang].adminCloseApp : i18n[lang].adminOpenApp;
-}
-
 $('admin-check').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   showPreloader();
@@ -1131,7 +1285,7 @@ $('admin-check').onclick = async () => {
   const list = $('admin-check-list');
   list.innerHTML = '';
   try {
-    const res = await fetch(`${GAS_SYS_URL}?action=getPendingAds`, { method: 'GET', mode: 'cors' });
+    const res = await fetch(`${GAS_SYS_URL}?action=getPendingAds`);
     const data = await res.json();
     data.forEach(ad => {
       const card = document.createElement('div');
@@ -1139,21 +1293,28 @@ $('admin-check').onclick = async () => {
       card.innerHTML = `
         <div class="ad-card__head">
           <div class="ad-card__name">${ad.name}</div>
-          <div class="pill pill--pending">Pending</div>
+          <div class="pill pill--pending">${i18n[lang].pendingStatus}</div>
         </div>
-        <div class="ad-card__meta">Platform: ${ad.platform} • Priority: ${ad.priority}</div>
+        <p>${i18n[lang].adTextLabel}: ${ad.text}</p>
+        <p>${i18n[lang].videoLabel}: <a href="${ad.videoUrl}" target="_blank">View</a></p>
+        <p>${i18n[lang].platformLabel}: ${ad.platform}</p>
+        <p>Name: ${ad.name}</p>
+        <p>Comments: ${ad.comments ? i18n[lang].enabled : i18n[lang].disabled}</p>
+        <p>${i18n[lang].telegramID}: ${ad.userID}</p>
+        <p>${i18n[lang].tokenLabel}: ${ad.token}</p>
+        <p>${i18n[lang].footerLabel}: ${ad.footer}</p>
+        <p>${i18n[lang].priorityLabel}: ${ad.priority}</p>
         <div class="row">
           <button class="btn btn--primary approve" data-i18n="approveBtn">Approve</button>
-          <button class="btn btn--ghost reject" data-i18n="rejectBtn">Reject</button>
-          <button class="btn btn--danger ban-creator" data-i18n="blockCreatorBtn">Block creator</button>
+          <button class="btn btn--ghost reject" data-i18n="rejectBtn" style='background:red;'>Reject</button>
         </div>
       `;
       card.querySelector('.approve').onclick = () => handleAdAction(ad.name, 'approve');
       card.querySelector('.reject').onclick = () => handleAdAction(ad.name, 'reject', ad.userID);
-      card.querySelector('.ban-creator').onclick = () => handleAdAction(ad.name, 'banUser', ad.userID);
+      
       list.appendChild(card);
     });
-    applyLang(lang); // Reapply lang for dynamic elements
+    applyLang(lang);
   } catch (e) {
     console.warn('Failed to fetch pending ads:', e);
   } finally {
@@ -1166,12 +1327,9 @@ async function handleAdAction(adName, action, userID = null) {
   showPreloader();
   try {
     let url = `${GAS_SYS_URL}?action=${action}&adName=${adName}`;
-    if (action === 'banUser' || action === 'reject') {
-      url += `&userID=${userID}`;
-    }
-    await fetch(url, { method: 'GET', mode: 'cors' });
+    if (action === 'reject' || action === 'banUser') url += `&userID=${userID}`;
+    await fetch(url);
     openModal(i18n[lang].doneTitle, i18n[lang].actionPerformed);
-    // Refresh list
     $('admin-check').click();
   } catch (e) {
     openModal(i18n[lang].errorTitle, i18n[lang].failedToPerform);
@@ -1187,18 +1345,19 @@ $('admin-restricted').onclick = async () => {
   const list = $('admin-restricted-list');
   list.innerHTML = '';
   try {
-    const res = await fetch(`${GAS_SYS_URL}?action=getBannedUsers`, { method: 'GET', mode: 'cors' });
+    const res = await fetch(`${GAS_SYS_URL}?action=getBannedUsers`);
     const data = await res.json();
-    data.forEach(user => {
+    data.forEach(u => {
       const item = document.createElement('div');
       item.className = 'note';
       item.innerHTML = `
-        Token: ${user.token}<br>
-        ID: ${user.id}<br>
-        Type: ${user.type} ${user.end_time ? '(ends ' + user.end_time + ')' : ''}<br>
+        ID: ${u.id}<br>
+        Token: ${u.token}<br>
+        Type: ${u.type}<br>
+        End: ${u.end_time || 'Permanent'}<br>
         <button class="btn btn--primary unban">Unban</button>
       `;
-      item.querySelector('.unban').onclick = () => handleUnban(user.id);
+      item.querySelector('.unban').onclick = () => handleUnban(u.id);
       list.appendChild(item);
     });
   } catch (e) {
@@ -1212,9 +1371,8 @@ async function handleUnban(userID) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   showPreloader();
   try {
-    await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`, { method: 'GET', mode: 'cors' });
+    await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
     openModal(i18n[lang].doneTitle, i18n[lang].banRemoved);
-    // Refresh list
     $('admin-restricted').click();
   } catch (e) {
     openModal(i18n[lang].errorTitle, i18n[lang].failedToUnban);
@@ -1223,107 +1381,20 @@ async function handleUnban(userID) {
   }
 }
 
-$('admin-toggle-create').onclick = async () => {
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  showPreloader();
-  try {
-    await fetch(`${GAS_SYS_URL}?action=toggleCreate`, { method: 'GET', mode: 'cors' });
-    await fetchSystemSettings();
-    updateAdminToggles();
-    openModal(i18n[lang].doneTitle, i18n[lang].settingChanged);
-  } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToChangeSetting);
-  } finally {
-    hidePreloader();
-  }
-};
-
-$('admin-ban-forever').onclick = () => {
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  const body = document.createElement('div');
-  body.innerHTML = `
-    <input id="ban-user-id" type="text" placeholder="User ID" class="textarea">
-  `;
-  openModal(i18n[lang].confirmTitle, body, [
-    { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => { } },
-    { text: i18n[lang].blockUser, class: 'btn btn--danger', onClick: async () => {
-      const userID = $('ban-user-id').value.trim();
-      if (!userID) {
-        openModal(i18n[lang].errorTitle, i18n[lang].enterID);
-        return;
-      }
-      showPreloader();
-      try {
-        await fetch(`${GAS_SYS_URL}?action=banUser&userID=${userID}&type=perm`, { method: 'GET', mode: 'cors' });
-        openModal(i18n[lang].doneTitle, i18n[lang].userBanned);
-      } catch (e) {
-        openModal(i18n[lang].errorTitle, i18n[lang].failedToBan);
-      } finally {
-        hidePreloader();
-      }
-    }, disabled: true } // Initially disabled
-  ]);
-  $('ban-user-id').oninput = () => {
-    const btn = document.querySelector('.modal__actions .btn--danger');
-    btn.disabled = !$('ban-user-id').value.trim();
-  };
-};
-
-$('admin-block-app').onclick = () => {
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  const body = document.createElement('div');
-  body.innerHTML = `
-    <input id="block-user-id" type="text" placeholder="User ID" class="textarea">
-  `;
-  openModal(i18n[lang].confirmTitle, body, [
-    { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => { } },
-    { text: i18n[lang].blockUser, class: 'btn btn--danger', onClick: async () => {
-      const userID = $('block-user-id').value.trim();
-      if (!userID) {
-        openModal(i18n[lang].errorTitle, i18n[lang].enterID);
-        return;
-      }
-      showPreloader();
-      try {
-        await fetch(`${GAS_SYS_URL}?action=banUser&userID=${userID}&type=perm`, { method: 'GET', mode: 'cors' });
-        openModal(i18n[lang].doneTitle, i18n[lang].userBanned);
-      } catch (e) {
-        openModal(i18n[lang].errorTitle, i18n[lang].failedToBan);
-      } finally {
-        hidePreloader();
-      }
-    }, disabled: true } // Initially disabled
-  ]);
-  $('block-user-id').oninput = () => {
-    const btn = document.querySelector('.modal__actions .btn--danger');
-    btn.disabled = !$('block-user-id').value.trim();
-  };
-};
-
-$('admin-close-app').onclick = async () => {
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  showPreloader();
-  try {
-    await fetch(`${GAS_SYS_URL}?action=toggleAppOpen`, { method: 'GET', mode: 'cors' });
-    await fetchSystemSettings();
-    updateAdminToggles();
-    openModal(i18n[lang].doneTitle, i18n[lang].settingChanged);
-  } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToChangeSetting);
-  } finally {
-    hidePreloader();
-  }
-};
-
 /* ========== INIT ========== */
 document.addEventListener('DOMContentLoaded', async () => {
   showPreloader();
-
+// Инициализация пользователя в таблице Users
+(async () => {
+  try {
+    await fetch(`${GAS_SYS_URL}?action=initUser&userID=${USER_ID}&token=${USER_TOKEN}`);
+  } catch (e) {
+    console.warn('Failed to init user in Users sheet');
+  }
+})();
   const lang = localStorage.getItem(LS.lang);
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
-
-  await fetchSystemSettings();
 
   if (!lang) {
     hideAllScreens();
@@ -1333,22 +1404,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     applyLang(lang);
     const isAdmin = ADMIN_TOKENS.includes(localStorage.getItem(LS.token));
-    if (await checkUserStatus(isAdmin) && await checkAppOpen(isAdmin)) {
+    if (await checkUserStatus(isAdmin) && checkAppOpen(isAdmin)) {
       await showMainMenu();
     }
-
-    // Set active lang button
     const langBtn = document.querySelector(`#settings-lang-buttons .seg[data-value="${lang}"]`);
     if (langBtn) langBtn.classList.add('active');
   }
 
-  // Default active buttons
   const prioFirst = document.querySelector('#priority-buttons .seg:first-child');
   if (prioFirst) {
     prioFirst.classList.add('active');
     selectedPriority = prioFirst.dataset.value;
   }
-
   const platFirst = document.querySelector('#platform-buttons .seg:first-child');
   if (platFirst) {
     platFirst.classList.add('active');
@@ -1356,5 +1423,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   hidePreloader();
-
 });
