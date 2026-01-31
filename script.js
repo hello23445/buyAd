@@ -515,7 +515,6 @@ const USER_TOKEN = localStorage.getItem(LS.token);
 // Приоритет: Telegram ID > fallback ID
 function getUserID() {
   if (telegramUserId) {
-    alert('Выполняем ' + String(telegramUserId));
     return String(telegramUserId); // Преобразуем в строку для консистентности
   }
   alert('Using fallback ID');
@@ -610,6 +609,7 @@ async function updateAdsCount() {
   try {
     // Fetch pending and all ads, then count only non-rejected ads + pending
     const userID = getUserID();
+    alert(userID + ' пользователя userID');
     const [pendingRes, approvedRes] = await Promise.all([
       fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${userID}`),
       fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${userID}`)
