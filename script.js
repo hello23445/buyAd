@@ -489,16 +489,12 @@ function generateRandomString(length) {
 }
 
 let telegramUserId = tg?.initDataUnsafe?.user?.id;
-alert(telegramUserId);
 
 // Если Telegram ID недоступен, используем сгенерированный ID (fallback)
 if (!telegramUserId) {
-  alert('Telegram ID не существует');
   if (!localStorage.getItem('fallbackUserId')) {
-    alert('Создаём fallbackUserId');
     localStorage.setItem('fallbackUserId', generateRandomString(12));
   }
-  alert('к telegramUserId задем localStorage.getItem("fallbackUserId");');
   telegramUserId = localStorage.getItem('fallbackUserId');
 }
 
@@ -517,7 +513,6 @@ function getUserID() {
   if (telegramUserId) {
     return String(telegramUserId); // Преобразуем в строку для консистентности
   }
-  alert('Using fallback ID');
   return localStorage.getItem('fallbackUserId');
 }
 
@@ -609,7 +604,6 @@ async function updateAdsCount() {
   try {
     // Fetch pending and all ads, then count only non-rejected ads + pending
     const userID = getUserID();
-    alert(userID + ' пользователя userID');
     const [pendingRes, approvedRes] = await Promise.all([
       fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${userID}`),
       fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${userID}`)
@@ -635,6 +629,38 @@ async function updateAdsCount() {
   $('nav-myads').disabled = parseInt(localStorage.getItem('adsCount')) === 0;
 }
 
+async function fetchCrystals() {
+  try {
+    const userID = getUserID();
+    const res = await fetch(`${GAS_SYS_URL}?action=getUserCrystals&userID=${userID}`);
+    const data = await res.json();
+    currentCrystals = data.crystals || 0;
+    localStorage.setItem('crystals', String(currentCrystals));
+    return currentCrystals;
+  } catch (e) {
+    console.warn('Failed to fetch crystals:', e);
+    return parseInt(localStorage.getItem('crystals')) || 0;
+  }
+}
+
+async function updateCrystalsInGAS(amount, isAdd = true) {
+  try {
+    const userID = getUserID();
+    const action = isAdd ? 'addCrystals' : 'deductCrystals';
+    const res = await fetch(`${GAS_SYS_URL}?action=${action}&userID=${userID}&amount=${amount}`);
+    const data = await res.json();
+    if (data.success) {
+      currentCrystals = data.newCrystals;
+      localStorage.setItem('crystals', String(currentCrystals));
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.warn('Failed to update crystals in GAS:', e);
+    return false;
+  }
+}
+
 async function showMainMenu() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
@@ -656,7 +682,7 @@ async function showMainMenu() {
 
   // Загружаем данные
   await updateAdsCount();
-  currentCrystals = parseInt(localStorage.getItem('crystals')) || 0;
+  currentCrystals = await fetchCrystals();
   $('crystals-count').textContent = currentCrystals;
   $('crystals-now').textContent = currentCrystals;
 
@@ -835,6 +861,13 @@ $('toggle-comments').onclick = () => {
 const commentsLabel = document.querySelector('.row--between .field__label[data-i18n="commentsLabel"]');
 if (commentsLabel) commentsLabel.onclick = () => $('toggle-comments').click();
 
+function calculateAdCost(priority, platform, footer) {
+  const prioCost = document.querySelector(`#priority-buttons .seg[data-value="${priority}"]`)?.dataset.cost || 0;
+  const platCost = document.querySelector(`#platform-buttons .seg[data-value="${platform}"]`)?.dataset.cost || 0;
+  const footerCost = footer === 'none' ? 10 : 0;
+  return parseInt(prioCost) + parseInt(platCost) + footerCost;
+}
+
 document.querySelectorAll('#priority-buttons .seg').forEach(b => {
   b.onclick = async () => {
     const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -954,18 +987,17 @@ $('footer-remove').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const cost = 10;
   let confirmed = true;
-  if (!editMode) {
-    if (cost > currentCrystals) {
-      openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
-      return;
-    }
-    confirmed = await new Promise(resolve => {
-      openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${$('footer-remove').textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}${cost}${i18n[lang].confirmCrystals}`, [
-        { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
-        { text: i18n[lang].yes, class: 'btn btn--primary', onClick: () => resolve(true) }
-      ]);
-    });
+  const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
+  if (cost > availableCrystals) {
+    openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+    return;
   }
+  confirmed = await new Promise(resolve => {
+    openModal(i18n[lang].confirmTitle, `${i18n[lang].confirmSelect}${$('footer-remove').textContent}${i18n[lang].confirmSelectEnd}${i18n[lang].confirmFor}${cost}${i18n[lang].confirmCrystals}`, [
+      { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
+      { text: i18n[lang].yes, class: 'btn btn--primary', onClick: () => resolve(true) }
+    ]);
+  });
   if (!confirmed) return;
   document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
   $('footer-remove').classList.add('active');
@@ -987,13 +1019,14 @@ $('btn-create-ad').onclick = async () => {
   if (!videoFile && !editMode) return openModal(i18n[lang].errorTitle, i18n[lang].videoRequired);
   if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].errorTitle, i18n[lang].selectPrioAndPlat);
 
-  let totalCost = 0;
-  if (!editMode) {
-    const prioCost = parseInt(document.querySelector('#priority-buttons .seg.active')?.dataset.cost) || 0;
-    const platCost = parseInt(document.querySelector('#platform-buttons .seg.active')?.dataset.cost) || 0;
-    const footerCost = footer === 'none' ? 10 : 0;
-    totalCost = prioCost + platCost + footerCost;
-    if (totalCost > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+  const newTotalCost = calculateAdCost(selectedPriority, selectedPlatform, footer);
+
+  let costDifference = 0;
+  if (editMode) {
+    costDifference = newTotalCost - editCost;
+    if (costDifference > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+  } else {
+    if (newTotalCost > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
   }
 
   showPreloader();
@@ -1025,7 +1058,7 @@ $('btn-create-ad').onclick = async () => {
       action, text, platform: selectedPlatform, name: adName,
       comments: commentsEnabled ? 1 : 0,
       userID: getUserID(), token: USER_TOKEN,
-      priority: selectedPriority, footer
+      priority: selectedPriority, footer, cost: newTotalCost
     });
 
     if (videoFile) {
@@ -1044,13 +1077,21 @@ $('btn-create-ad').onclick = async () => {
     const result = await response.json();
     if (!result.success) throw new Error(result.error || 'Failed to save');
 
-    if (!editMode) {
-      currentCrystals -= totalCost;
-      localStorage.setItem('crystals', currentCrystals.toString());
-      $('crystals-count').textContent = currentCrystals;
-      $('crystals-now').textContent = currentCrystals;
-      $('crystals-in-create').textContent = currentCrystals;
+    if (editMode) {
+      if (costDifference > 0) {
+        if (!await updateCrystalsInGAS(costDifference, false)) {
+          throw new Error('Failed to deduct crystals');
+        }
+      }
+    } else {
+      if (!await updateCrystalsInGAS(newTotalCost, false)) {
+        throw new Error('Failed to deduct crystals');
+      }
     }
+
+    $('crystals-count').textContent = currentCrystals;
+    $('crystals-now').textContent = currentCrystals;
+    $('crystals-in-create').textContent = currentCrystals;
 
     // ✅ Правильный вызов: OK и закрытие модалки → showMainMenu()
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
@@ -1164,7 +1205,7 @@ async function loadMyAds() {
       hide($('myads-empty'));
       allAds.forEach(ad => {
         const status = ad.status || 'approved';
-        const statusClass = status === 'pending' ? 'pill--pending' : 'pill--success';
+        const statusClass = status === 'pending' ? 'pill--pending' : (status === 'rejected' ? 'pill--danger' : 'pill--success');
         const statusText = i18n[lang][status + 'Status'] || status;
         const commentsText = ad.comments == 1 ? i18n[lang].enabled : i18n[lang].disabled;
         const footerText = !ad.footer ? i18n[lang].noFooter : (ad.footer === 'top' ? i18n[lang].footerTop : i18n[lang].footerBottom);
@@ -1184,7 +1225,7 @@ async function loadMyAds() {
           </div>
           <div class="row">
             <button class="btn btn--ghost edit-btn">${i18n[lang].edit}</button>
-            <button class="btn btn--danger delete-btn" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
+            <button class="btn btn--danger delete-btn" ${status === 'pending' || status === 'rejected' ? 'disabled' : ''}>${i18n[lang].delete}</button>
           </div>
           ${status === 'approved' ? `<p style="font-size:12px; color:#888; margin-top:8px;">${i18n[lang].viewed} ${ad.views || 0}</p>` : ''}
         `;
@@ -1199,7 +1240,7 @@ async function loadMyAds() {
           loadEditAd(ad);
         };
         card.querySelector('.delete-btn').onclick = async () => {
-          if (status === 'pending') return; // Should not reach here due to disabled attribute
+          if (status === 'pending' || status === 'rejected') return; // Should not reach here due to disabled attribute
           const confirmed = await new Promise(resolve => {
             openModal(i18n[lang].confirmTitle, i18n[lang].delete + '?', [
               { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
@@ -1221,10 +1262,11 @@ async function loadMyAds() {
       // Add "Delete All" button if there are ads
       if (allAds.length > 0) {
         const hasPending = allAds.some(ad => ad.status === 'pending');
+        const hasNonRejected = allAds.some(ad => ad.status !== 'rejected');
         const deleteAllCard = document.createElement('div');
         deleteAllCard.className = 'card';
         deleteAllCard.innerHTML = `
-          <button id="delete-all-btn" class="btn btn--danger btn--full" type="button" ${hasPending ? 'disabled' : ''}>
+          <button id="delete-all-btn" class="btn btn--danger btn--full" type="button" ${hasPending || !hasNonRejected ? 'disabled' : ''}>
             ${i18n[lang].deleteAll || 'Удалить все рекламы'}
           </button>
         `;
@@ -1240,8 +1282,11 @@ async function loadMyAds() {
           if (!confirmed) return;
           showPreloader();
           try {
-            const adNames = allAds.map(ad => ad.name);
-            const elementsParam = JSON.stringify(adNames);
+            // Удаляем только те рекламы, которые не отклонены
+            const adNamesToDelete = allAds
+              .filter(ad => ad.status !== 'rejected')
+              .map(ad => ad.name);
+            const elementsParam = JSON.stringify(adNamesToDelete);
             await fetch(`https://script.google.com/macros/s/AKfycbzEd3CR8iqMQc9zMIRn2Dz_qf6LKMXKzmeKVD9EneofM8xuOIXOXh49lFtLqoZVE6tt/exec?elements=${encodeURIComponent(elementsParam)}`);
             await updateAdsCount();
             loadMyAds();
@@ -1260,8 +1305,9 @@ async function loadMyAds() {
 }
 
 /* ========== CRYSTALS ========== */
-function loadCrystals() {
+async function loadCrystals() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  currentCrystals = await fetchCrystals();
   $('crystals-now').textContent = currentCrystals;
   const container = $('crystals-buttons');
   container.innerHTML = '';
@@ -1295,8 +1341,7 @@ async function buyCrystals(amount, stars) {
       if (status.status === 'paid') {
         showPreloader();
         try {
-          currentCrystals += amount;
-          localStorage.setItem('crystals', String(currentCrystals));
+          await updateCrystalsInGAS(amount, true);
           $('crystals-now').textContent = currentCrystals;
           $('crystals-count').textContent = currentCrystals;
           if ($('crystals-in-create')) $('crystals-in-create').textContent = currentCrystals;
@@ -1342,7 +1387,7 @@ $('admin-check').onclick = async () => {
         <p>${i18n[lang].priorityLabel}: ${ad.priority}</p>
         <div class="row">
           <button class="btn btn--primary approve" data-i18n="approveBtn">Approve</button>
-          <button class="btn btn--ghost reject" data-i18n="rejectBtn" style='background:red;'>Reject</button>
+          <button class="btn btn--ghost reject" data-i18n="rejectBtn" style="background:red;">Reject</button>
         </div>
       `;
       card.querySelector('.approve').onclick = () => handleAdAction(ad.name, 'approve');
@@ -1425,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
   } catch (e) {
-    alert('Failed to init user in Users sheet');
+    console.warn('Failed to init user in Users sheet');
   }
 })();
   const lang = localStorage.getItem(LS.lang);
