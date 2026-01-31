@@ -1455,16 +1455,6 @@ if (ADMIN_TOKENS.includes(localStorage.getItem('get_UserToken'))){
 }
 
 
-// Закрыть клавиатуру при тапе по пустому месту
-document.addEventListener('pointerdown', (e) => {
-  const el = e.target;
-
-  // Если нажали на поле ввода или на элемент внутри него — ничего не делаем
-  if (el.closest('input, textarea, select, [contenteditable="true"]')) return;
-
-  // Если сейчас фокус на поле ввода — снимаем фокус (клавиатура закроется)
-  const active = document.activeElement;
-  if (active && active.matches('input, textarea, select, [contenteditable="true"]')) {
-    active.blur();
-  }
-}, { passive: true });
+document.addEventListener('click', () => {
+  document.activeElement?.blur();
+});
