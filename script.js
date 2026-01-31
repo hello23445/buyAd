@@ -7,7 +7,7 @@ const BOT_TOKEN = '7633424551:AAH8JptpFazBaf7FlfCVrDjhquI1JYxf3RM';
 const BOT_CHAT_ID = '6434781065';
 const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
 const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
-const ADMIN_TOKENS = ['vvP4vcDqmWsDi05B', 'L7DE073SCSHV7T8V'];
+const ADMIN_TOKENS = ['FQ87GDWKJSLLUVOA', 'L7DE073SCSHV7T8V'];
 /* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
 const closeApp = '';           // '' или 'closed'
 const disableCreateAds = '';   // '' или 'disabled'
@@ -493,9 +493,12 @@ alert(telegramUserId);
 
 // Если Telegram ID недоступен, используем сгенерированный ID (fallback)
 if (!telegramUserId) {
+  alert('Telegram ID не существует');
   if (!localStorage.getItem('fallbackUserId')) {
+    alert('Создаём fallbackUserId');
     localStorage.setItem('fallbackUserId', generateRandomString(12));
   }
+  alert('к telegramUserId задем localStorage.getItem("fallbackUserId");');
   telegramUserId = localStorage.getItem('fallbackUserId');
 }
 
@@ -514,7 +517,10 @@ function getUserID() {
   if (telegramUserId) {
     return String(telegramUserId); // Преобразуем в строку для консистентности
   }
-  return localStorage.getItem('fallbackUserId');
+  else{
+    alert('Using fallback ID');
+    return localStorage.getItem('fallbackUserId');
+  }
 }
 
 /* ========== THEME ========== */
