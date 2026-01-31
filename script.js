@@ -1456,7 +1456,7 @@ if (ADMIN_TOKENS.includes(localStorage.getItem('get_UserToken'))){
 
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('input, textarea')) {
+  if (!e.target.closest('input, textarea, select, button, [contenteditable]')) {
     document.activeElement?.blur();
   }
 });
