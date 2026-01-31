@@ -182,6 +182,10 @@ const i18n = {
     prioVeryHigh: 'Очень высокий (40💎)',
     prioUltra: 'УЛЬТРА (60💎)',
     platformLabel: 'Площадка рекламы',
+    platformListHeaderLeft: 'Площадка',
+    platformListHeaderRight: 'Количество пользователей',
+    platformListNote: 'С каждым обновлением количество пользователей в этом списке обновляется и приводится в актуальное состояние.',
+    platformAllExceptPaid: 'Везде кроме платных',
     plAny: 'Не важно',
     plChNick: 'Канал “Создать никнейм”',
     plChMCN: 'Канал “Millioner City News”',
@@ -333,6 +337,10 @@ const i18n = {
     prioVeryHigh: 'Very high (40💎)',
     prioUltra: 'ULTRA (60💎)',
     platformLabel: 'Ad platform',
+    platformListHeaderLeft: 'Platform',
+    platformListHeaderRight: 'Users',
+    platformListNote: 'With each update, the number of users in this list is updated to reflect the current data.',
+    platformAllExceptPaid: 'All except paid',
     plAny: 'Any',
     plChNick: 'Channel “Create nickname”',
     plChMCN: 'Channel “Millioner City News”',
@@ -342,7 +350,7 @@ const i18n = {
     plBotGame: 'Bot “Game bot”',
     plMiniPhoto: 'Mini-app “Generate photo”',
     plSupport: 'Bot “Support” (20💎)',
-    adFooterLabel: 'Ad footer',
+    adFooterLabel: 'Advertising text settings',
     adFooterNeedText: 'Add ad text first',
     adFooterInfoTitle: 'Footer text:',
     adFooterText: 'This ad was created on the platform: @buyAdss_bot .',
@@ -917,7 +925,28 @@ document.querySelectorAll('#platform-buttons .seg').forEach(b => {
     document.querySelectorAll('#platform-buttons .seg').forEach(x => x.classList.remove('active'));
     b.classList.add('active');
     selectedPlatform = b.dataset.value;
+    // Синхронизируем визуальный список площадок
+    updatePlatformListActive();
   };
+});
+
+// Обновляет визуальный список площадок, добавляет класс selected у выбранного элемента
+function updatePlatformListActive() {
+  const rows = document.querySelectorAll('#platform-list .platform-row');
+  rows.forEach(r => r.classList.remove('selected'));
+  if (!selectedPlatform) return;
+  const match = Array.from(rows).find(r => r.dataset.value === selectedPlatform);
+  if (match) match.classList.add('selected');
+}
+
+// Клики по строкам визуального списка: триггерят скрытые кнопки для логики
+document.addEventListener('click', (e) => {
+  const row = e.target.closest && e.target.closest('.platform-row');
+  if (!row || row.classList.contains('platform-header')) return;
+  const val = row.dataset.value;
+  if (!val) return;
+  const btn = document.querySelector(`#platform-buttons .seg[data-value="${val}"]`);
+  if (btn) btn.click();
 });
 
 $('btn-pick-video').onclick = () => $('video-input').click();
@@ -1490,6 +1519,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const langBtn = document.querySelector(`#settings-lang-buttons .seg[data-value="${lang}"]`);
     if (langBtn) langBtn.classList.add('active');
+    const themeBtn = document.querySelector(`#settings-theme-buttons .seg[data-value="${theme}"]`);
+    if (themeBtn) themeBtn.classList.add('active');
   }
 
   const prioFirst = document.querySelector('#priority-buttons .seg:first-child');
@@ -1501,6 +1532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (platFirst) {
     platFirst.classList.add('active');
     selectedPlatform = platFirst.dataset.value;
+    updatePlatformListActive();
   }
 
   hidePreloader();

@@ -237,7 +237,25 @@
 
           <div class="field">
             <div class="field__label" data-i18n="platformLabel">Площадка рекламы</div>
-            <div class="btn-group" id="platform-buttons">
+
+            <div class="platform-list card" id="platform-list">
+              <div class="platform-row platform-header">
+                <div data-i18n="platformListHeaderLeft">Площадка</div>
+                <div data-i18n="platformListHeaderRight">Количество пользователей</div>
+              </div>
+                <div class="platform-row" data-value="Не важно"><div data-i18n="plAny">Не важно</div><div data-i18n="platformAllExceptPaid">Везде кроме платных</div></div>
+                <div class="platform-row" data-value="Канал 'Создать никнейм'"><div data-i18n="plChNick">Канал "Создать никнейм"</div><div>~410</div></div>
+                <div class="platform-row" data-value="Канал 'Millioner City News'"><div data-i18n="plChMCN">Канал “Millioner City News”</div><div>~31</div></div>
+                <div class="platform-row" data-value="Канал 'НОВОСТИ ИГРОВОГО БОТА'"><div data-i18n="plChGameNews">Канал “НОВОСТИ ИГРОВОГО БОТА”</div><div>~10</div></div>
+                <div class="platform-row" data-value="Бот 'Создать никнейм'"><div data-i18n="plBotNick">Бот “Создать никнейм”</div><div>~40.000</div></div>
+                <div class="platform-row" data-value="Бот 'Создай свой город'"><div data-i18n="plBotCity">Бот “Создай свой город”</div><div>~65</div></div>
+                <div class="platform-row" data-value="Бот 'Игровой бот'"><div data-i18n="plBotGame">Бот “Игровой бот”</div><div>~30</div></div>
+                <div class="platform-row" data-value="Мини-приложение 'Сгенерировать фото'"><div data-i18n="plMiniPhoto">Мини-приложение “Сгенерировать фото”</div><div>~135.630</div></div>
+                <div class="platform-row" data-value="Бот 'Служба поддержки'"><div data-i18n="plSupport">Бот “Служба поддержки” (20💎)</div><div>~367</div></div>
+            </div>
+
+            <!-- Старые кнопки остаются для логики, скрыты визуально -->
+            <div class="btn-group" id="platform-buttons" hidden>
               <button type="button" class="seg" data-value="Не важно" data-i18n="plAny">Не важно</button>
               <button type="button" class="seg" data-value="Канал 'Создать никнейм'" data-i18n="plChNick">Канал “Создать никнейм”</button>
               <button type="button" class="seg" data-value="Канал 'Millioner City News'" data-i18n="plChMCN">Канал “Millioner City News”</button>
@@ -248,6 +266,7 @@
               <button type="button" class="seg" data-value="Мини-приложение 'Сгенерировать фото'" data-i18n="plMiniPhoto">Мини-приложение “Сгенерировать фото”</button>
               <button type="button" class="seg" data-value="Бот 'Служба поддержки'" data-cost="20" data-i18n="plSupport">Бот “Служба поддержки” (20💎)</button>
             </div>
+            <div class="field__hint" style="margin-top:8px; font-size:12px; color:#9aa4d6;" data-i18n="platformListNote">(С каждым обновлением количество пользователей в этом списке обновляется и приводится в актуальное состояние)</div>
           </div>
         </div>
 

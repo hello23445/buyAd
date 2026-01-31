@@ -370,6 +370,71 @@ textarea {
   background: #4f6cff;
 }
 
+/* Визуальный список площадок и синяя обводка для выбранных элементов */
+.platform-list {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.platform-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.03);
+  cursor: pointer;
+}
+.platform-row.platform-header {
+  font-weight: 600;
+  color: #aab3e6;
+  background: transparent;
+  border: none;
+  cursor: default;
+}
+.platform-row:hover {
+  background: rgba(79,108,255,0.04);
+}
+.platform-row.selected {
+  background: rgba(79,108,255,0.08);
+  border: 2px solid #4f6cff;
+  box-shadow: 0 6px 20px rgba(79,108,255,0.08);
+}
+
+/* Стили для колонки с количеством пользователей: чуть меньше и более приглушённый цвет
+   Применяются только к обычным строкам, не к заголовку таблицы */
+.platform-row:not(.platform-header) > div:last-child {
+  font-size: 13px;
+  color: #9aa4d6;
+  font-weight: 500;
+  opacity: 0.95;
+  min-width: 70px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Заголовок должен выглядеть так же — отменяем уменьшение размера для него */
+.platform-row.platform-header > div:last-child {
+  font-size: inherit;
+  color: #aab3e6;
+  font-weight: 600;
+}
+
+/* Синяя обводка для активных кнопок/настроек */
+.seg.active, .btn.active {
+  background: #2f49a8;
+  color: #fff;
+  border: 2px solid #4f6cff;
+  box-shadow: 0 6px 18px rgba(79,108,255,0.08);
+}
+
+/* Небольшая адаптация для компактности на мобиле */
+@media (max-width: 480px) {
+  .platform-row { padding: 8px 10px; }
+}
+
 /* =========================
    ROWS
 ========================= */
