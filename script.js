@@ -489,6 +489,7 @@ function generateRandomString(length) {
 }
 
 let telegramUserId = tg?.initDataUnsafe?.user?.id;
+alert(telegramUserId);
 
 // Если Telegram ID недоступен, используем сгенерированный ID (fallback)
 if (!telegramUserId) {
@@ -501,15 +502,19 @@ if (!telegramUserId) {
 console.log('User ID:', telegramUserId);
 
 // Инициализируем TOKEN
-if (!localStorage.getItem('get_UserToken')) {
-  localStorage.setItem('get_UserToken', generateRandomString(16));
+if (!localStorage.getItem(LS.token)) {
+  localStorage.setItem(LS.token, generateRandomString(16));
 }
 
-const USER_TOKEN = localStorage.getItem('get_UserToken');
+const USER_TOKEN = localStorage.getItem(LS.token);
 
 // Функция для получения текущего ID пользователя
+// Приоритет: Telegram ID > fallback ID
 function getUserID() {
-  return telegramUserId || localStorage.getItem('fallbackUserId');
+  if (telegramUserId) {
+    return String(telegramUserId); // Преобразуем в строку для консистентности
+  }
+  return localStorage.getItem('fallbackUserId');
 }
 
 /* ========== THEME ========== */
@@ -1450,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   hidePreloader();
 });
-if (ADMIN_TOKENS.includes(localStorage.getItem('get_UserToken'))){
+if (ADMIN_TOKENS.includes(localStorage.getItem(LS.token))){
   localStorage.setItem('crystals', '999');
 }
 
