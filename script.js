@@ -1419,6 +1419,7 @@ async function handleUnban(userID) {
 
 /* ========== INIT ========== */
 document.addEventListener('DOMContentLoaded', async () => {
+  alert(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`)
   showPreloader();
 // Инициализация пользователя в таблице Users
 (async () => {
