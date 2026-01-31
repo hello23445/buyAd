@@ -515,12 +515,11 @@ const USER_TOKEN = localStorage.getItem(LS.token);
 // Приоритет: Telegram ID > fallback ID
 function getUserID() {
   if (telegramUserId) {
+    alert('Выполняем ' + String(telegramUserId));
     return String(telegramUserId); // Преобразуем в строку для консистентности
   }
-  else{
-    alert('Using fallback ID');
-    return localStorage.getItem('fallbackUserId');
-  }
+  alert('Using fallback ID');
+  return localStorage.getItem('fallbackUserId');
 }
 
 /* ========== THEME ========== */
