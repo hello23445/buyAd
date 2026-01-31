@@ -5,6 +5,7 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  touch-action: manipulation;
 }
 
 html, body {
@@ -15,6 +16,7 @@ html, body {
   background: #0b1220;
   color: #e6e9f0;
   height: 100%;
+  touch-action: manipulation;
 }
 
 body {
@@ -497,6 +499,9 @@ textarea {
   border-radius: 18px;
   padding: 14px;
   border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
 }
 
 .modal__head {
@@ -512,6 +517,27 @@ textarea {
 .modal__body {
   margin-top: 10px;
   font-size: 14px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 6px;
+}
+
+.modal__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal__body::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
+}
+
+.modal__body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+
+.modal__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .modal__actions {
@@ -528,6 +554,8 @@ textarea {
   white-space: pre-wrap;
   font-size: 13px;
   line-height: 1.4;
+  font-family: inherit;
+  margin: 0;
 }
 
 /* =========================

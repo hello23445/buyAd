@@ -1,4 +1,4 @@
-/* ======================================================
+﻿/* ======================================================
    script.js
 ====================================================== */
 
@@ -16,41 +16,49 @@ const blockInApp = [];
 
 /* ========== RULES TEXT ========== */
 const RULES_TEXT = {
-  ru: `📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
-🔹 1. Общие положения
-1.1. Размещая рекламу через бота, вы соглашаетесь с данными правилами.
-1.2. Администрация оставляет за собой право отказать в размещении без объяснения причин.
-🔹 2. Требования к рекламе
-2.1. Реклама не должна нарушать законодательство и правила Telegram.
-2.2. Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем.
-🔹 3. Размещение и оплата
-3.1. Изменение платного контента на бесплатный не вернёт вам утерянные средства.
-3.2. В случае удаления поста по вине рекламодателя (например, из-за жалоб пользователей) утерянные средства не возвращаются.
-🔹 4. Отказ и блокировка
-4.1. При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
-4.2. При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
-  en: `📌 ADVERTISEMENT PLACEMENT RULES
-🔹 1. General Provisions
-1.1. By placing advertisements through the bot, you agree to these rules.
-1.2. The administration reserves the right to refuse advertisement placement without providing any reason.
-🔹 2. Advertising Requirements
-2.1. Advertisements must comply with applicable laws and Telegram rules.
-2.2. Advertising of fraudulent schemes, betting, pyramid schemes, drugs, weapons, 18+ content, and other prohibited topics is strictly forbidden.
-🔹 3. Placement and Payment
-3.1. Changing paid content to free content does not entitle you to a refund of the spent funds.
+  ru: `<b>Создавая рекламу через наше приложение, вы соглашаетесь с нижеприведёнными правилами размещения рекламы.</b>
+  📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
+🔹 <b>1.</b> Общие положения
+<b>1.1.</b> Размещая рекламу через бота, вы соглашаетесь с данными правилами.
+<b>1.2.</b> Администрация оставляет за собой право отказать в размещении без объяснения причин.
+
+🔹 <b>2.</b> Требования к рекламе
+<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram.
+<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем.
+
+🔹 <b>3.</b> Размещение и оплата
+<b>3.1.</b> Изменение платного контента на бесплатный не вернёт вам утерянные средства.
+<b>3.2.</b> В случае удаления поста по вине рекламодателя (например, из-за жалоб пользователей) утерянные средства не возвращаются.
+
+🔹 <b>4.</b> Отказ и блокировка
+<b>4.1.</b> При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
+<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
+  en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules listed below.</b>
+  📌 ADVERTISEMENT PLACEMENT RULES
+🔹 <b>1.</b> General Provisions
+<b>1.1.</b> By placing advertisements through the bot, you agree to these rules.
+<b>1.2.</b> The administration reserves the right to refuse advertisement placement without providing any reason.
+
+🔹 <b>2.</b> Advertising Requirements
+<b>2.1.</b> Advertisements must comply with applicable laws and Telegram rules.
+<b>2.2.</b> Advertising of fraudulent schemes, betting, pyramid schemes, drugs, weapons, 18+ content, and other prohibited topics is strictly forbidden.
+
+🔹 <b>3.</b> Placement and Payment
+<b>3.1.</b> Changing paid content to free content does not entitle you to a refund of the spent funds.
 3.2. If an advertisement is removed due to the advertiser’s fault (for example, because of user complaints), the paid amount is non-refundable.
-🔹 4. Refusal and Blocking
-4.1. In case of violation of these rules, the administration has the right to refuse placement or block the advertiser without a refund.
-4.2. Repeated violations may result in permanent account blocking without the right to restoration.`
+
+🔹 <b>4.</b> Refusal and Blocking
+<b>4.1.</b> In case of violation of these rules, the administration has the right to refuse placement or block the advertiser without a refund.
+<b>4.2.</b> Repeated violations may result in permanent account blocking without the right to restoration.`
 };
 
 /* ========== CRYSTALS BUTTONS ========== */
 const CRYSTALS_BUTTONS = [
-  { crystals: 10, price: 10 },
-  { crystals: 50, price: 50 },
-  { crystals: 100, price: 90 },
-  { crystals: 200, price: 170 },
-  { crystals: 500, price: 400 },
+  { crystals: 10, price: 5 },
+  { crystals: 50, price: 30 },
+  { crystals: 100, price: 70 },
+  { crystals: 200, price: 130 },
+  { crystals: 500, price: 444 },
   { crystals: 1000, price: 750 }
 ];
 
@@ -63,6 +71,16 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
+  // Включаем подтверждение при закрытии приложения
+  tg.enableClosingConfirmation();
+  // Показываем кнопку Settings
+  tg.SettingsButton.show();
+  // Обработчик клика на кнопку Settings
+  tg.SettingsButton.onClick(() => {
+    const previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
+    hideAllScreens();
+    show($('screen-settings'));
+  });
 }
 
 /* ========== HELPERS ========== */
@@ -127,7 +145,6 @@ $('modal-close').onclick = closeModal;
 const LS = {
   lang: 'lang',
   token: 'get_UserToken',
-  id: 'get_UserID',
   theme: 'theme'
 };
 
@@ -174,9 +191,9 @@ const i18n = {
     plBotGame: 'Бот “Игровой бот”',
     plMiniPhoto: 'Мини-приложение “Сгенерировать фото”',
     plSupport: 'Бот “Служба поддержки” (20💎)',
-    adFooterLabel: 'Рекламный текст',
+    adFooterLabel: 'Настройка рекламного текста',
     adFooterNeedText: 'Сначала добавьте текст рекламы',
-    adFooterInfoTitle: 'Текст приписки:',
+    adFooterInfoTitle: 'Рекламный текст:',
     adFooterText: 'Эта реклама создана на площадке: @buyAdss_bot .',
     footerTop: 'Сверху',
     footerBottom: 'Снизу',
@@ -268,7 +285,7 @@ const i18n = {
     failedToCreateInvoice: 'Не удалось создать инвойс',
     edit: 'Редактировать',
     delete: 'Удалить',
-    deleteAll: 'Удалить все рекламы',
+    deleteAll: 'Удалить все мои рекламы',
     viewed: 'Рекламу посмотрели:',
     enabled: 'Включены',
     disabled: 'Выключены',
@@ -419,7 +436,7 @@ const i18n = {
     failedToCreateInvoice: 'Failed to create invoice',
     edit: 'Edit',
     delete: 'Delete',
-    deleteAll: 'Delete all ads',
+    deleteAll: 'Delete all my ads',
     viewed: 'Ad viewed:',
     enabled: 'Enabled',
     disabled: 'Disabled',
@@ -473,24 +490,27 @@ function generateRandomString(length) {
 
 let telegramUserId = tg?.initDataUnsafe?.user?.id;
 
-if (telegramUserId) {
-  localStorage.setItem('get_UserID', telegramUserId.toString());
-} else if (!localStorage.getItem('get_UserID')) {
-  // fallback только если Telegram ID отсутствует
-  localStorage.setItem('get_UserID', generateRandomString(12));
+// Если Telegram ID недоступен, используем сгенерированный ID (fallback)
+if (!telegramUserId) {
+  if (!localStorage.getItem('fallbackUserId')) {
+    localStorage.setItem('fallbackUserId', generateRandomString(12));
+  }
+  telegramUserId = localStorage.getItem('fallbackUserId');
 }
-console.log('Telegram User ID:', telegramUserId);
 
+console.log('User ID:', telegramUserId);
+
+// Инициализируем TOKEN
 if (!localStorage.getItem('get_UserToken')) {
   localStorage.setItem('get_UserToken', generateRandomString(16));
 }
-if (!localStorage.getItem('get_UserID')) {
-  const userID = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id.toString() : generateRandomString(12);
-  localStorage.setItem('get_UserID', userID);
-}
 
 const USER_TOKEN = localStorage.getItem('get_UserToken');
-const USER_ID = localStorage.getItem('get_UserID');
+
+// Функция для получения текущего ID пользователя
+function getUserID() {
+  return telegramUserId || localStorage.getItem('fallbackUserId');
+}
 
 /* ========== THEME ========== */
 function applyTheme(theme) {
@@ -510,7 +530,7 @@ function applyTheme(theme) {
 
 /* ========== CHECK USER STATUS (локально) ========== */
 async function checkUserStatus(isAdmin) {
-  const userID = localStorage.getItem(LS.id);
+  const userID = getUserID();
   const token = localStorage.getItem(LS.token);
   const lang = localStorage.getItem(LS.lang) || 'ru';
   showPreloader();
@@ -567,7 +587,7 @@ function firstEntry(lang) {
   localStorage.setItem('adsCount', '0');
   const pre = document.createElement('pre');
   pre.className = 'rules__text';
-  pre.textContent = RULES_TEXT[lang];
+  pre.innerHTML = RULES_TEXT[lang];
   openModal(i18n[lang].rulesTitle, pre, [{ text: 'OK' }]);
   applyLang(lang);
   showMainMenu();
@@ -579,7 +599,7 @@ let currentCrystals = 0;
 async function updateAdsCount() {
   try {
     // Fetch pending and all ads, then count only non-rejected ads + pending
-    const userID = localStorage.getItem(LS.id);
+    const userID = getUserID();
     const [pendingRes, approvedRes] = await Promise.all([
       fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${userID}`),
       fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${userID}`)
@@ -594,7 +614,7 @@ async function updateAdsCount() {
   } catch (e) {
     // Fallback: try legacy endpoint or localStorage
     try {
-      const res = await fetch(`${GAS_SYS_URL}?action=getAdsCount&userID=${localStorage.getItem(LS.id)}`);
+      const res = await fetch(`${GAS_SYS_URL}?action=getAdsCount&userID=${getUserID()}`);
       const data = await res.json();
       $('ads-count').textContent = data.ads;
       localStorage.setItem('adsCount', data.ads);
@@ -618,6 +638,13 @@ async function showMainMenu() {
   $('user-token').textContent = token;
   $('nav-admin').hidden = !isAdmin;
 
+  // Показываем состояние загрузки пока данные загружаются
+  const loadingText = lang === 'ru' ? 'Загрузка...' : 'Loading...';
+  $('ads-count').textContent = loadingText;
+  $('crystals-count').textContent = loadingText;
+  $('crystals-now').textContent = loadingText;
+
+  // Загружаем данные
   await updateAdsCount();
   currentCrystals = parseInt(localStorage.getItem('crystals')) || 0;
   $('crystals-count').textContent = currentCrystals;
@@ -671,7 +698,7 @@ $('nav-create').onclick = () => {
   // Run pending check in background; if user has pending ad — inform and return to main
   (async () => {
     try {
-      const userID = localStorage.getItem(LS.id);
+      const userID = getUserID();
       const res = await fetch(`${GAS_SYS_URL}?action=hasPending&userID=${userID}`);
       const data = await res.json();
       if (data.hasPending) {
@@ -707,7 +734,7 @@ $('nav-rules').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const pre = document.createElement('pre');
   pre.className = 'rules__text';
-  pre.textContent = RULES_TEXT[lang];
+  pre.innerHTML = RULES_TEXT[lang];
   openModal(i18n[lang].rulesTitle, pre, [{ text: 'OK' }]);
 };
 
@@ -970,7 +997,7 @@ $('btn-create-ad').onclick = async () => {
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: `🆕 New ad\n${adName}\nID: ${USER_ID}` })
+        body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: `🆕 New ad\n${adName}\nID: ${getUserID()}` })
       });
     }
 
@@ -987,7 +1014,7 @@ $('btn-create-ad').onclick = async () => {
     const params = new URLSearchParams({
       action, text, platform: selectedPlatform, name: adName,
       comments: commentsEnabled ? 1 : 0,
-      userID: USER_ID, token: USER_TOKEN,
+      userID: getUserID(), token: USER_TOKEN,
       priority: selectedPriority, footer
     });
 
@@ -1116,9 +1143,9 @@ async function loadMyAds() {
   const list = $('myads-list');
   list.innerHTML = '';
   try {
-    const pendingRes = await fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${localStorage.getItem(LS.id)}`);
+    const pendingRes = await fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${getUserID()}`);
     const pending = await pendingRes.json();
-    const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${localStorage.getItem(LS.id)}`);
+    const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${getUserID()}`);
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
     if (allAds.length === 0) {
@@ -1143,7 +1170,6 @@ async function loadMyAds() {
             <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
             <p><strong>${i18n[lang].comments}:</strong> ${commentsText}</p>
             <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
-            <p><strong>${i18n[lang].crystalsSpent}:</strong> ${ad.cost || 0}</p>
             <p><strong>${i18n[lang].status}:</strong> ${statusText}</p>
           </div>
           <div class="row">
@@ -1202,6 +1228,7 @@ async function loadMyAds() {
             ]);
           });
           if (!confirmed) return;
+          showPreloader();
           try {
             const adNames = allAds.map(ad => ad.name);
             const elementsParam = JSON.stringify(adNames);
@@ -1246,7 +1273,7 @@ async function buyCrystals(amount, stars) {
       body: JSON.stringify({
         title: `${amount} Crystals`,
         description: `Purchase ${amount} crystals for ${stars} Telegram Stars`,
-        payload: `${localStorage.getItem(LS.id)}:${amount}`,
+        payload: `${getUserID()}:${amount}`,
         currency: 'XTR',
         prices: [{label: 'Crystals', amount: stars}]
       })
@@ -1386,7 +1413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Инициализация пользователя в таблице Users
 (async () => {
   try {
-    await fetch(`${GAS_SYS_URL}?action=initUser&userID=${USER_ID}&token=${USER_TOKEN}`);
+    await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
   } catch (e) {
     console.warn('Failed to init user in Users sheet');
   }
@@ -1426,3 +1453,5 @@ document.addEventListener('DOMContentLoaded', async () => {
 if (ADMIN_TOKENS.includes(localStorage.getItem('get_UserToken'))){
   localStorage.setItem('crystals', '999');
 }
+
+
