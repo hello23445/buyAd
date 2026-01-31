@@ -1419,14 +1419,13 @@ async function handleUnban(userID) {
 
 /* ========== INIT ========== */
 document.addEventListener('DOMContentLoaded', async () => {
-  alert(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`)
   showPreloader();
 // Инициализация пользователя в таблице Users
 (async () => {
   try {
     await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
   } catch (e) {
-    console.warn('Failed to init user in Users sheet');
+    alert('Failed to init user in Users sheet');
   }
 })();
   const lang = localStorage.getItem(LS.lang);
