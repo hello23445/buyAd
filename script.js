@@ -211,8 +211,11 @@ async function checkUserStatus(isAdmin) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   showPreloader();
   try {
-    const isBanned = banForeverAds.includes(userID) || blockInApp.includes(userID);
-    if (isBanned) {
+    console.log('Checking user status - token:', token, 'blockInApp:', blockInApp);
+    // Проверяем только blockInApp (полная блокировка приложения)
+    const isBlockedInApp = blockInApp.includes(token);
+    console.log('Is blocked in app:', isBlockedInApp);
+    if (isBlockedInApp) {
       hideAllScreens();
       show($('screen-blocked'));
       $('user-token-blocked').textContent = token;
@@ -223,7 +226,7 @@ async function checkUserStatus(isAdmin) {
           span.textContent = i18n[lang].copied;
           setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
         }).catch(() => {
-          openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
+          openModal(i18n[lang].failedToCopy, '');
         });
       };
       document.querySelectorAll('#blocked-lang-buttons .seg').forEach(b => {
@@ -375,7 +378,9 @@ async function showMainMenu() {
   $('crystals-now').textContent = currentCrystals;
 
   // Локальное отключение создания (после загрузки кристаллов)
-  $('nav-create').disabled = disableCreateAds === 'disabled';
+  // Проверяем: 1) флаг disableCreateAds 2) забан на создание рекламы
+  const isBannedFromAds = banForeverAds.includes(token);
+  $('nav-create').disabled = disableCreateAds === 'disabled' || isBannedFromAds;
 }
 
 /* ========== NAVIGATION ========== */
@@ -399,7 +404,7 @@ $('nav-admin').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
   if (!ADMIN_TOKENS.includes(token)) {
-    openModal(i18n[lang].errorTitle, i18n[lang].accessDenied);
+    openModal(i18n[lang].accessDenied, '');
     return;
   }
   hideAllScreens();
@@ -409,7 +414,7 @@ $('nav-admin').onclick = () => {
 $('nav-create').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (disableCreateAds === 'disabled') {
-    openModal(i18n[lang].errorTitle, i18n[lang].createDisabled);
+    openModal(i18n[lang].createDisabled, '');
     return;
   }
   // Show create screen immediately
@@ -441,7 +446,7 @@ $('nav-create').onclick = () => {
       const res = await fetch(`${GAS_SYS_URL}?action=hasPending&userID=${userID}`);
       const data = await res.json();
       if (data.hasPending) {
-        openModal(i18n[lang].errorTitle, i18n[lang].youHavePending);
+        openModal(i18n[lang].youHavePending, '');
         await showMainMenu();
         return;
       }
@@ -616,7 +621,7 @@ document.querySelectorAll('#priority-buttons .seg').forEach(b => {
       // When editing, need to check if user has enough crystals (considering what was already spent)
       const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
       if (cost > availableCrystals) {
-        openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+        openModal(i18n[lang].notEnoughCrystals, '');
         return;
       }
       confirmed = await new Promise(resolve => {
@@ -642,7 +647,7 @@ document.querySelectorAll('#platform-buttons .seg').forEach(b => {
       // When editing, need to check if user has enough crystals (considering what was already spent)
       const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
       if (cost > availableCrystals) {
-        openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+        openModal(i18n[lang].notEnoughCrystals, '');
         return;
       }
       confirmed = await new Promise(resolve => {
@@ -686,11 +691,11 @@ $('video-input').onchange = e => {
   const f = e.target.files[0];
   if (!f) return;
   if (!f.type.startsWith('video/')) {
-    openModal(i18n[lang].errorTitle, i18n[lang].onlyVideoFiles);
+    openModal(i18n[lang].onlyVideoFiles, '');
     return;
   }
   if (f.size > 50 * 1024 * 1024) {
-    openModal(i18n[lang].errorTitle, i18n[lang].maxFileSize);
+    openModal(i18n[lang].maxFileSize, '');
     return;
   }
   const video = document.createElement('video');
@@ -698,7 +703,7 @@ $('video-input').onchange = e => {
   video.onloadedmetadata = () => {
     const dur = Math.round(video.duration);
     if (dur < 5 || dur > 60) {
-      openModal(i18n[lang].errorTitle, i18n[lang].duration5to60);
+      openModal(i18n[lang].duration5to60, '');
       return;
     }
     $('video-duration').textContent = dur + 's';
@@ -749,7 +754,7 @@ $('footer-remove').onclick = async () => {
   let confirmed = true;
   const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
   if (cost > availableCrystals) {
-    openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+    openModal(i18n[lang].notEnoughCrystals, '');
     return;
   }
   confirmed = await new Promise(resolve => {
@@ -769,24 +774,24 @@ $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
 
   if (disableCreateAds === 'disabled') {
-    openModal(i18n[lang].errorTitle, i18n[lang].createDisabled);
+    openModal(i18n[lang].createDisabled, '');
     return;
   }
 
   const text = $('ad-text').value.trim();
-  if (!text) return openModal(i18n[lang].errorTitle, i18n[lang].adTextRequired);
-  if (!/(https:\/\/|t\.me\/|@)/i.test(text)) return openModal(i18n[lang].errorTitle, i18n[lang].linkRequired);
-  if (!videoFile && !editMode) return openModal(i18n[lang].errorTitle, i18n[lang].videoRequired);
-  if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].errorTitle, i18n[lang].selectPrioAndPlat);
+  if (!text) return openModal(i18n[lang].adTextRequired, '');
+  if (!/(https:\/\/|t\.me\/|@)/i.test(text)) return openModal(i18n[lang].linkRequired, '');
+  if (!videoFile && !editMode) return openModal(i18n[lang].videoRequired, '');
+  if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].selectPrioAndPlat, '');
 
   const newTotalCost = calculateAdCost(selectedPriority, selectedPlatform, footer);
 
   let costDifference = 0;
   if (editMode) {
     costDifference = newTotalCost - editCost;
-    if (costDifference > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+    if (costDifference > currentCrystals) return openModal(i18n[lang].notEnoughCrystals, '');
   } else {
-    if (newTotalCost > currentCrystals) return openModal(i18n[lang].errorTitle, i18n[lang].notEnoughCrystals);
+    if (newTotalCost > currentCrystals) return openModal(i18n[lang].notEnoughCrystals, '');
   }
 
   showPreloader();
@@ -875,7 +880,7 @@ $('btn-create-ad').onclick = async () => {
     );
 
   } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToSaveAd + (e.message ? `: ${e.message}` : ''));
+    openModal(i18n[lang].failedToSaveAd + (e.message ? `: ${e.message}` : ''), '');
   } finally {
     hidePreloader();
   }
@@ -1010,7 +1015,7 @@ $('btn-copy-token').onclick = () => {
         }, 3000);
       }
     }).catch(() => {
-      openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
+      openModal(i18n[lang].failedToCopy, '');
     });
   }
 };
@@ -1040,7 +1045,7 @@ $('btn-copy-telegram-id').onclick = () => {
         }, 3000);
       }
     }).catch(() => {
-      openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
+      openModal(i18n[lang].failedToCopy, '');
     });
   }
 };
@@ -1134,6 +1139,11 @@ async function loadMyAds(skipPreloader = false) {
         };
         
         card.querySelector('.edit-btn').onclick = () => {
+          const token = localStorage.getItem(LS.token);
+          if (banForeverAds.includes(token)) {
+            openModal(i18n[lang].createDisabled, '');
+            return;
+          }
           editMode = true;
           editName = ad.name;
           editStatus = status;
@@ -1248,6 +1258,11 @@ async function loadCrystals() {
 
 async function buyCrystals(amount, stars) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  // Если платежи отключены в конфиге
+  if (typeof PURCHASES !== 'undefined' && PURCHASES === 'no') {
+    openModal(i18n[lang].paymentsDisabled || 'Платежи отключены', '');
+    return;
+  }
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
       method: 'POST',
@@ -1273,14 +1288,14 @@ async function buyCrystals(amount, stars) {
           if ($('crystals-in-create')) $('crystals-in-create').textContent = currentCrystals;
           openModal(i18n[lang].doneTitle, i18n[lang].crystalsAdded);
         } catch (e) {
-          openModal(i18n[lang].errorTitle, i18n[lang].failedToAddCrystals);
+          openModal(i18n[lang].failedToAddCrystals, '');
         } finally {
           hidePreloader();
         }
       }
     });
   } catch (e) {
-    openModal(i18n[lang].errorTitle, `${i18n[lang].failedToCreateInvoice}: ${e.message}`);
+    openModal(`${i18n[lang].failedToCreateInvoice}: ${e.message}`, '');
   }
 }
 
@@ -1338,7 +1353,7 @@ $('admin-check').onclick = async () => {
 async function handleAdAction(adName, action, userID = null) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (GASES === 'no') {
-    openModal(i18n[lang].errorTitle, 'GAS отключён');
+    openModal('GAS отключён', '');
     return;
   }
   showPreloader();
@@ -1349,7 +1364,7 @@ async function handleAdAction(adName, action, userID = null) {
     openModal(i18n[lang].doneTitle, i18n[lang].actionPerformed);
     $('admin-check').click();
   } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToPerform);
+    openModal(i18n[lang].failedToPerform, '');
   } finally {
     hidePreloader();
   }
@@ -1393,7 +1408,7 @@ $('admin-restricted').onclick = async () => {
 async function handleUnban(userID) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (GASES === 'no') {
-    openModal(i18n[lang].errorTitle, 'GAS отключён');
+    openModal('GAS отключён', '');
     return;
   }
   showPreloader();
@@ -1402,7 +1417,7 @@ async function handleUnban(userID) {
     openModal(i18n[lang].doneTitle, i18n[lang].banRemoved);
     $('admin-restricted').click();
   } catch (e) {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToUnban);
+    openModal(i18n[lang].failedToUnban, '');
   } finally {
     hidePreloader();
   }
