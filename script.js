@@ -1,71 +1,4 @@
-﻿/* ======================================================
-   script.js
-====================================================== */
-
-/* ========== PLACEHOLDERS (НЕ УДАЛЯТЬ) ========== */
-const BOT_TOKEN = '7633424551:AAH8JptpFazBaf7FlfCVrDjhquI1JYxf3RM';
-const BOT_CHAT_ID = '6434781065';
-const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
-const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
-const ADMIN_TOKENS = ['FQ87GDWKJSLLUVOA', 'L7DE073SCSHV7T8V'];
-/* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
-const closeApp = '';           // '' или 'closed'
-const disableCreateAds = '';   // '' или 'disabled'
-const banForeverAds = [];
-const blockInApp = [];
-
-/* ========== RULES TEXT ========== */
-const RULES_TEXT = {
-  ru: `<b>Создавая рекламу через наше приложение, вы соглашаетесь с нижеприведёнными правилами размещения рекламы.</b>
-  📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
-🔹 <b>1.</b> Общие положения
-<b>1.1.</b> Размещая рекламу через бота, вы соглашаетесь с данными правилами.
-<b>1.2.</b> Администрация оставляет за собой право отказать в размещении без объяснения причин.
-
-🔹 <b>2.</b> Требования к рекламе
-<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram.
-<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем.
-
-🔹 <b>3.</b> Размещение и оплата
-<b>3.1.</b> Изменение платного контента на бесплатный не вернёт вам утерянные средства.
-<b>3.2.</b> В случае удаления поста по вине рекламодателя (например, из-за жалоб пользователей) утерянные средства не возвращаются.
-
-🔹 <b>4.</b> Отказ и блокировка
-<b>4.1.</b> При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
-<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
-  en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules listed below.</b>
-  📌 ADVERTISEMENT PLACEMENT RULES
-🔹 <b>1.</b> General Provisions
-<b>1.1.</b> By placing advertisements through the bot, you agree to these rules.
-<b>1.2.</b> The administration reserves the right to refuse advertisement placement without providing any reason.
-
-🔹 <b>2.</b> Advertising Requirements
-<b>2.1.</b> Advertisements must comply with applicable laws and Telegram rules.
-<b>2.2.</b> Advertising of fraudulent schemes, betting, pyramid schemes, drugs, weapons, 18+ content, and other prohibited topics is strictly forbidden.
-
-🔹 <b>3.</b> Placement and Payment
-<b>3.1.</b> Changing paid content to free content does not entitle you to a refund of the spent funds.
-3.2. If an advertisement is removed due to the advertiser’s fault (for example, because of user complaints), the paid amount is non-refundable.
-
-🔹 <b>4.</b> Refusal and Blocking
-<b>4.1.</b> In case of violation of these rules, the administration has the right to refuse placement or block the advertiser without a refund.
-<b>4.2.</b> Repeated violations may result in permanent account blocking without the right to restoration.`
-};
-
-/* ========== CRYSTALS BUTTONS ========== */
-const CRYSTALS_BUTTONS = [
-  { crystals: 10, price: 5 },
-  { crystals: 50, price: 30 },
-  { crystals: 100, price: 70 },
-  { crystals: 200, price: 130 },
-  { crystals: 500, price: 444 },
-  { crystals: 1000, price: 750 }
-];
-
-/* ========== GAS URLS ========== */
-const GAS_SYS_URL = 'https://script.google.com/macros/s/AKfycbz-_mGdrZ5_EhllBCbYcqm0F22N89xocvK11Iz7gqGFXTGr3ki00CZed91jsYiYZ9r9Tw/exec';
-const GAS_ADS_URL = 'https://script.google.com/macros/s/AKfycbxYdza5qUzIoCie-wMl-d0gBFQDgiy1jLf3jHAvJnt_H1hIeGL88M6JRn-lJhNnA3MVWg/exec';
-
+﻿// script.js 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -81,11 +14,39 @@ if (tg) {
     hideAllScreens();
     show($('screen-settings'));
   });
+  
+  // Telegram BackButton handler
+  tg.BackButton.onClick(() => {
+    const currentScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
+    
+    if (currentScreen === 'screen-create' && document.getElementById('back-from-create')) {
+      document.getElementById('back-from-create').click();
+    } else if (currentScreen === 'screen-myads' && document.getElementById('back-from-myads')) {
+      document.getElementById('back-from-myads').click();
+    } else if (currentScreen === 'screen-crystals' && document.getElementById('back-from-crystals')) {
+      document.getElementById('back-from-crystals').click();
+    } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
+      document.getElementById('back-from-admin').click();
+    } else if (currentScreen === 'screen-settings' && document.getElementById('back-from-settings')) {
+      document.getElementById('back-from-settings').click();
+    }
+  });
 }
 
 /* ========== HELPERS ========== */
 const $ = id => document.getElementById(id);
-function show(el) { if (!el) return; try { el.hidden = false; } catch (e) { /* ignore */ } }
+function show(el) { 
+  if (!el) return; 
+  try { 
+    el.hidden = false;
+    // Show BackButton when showing a non-main screen
+    if (tg?.BackButton && el.classList?.contains('screen')) {
+      if (el.id !== 'screen-main' && el.id !== 'screen-first' && el.id !== 'screen-blocked') {
+        tg.BackButton.show();
+      }
+    }
+  } catch (e) { /* ignore */ } 
+}
 function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
 function showPreloader() { show($('preloader')); }
 function hidePreloader() { hide($('preloader')); }
@@ -97,6 +58,16 @@ function rand(len) {
     s += chars[Math.floor(Math.random() * chars.length)];
   }
   return s;
+}
+
+// Russian plural form helper
+function getRussianPlural(num) {
+  const ones = num % 10;
+  const tens = Math.floor((num % 100) / 10);
+  if (tens === 1) return 'человек';
+  if (ones === 1) return 'человек';
+  if (ones >= 2 && ones <= 4) return 'человека';
+  return 'человек';
 }
 
 /* ========== MODAL ========== */
@@ -148,320 +119,6 @@ const LS = {
   theme: 'theme'
 };
 
-/* ========== I18N ========== */
-const i18n = {
-  ru: {
-    appTitle: 'Покупка рекламы',
-    loading: 'Загрузка…',
-    btnCreateAd: 'Создать рекламу',
-    btnMyAds: 'Мои рекламы',
-    btnSettings: 'Настройки',
-    appClosed: 'Приложение закрыто на техническое обслуживание',
-    createDisabled: 'Создание реклам отключено',
-    chooseLangTitle: 'Выберите язык',
-    chooseLangSubtitle: 'Язык можно будет изменить в настройках.',
-    adsCreatedLabel: 'Создано реклам',
-    crystalsLabel: 'Кристаллы',
-    btnReport: 'Сообщить об ошибке',
-    btnAdmin: 'Меню админа',
-    btnRules: 'Правила бота',
-    btnCrystals: 'Кристаллы',
-    btnSettings: 'Настройки',
-    createTitle: 'Создать рекламу',
-    adTextLabel: 'Текст рекламы (обязательно)',
-    adTextHint: 'До 500 символов. Нужна ссылка вида https://, t.me/ или @...',
-    videoLabel: 'Видео-реклама (обязательно)',
-    pickFile: 'Выберите файл',
-    removeVideo: 'Удалить видео-рекламу',
-    videoHint: 'Только видео. Макс. 50 МБ. Длительность: 5–60 сек.',
-    priorityLabel: 'Приоритет',
-    prioWeak: 'Слабый',
-    prioNormal: 'Нормальный',
-    prioGood: 'Хороший (10💎)',
-    prioHigh: 'Высокий (20💎)',
-    prioVeryHigh: 'Очень высокий (40💎)',
-    prioUltra: 'УЛЬТРА (60💎)',
-    platformLabel: 'Площадка рекламы',
-    platformListHeaderLeft: 'Площадка',
-    platformListHeaderRight: 'Пользователей',
-    platformListNote: 'С каждым обновлением количество пользователей в этом списке обновляется и приводится в актуальное состояние.',
-    platformAllExceptPaid: 'Везде кроме платных',
-    plAny: 'Не важно',
-    plChNick: 'Канал “Создать никнейм”',
-    plChMCN: 'Канал “Millioner City News”',
-    plChGameNews: 'Канал “НОВОСТИ ИГРОВОГО БОТА”',
-    plBotNick: 'Бот “Создать никнейм”',
-    plBotCity: 'Бот “Создай свой город”',
-    plBotGame: 'Бот “Игровой бот”',
-    plMiniPhoto: 'Мини-приложение “Сгенерировать фото”',
-    plSupport: 'Бот “Служба поддержки” (20💎)',
-    adFooterLabel: 'Настройка рекламного текста',
-    adFooterNeedText: 'Сначала добавьте текст рекламы',
-    adFooterInfoTitle: 'Рекламный текст:',
-    adFooterText: 'Эта реклама создана на площадке: @buyAdss_bot .',
-    footerTop: 'Сверху',
-    footerBottom: 'Снизу',
-    footerRemove: 'Убрать рекламный текст из текста рекламы',
-    commentsLabel: 'Включить комментарии',
-    createBtn: 'Создать рекламу',
-    saveChanges: 'Сохранить изменения',
-    createHint: 'После создания реклама уйдёт на проверку.',
-    myAdsTitle: 'Мои рекламы',
-    noAdsTitle: 'Пока нет реклам',
-    noAdsText: 'Создайте первую рекламу в главном меню.',
-    crystalsTitle: 'Кристаллы',
-    crystalsNow: 'Текущее количество ваших кристаллов:',
-    buyCrystalsTitle: 'Выберите сколько кристаллов вы хотите купить.',
-    starsOnly: '(Принимаются только Telegram Stars🌟)',
-    buyCrystalsBtn: '{crystals} 💎 за {price} ⭐',
-    settingsTitle: 'Настройки',
-    langSetting: 'Язык',
-    themeSetting: 'Тема',
-    themeSystem: 'Как на устройстве',
-    themeDark: 'Тёмная',
-    themeLight: 'Светлая',
-    tokenTitle: 'Ваш токен',
-    copy: 'Копировать',
-    copied: 'Скопировано!',
-    adminTitle: 'Меню админа',
-    adminCheck: 'Проверить рекламу',
-    adminRestricted: 'Список ограниченных',
-    adminToggleCreate: 'Включить/Выключить создание реклам',
-    adminBanForever: 'Запретить создавать рекламы (навсегда)',
-    adminBlockApp: 'Заблокировать в приложении',
-    adminCloseApp: 'Закрыть/Открыть приложение',
-    adminCheckTitle: 'Проверка рекламы',
-    adminCheckHint: 'Выберите рекламу и решение.',
-    adminRestrictedTitle: 'Список ограниченных',
-    cancel: 'Отмена',
-    yes: 'Да',
-    blockedTitle: 'Вы заблокированы',
-    blockedSubtitle: 'You have been blocked',
-    supportBtn: 'Служба поддержки / Support',
-    approveBtn: 'Одобрить',
-    rejectBtn: 'Отклонить',
-    blockCreatorBtn: 'Заблокировать создателя',
-    blockUser: 'Заблокировать',
-    errorTitle: 'Ошибка',
-    attentionTitle: 'Внимание',
-    confirmTitle: 'Подтверждение',
-    doneTitle: 'Готово',
-    rulesTitle: 'Правила',
-    adTextRequired: 'Текст рекламы обязателен',
-    linkRequired: 'Нужна ссылка',
-    videoRequired: 'Видео обязательно',
-    selectPrioAndPlat: 'Выберите приоритет и площадку',
-    onlyVideoFiles: 'Только видео файлы',
-    maxFileSize: 'Максимальный размер 50 МБ',
-    duration5to60: 'Длительность должна быть от 5 до 60 секунд',
-    accessDenied: 'Доступ запрещён',
-    youHavePending: 'У вас есть реклама на проверке. Дождитесь решения.',
-    failedToSaveAd: 'Не удалось сохранить рекламу',
-    adSentForReview: 'Реклама отправлена на проверку',
-    adEdited: 'Реклама отредактирована.',
-    actionPerformed: 'Действие выполнено',
-    failedToPerform: 'Не удалось выполнить действие',
-    userBanned: 'Пользователь заблокирован',
-    failedToBan: 'Не удалось заблокировать',
-    banRemoved: 'Блокировка снята',
-    failedToUnban: 'Не удалось снять блокировку',
-    settingChanged: 'Настройка изменена',
-    failedToChangeSetting: 'Не удалось изменить настройку',
-    enterID: 'Введите ID',
-    notEnoughCrystals: 'Недостаточно кристаллов',
-    confirmSelect: 'Выбрать "',
-    confirmSelectEnd: '"',
-    confirmFor: ' за ',
-    confirmCrystals: ' кристаллов💎?',
-    failedToCopy: 'Не удалось скопировать',
-    adminEnableCreate: 'Включить создание реклам',
-    adminDisableCreate: 'Выключить создание реклам',
-    adminOpenApp: 'Открыть приложение',
-    adminCloseApp: 'Закрыть приложение',
-    pendingStatus: 'На проверке',
-    approvedStatus: 'Одобрено',
-    rejectedStatus: 'Отклонено',
-    comingSoon: 'Скоро',
-    paymentNotImplemented: 'Платежи пока не реализованы.',
-    buyCrystals: 'Купить кристаллы',
-    crystalsAdded: 'Кристаллы добавлены!',
-    failedToAddCrystals: 'Не удалось добавить кристаллы',
-    failedToCreateInvoice: 'Не удалось создать инвойс',
-    edit: 'Редактировать',
-    delete: 'Удалить',
-    deleteAll: 'Удалить все мои рекламы',
-    viewed: 'Рекламу посмотрели:',
-    enabled: 'Включены',
-    disabled: 'Выключены',
-    telegramID: 'Telegram ID',
-    tokenLabel: 'Токен',
-    footerLabel: 'Рекламный текст', //Для меню "Мои рекламы",
-    adName: 'Название рекламы',
-    comments: 'Комментарии',
-    footerText: 'Рекламный текст',
-    crystalsSpent: 'Кристаллов потрачено',
-    status: 'Статус',
-    noFooter: 'Убрано',
-    footerTop: 'Сверху',
-    footerBottom: 'Снизу'
-  },
-  en: {
-    appTitle: 'Ad Purchase',
-    loading: 'Loading…',
-    btnCreateAd: 'Create ad',
-    btnMyAds: 'My ads',
-    btnSettings: 'Settings',
-    appClosed: 'App is closed for maintenance',
-    createDisabled: 'Ad creation is disabled',
-    chooseLangTitle: 'Choose language',
-    chooseLangSubtitle: 'Language can be changed in settings.',
-    adsCreatedLabel: 'Ads created',
-    crystalsLabel: 'Crystals',
-    btnReport: 'Report error',
-    btnAdmin: 'Admin menu',
-    btnRules: 'Bot rules',
-    btnCrystals: 'Crystals',
-    btnSettings: 'Settings',
-    createTitle: 'Create ad',
-    adTextLabel: 'Ad text (required)',
-    adTextHint: 'Up to 500 characters. Need a link like https://, t.me/ or @...',
-    videoLabel: 'Video ad (required)',
-    pickFile: 'Pick file',
-    removeVideo: 'Remove video ad',
-    videoHint: 'Only video. Max 50MB. Duration: 5-60 sec.',
-    priorityLabel: 'Priority',
-    prioWeak: 'Weak',
-    prioNormal: 'Normal',
-    prioGood: 'Good (10💎)',
-    prioHigh: 'High (20💎)',
-    prioVeryHigh: 'Very high (40💎)',
-    prioUltra: 'ULTRA (60💎)',
-    platformLabel: 'Ad platform',
-    platformListHeaderLeft: 'Platform',
-    platformListHeaderRight: 'Users',
-    platformListNote: 'With each update, the number of users in this list is updated to reflect the current data.',
-    platformAllExceptPaid: 'All except paid',
-    plAny: 'Any',
-    plChNick: 'Channel “Create nickname”',
-    plChMCN: 'Channel “Millioner City News”',
-    plChGameNews: 'Channel “GAME BOT NEWS”',
-    plBotNick: 'Bot “Create nickname”',
-    plBotCity: 'Bot “Create your city”',
-    plBotGame: 'Bot “Game bot”',
-    plMiniPhoto: 'Mini-app “Generate photo”',
-    plSupport: 'Bot “Support” (20💎)',
-    adFooterLabel: 'Advertising text settings',
-    adFooterNeedText: 'Add ad text first',
-    adFooterInfoTitle: 'Footer text:',
-    adFooterText: 'This ad was created on the platform: @buyAdss_bot .',
-    footerTop: 'Top',
-    footerBottom: 'Bottom',
-    footerRemove: 'Remove advertising text from the ad text',
-    commentsLabel: 'Enable comments',
-    createBtn: 'Create ad',
-    saveChanges: 'Save changes',
-    createHint: 'After creation, the ad will go for review.',
-    myAdsTitle: 'My ads',
-    noAdsTitle: 'No ads yet',
-    noAdsText: 'Create your first ad in the main menu.',
-    crystalsTitle: 'Crystals',
-    crystalsNow: 'Your current crystals:',
-    buyCrystalsTitle: 'Choose how many crystals to buy.',
-    starsOnly: '(Only Telegram Stars🌟 accepted)',
-    buyCrystalsBtn: '{crystals} 💎 for {price} ⭐',
-    settingsTitle: 'Settings',
-    langSetting: 'Language',
-    themeSetting: 'Theme',
-    themeSystem: 'System',
-    themeDark: 'Dark',
-    themeLight: 'Light',
-    tokenTitle: 'Your token',
-    copy: 'Copy',
-    copied: 'Copied!',
-    adminTitle: 'Admin menu',
-    adminCheck: 'Check ad',
-    adminRestricted: 'Restricted list',
-    adminToggleCreate: 'Enable/Disable ad creation',
-    adminBanForever: 'Ban ad creation (forever)',
-    adminBlockApp: 'Block in app',
-    adminCloseApp: 'Close/Open app',
-    adminCheckTitle: 'Ad review',
-    adminCheckHint: 'Select ad and decision.',
-    adminRestrictedTitle: 'Restricted list',
-    cancel: 'Cancel',
-    yes: 'Yes',
-    blockedTitle: 'You are blocked',
-    blockedSubtitle: 'You have been blocked',
-    supportBtn: 'Support / Support',
-    approveBtn: 'Approve',
-    rejectBtn: 'Reject',
-    blockCreatorBtn: 'Block creator',
-    blockUser: 'Block',
-    errorTitle: 'Error',
-    attentionTitle: 'Attention',
-    confirmTitle: 'Confirmation',
-    doneTitle: 'Done',
-    rulesTitle: 'Rules',
-    adTextRequired: 'Ad text required',
-    linkRequired: 'Link required',
-    videoRequired: 'Video required',
-    selectPrioAndPlat: 'Select priority and platform',
-    onlyVideoFiles: 'Only video files',
-    maxFileSize: 'Max size 50MB',
-    duration5to60: 'Duration 5-60 sec',
-    accessDenied: 'Access denied',
-    youHavePending: 'You have a pending ad. Wait for review.',
-    failedToSaveAd: 'Failed to save ad',
-    adSentForReview: 'Ad sent for review',
-    adEdited: 'Ad edited.',
-    actionPerformed: 'Action performed',
-    failedToPerform: 'Failed to perform action',
-    userBanned: 'User banned',
-    failedToBan: 'Failed to ban',
-    banRemoved: 'Ban removed',
-    failedToUnban: 'Failed to unban',
-    settingChanged: 'Setting changed',
-    failedToChangeSetting: 'Failed to change setting',
-    enterID: 'Enter ID',
-    notEnoughCrystals: 'Not enough crystals',
-    confirmSelect: 'Choose "',
-    confirmSelectEnd: '"',
-    confirmFor: ' for ',
-    confirmCrystals: ' crystals💎?',
-    failedToCopy: 'Failed to copy',
-    adminEnableCreate: 'Enable ad creation',
-    adminDisableCreate: 'Disable ad creation',
-    adminOpenApp: 'Open app',
-    adminCloseApp: 'Close app',
-    pendingStatus: 'Pending',
-    approvedStatus: 'Approved',
-    rejectedStatus: 'Rejected',
-    comingSoon: 'Coming soon',
-    paymentNotImplemented: 'Payments not implemented yet.',
-    buyCrystals: 'Buy crystals',
-    crystalsAdded: 'Crystals added!',
-    failedToAddCrystals: 'Failed to add crystals',
-    failedToCreateInvoice: 'Failed to create invoice',
-    edit: 'Edit',
-    delete: 'Delete',
-    deleteAll: 'Delete all my ads',
-    viewed: 'Ad viewed:',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
-    telegramID: 'Telegram ID',
-    tokenLabel: 'Token',
-    footerLabel: 'Advertising text', //Для меню "Мои рекламы",
-    adName: 'Ad name',
-    comments: 'Comments',
-    footerText: 'Ad footer',
-    crystalsSpent: 'Crystals spent',
-    status: 'Status',
-    noFooter: 'Removed',
-    footerTop: 'Top',
-    footerBottom: 'Bottom'
-  }
-};
-
 function applyLang(lang) {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n;
@@ -479,6 +136,10 @@ function applyLang(lang) {
   if (! $('screen-main').hidden) showMainMenu();
   if (! $('screen-crystals').hidden) loadCrystals();
   if (! $('screen-myads').hidden) loadMyAds();
+  if (! $('screen-settings').hidden) {
+    // Initialize token display in settings
+    initTokenDisplay();
+  }
   if (! $('screen-create').hidden) {
     const span = $('btn-create-ad').querySelector('span');
     span.dataset.i18n = editMode ? 'saveChanges' : 'createBtn';
@@ -609,6 +270,11 @@ function firstEntry(lang) {
 let currentCrystals = 0;
 
 async function updateAdsCount() {
+  // Если GASES === 'no', можно добавить проверку: return или fallback на localStorage
+  if (GASES === 'no') {
+    $('ads-count').textContent = localStorage.getItem('adsCount') || 0;
+    return;
+  }
   try {
     // Fetch pending and all ads, then count only non-rejected ads + pending
     const userID = getUserID();
@@ -638,6 +304,9 @@ async function updateAdsCount() {
 }
 
 async function fetchCrystals() {
+  if (GASES === 'no') {
+    return parseInt(localStorage.getItem('crystals')) || 0;
+  }
   try {
     const userID = getUserID();
     const res = await fetch(`${GAS_SYS_URL}?action=getUserCrystals&userID=${userID}`);
@@ -652,6 +321,12 @@ async function fetchCrystals() {
 }
 
 async function updateCrystalsInGAS(amount, isAdd = true) {
+  if (GASES === 'no') {
+    // Локальный fallback: обновляем только localStorage
+    currentCrystals = isAdd ? currentCrystals + amount : currentCrystals - amount;
+    localStorage.setItem('crystals', String(currentCrystals));
+    return true;
+  }
   try {
     const userID = getUserID();
     const action = isAdd ? 'addCrystals' : 'deductCrystals';
@@ -679,7 +354,6 @@ async function showMainMenu() {
 
   hideAllScreens();
   show($('screen-main'));
-  $('user-token').textContent = token;
   $('nav-admin').hidden = !isAdmin;
 
   // Показываем состояние загрузки пока данные загружаются
@@ -687,6 +361,9 @@ async function showMainMenu() {
   $('ads-count').textContent = loadingText;
   $('crystals-count').textContent = loadingText;
   $('crystals-now').textContent = loadingText;
+  
+  // Отключаем кнопку "Создать рекламу" до загрузки кристаллов
+  $('nav-create').disabled = true;
 
   // Загружаем данные
   await updateAdsCount();
@@ -694,19 +371,24 @@ async function showMainMenu() {
   $('crystals-count').textContent = currentCrystals;
   $('crystals-now').textContent = currentCrystals;
 
-  // Локальное отключение создания
+  // Локальное отключение создания (после загрузки кристаллов)
   $('nav-create').disabled = disableCreateAds === 'disabled';
 }
 
 /* ========== NAVIGATION ========== */
 function hideAllScreens() {
   document.querySelectorAll('.screen').forEach(s => hide(s));
+  // Hide BackButton when no screen is shown
+  if (tg?.BackButton) {
+    tg.BackButton.hide();
+  }
 }
 
 $('btn-open-settings').onclick = () => {
   previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
   hideAllScreens();
   show($('screen-settings'));
+  initTokenDisplay(); // Initialize token display when opening settings
 };
 
 $('nav-admin').onclick = () => {
@@ -741,6 +423,15 @@ $('nav-create').onclick = () => {
 
   // Run pending check in background; if user has pending ad — inform and return to main
   (async () => {
+    if (GASES === 'no') {
+      // Fallback: предположим, нет pending
+      if (createBtn) {
+        createBtn.disabled = disableCreateAds === 'disabled';
+        const span = createBtn.querySelector('span');
+        if (span) span.textContent = i18n[lang].createBtn;
+      }
+      return;
+    }
     try {
       const userID = getUserID();
       const res = await fetch(`${GAS_SYS_URL}?action=hasPending&userID=${userID}`);
@@ -768,11 +459,14 @@ $('nav-myads').onclick = () => {
   loadMyAds();
 };
 
-$('nav-settings').onclick = () => {
-  previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
-  hideAllScreens();
-  show($('screen-settings'));
-};
+// // nav-settings removed from main menu (available in topbar)
+// if ($('nav-settings')) {
+//   $('nav-settings').onclick = () => {
+//     previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
+//     hideAllScreens();
+//     show($('screen-settings'));
+//   };
+// }
 
 $('nav-rules').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -794,9 +488,42 @@ $('nav-crystals').onclick = () => {
 
 /* BACK */
 let previousScreen = 'screen-main';
+let previousEditScreen = null; // To track where edit was opened from
 ['back-from-create','back-from-myads','back-from-crystals','back-from-admin'].forEach(id => {
   const el = $(id);
-  if (el) el.onclick = showMainMenu;
+  if (el) el.onclick = () => {
+    // Reset ad creation screen title and state
+    if (id === 'back-from-create') {
+      const screenTitle = document.querySelector('#screen-create .screen__title');
+      if (screenTitle) {
+        const lang = localStorage.getItem(LS.lang) || 'ru';
+        screenTitle.textContent = i18n[lang].createTitle || 'Создать рекламу';
+      }
+      editMode = false;
+      editName = '';
+      editStatus = '';
+      // Reset form fields
+      $('ad-text').value = '';
+      videoFile = null;
+      currentVideoUrl = '';
+      document.querySelectorAll('#priority-buttons .seg').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('#platform-buttons .seg').forEach(x => x.classList.remove('active'));
+      
+      // Return to where edit was opened from, or to main menu
+      if (previousEditScreen) {
+        hideAllScreens();
+        show($(previousEditScreen));
+        if (previousEditScreen === 'screen-myads') {
+          loadMyAds(true); // skipPreloader = true
+        }
+        previousEditScreen = null;
+      } else {
+        showMainMenu();
+      }
+    } else {
+      showMainMenu();
+    }
+  };
 });
 
 // Special handling for back-from-settings
@@ -1122,13 +849,25 @@ $('btn-create-ad').onclick = async () => {
     $('crystals-now').textContent = currentCrystals;
     $('crystals-in-create').textContent = currentCrystals;
 
-    // ✅ Правильный вызов: OK и закрытие модалки → showMainMenu()
+    // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
+    const returnCallback = () => {
+      if (editMode && previousEditScreen === 'screen-myads') {
+        hidePreloader(); // Явно скрываем прелоадер перед показом экрана
+        hideAllScreens();
+        show($('screen-myads'));
+        loadMyAds(true); // skipPreloader = true
+        previousEditScreen = null;
+      } else {
+        hidePreloader();
+        showMainMenu();
+      }
+    };
     openModal(
       i18n[lang].doneTitle,
       successMsg,
-      [{ text: 'OK', onClick: showMainMenu }],
-      { onClose: showMainMenu }
+      [{ text: 'OK', onClick: returnCallback }],
+      { onClose: returnCallback }
     );
 
   } catch (e) {
@@ -1140,6 +879,14 @@ $('btn-create-ad').onclick = async () => {
 
 async function loadEditAd(ad) {
   editCost = ad.cost || 0; // Store the cost of the current ad being edited
+  
+  // Set ad name in the screen title or create a display element
+  const screenTitle = document.querySelector('#screen-create .screen__title');
+  if (screenTitle) {
+    const lang = localStorage.getItem(LS.lang) || 'ru';
+    screenTitle.textContent = `${i18n[lang].editTitle || 'Редактировать рекламу'}: ${ad.name}`;
+  }
+  
   $('ad-text').value = ad.text;
   currentVideoUrl = ad.videoUrl || '';
   const currentVideo = $('current-video') || document.createElement('div');
@@ -1184,16 +931,53 @@ async function loadEditAd(ad) {
   }
 }
 
+// Helper to initialize token display in settings
+function initTokenDisplay() {
+  const token = localStorage.getItem(LS.token);
+  const tokenEl = $('user-token');
+  const btnCopy = $('btn-copy-token');
+  if (!tokenEl || !btnCopy) return;
+  
+  // Show masked token with dots
+  const masked = '•'.repeat(token.length);
+  tokenEl.textContent = masked;
+  tokenEl.dataset.revealed = 'false';
+  
+  // Update button text to "Show"
+  const span = btnCopy.querySelector('span');
+  if (span) {
+    const lang = localStorage.getItem(LS.lang) || 'ru';
+    span.textContent = i18n[lang].show || 'Показать';
+    span.dataset.isShow = 'true';
+  }
+}
+
 /* ========== SETTINGS ========== */
 $('btn-copy-token').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  navigator.clipboard.writeText(localStorage.getItem(LS.token)).then(() => {
-    const span = $('btn-copy-token').querySelector('span');
-    span.textContent = i18n[lang].copied;
-    setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
-  }).catch(() => {
-    openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
-  });
+  const token = localStorage.getItem(LS.token);
+  const tokenEl = $('user-token');
+  const span = $('btn-copy-token').querySelector('span');
+  const isRevealed = tokenEl.dataset.revealed === 'true';
+  
+  if (!isRevealed) {
+    // Show token
+    tokenEl.textContent = token;
+    tokenEl.dataset.revealed = 'true';
+    if (span) span.textContent = i18n[lang].copy || 'Скопировать';
+  } else {
+    // Copy token to clipboard
+    navigator.clipboard.writeText(token).then(() => {
+      if (span) {
+        span.textContent = i18n[lang].copied || 'Скопировано';
+        setTimeout(() => { 
+          span.textContent = i18n[lang].copy || 'Скопировать'; 
+        }, 3000);
+      }
+    }).catch(() => {
+      openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
+    });
+  }
 };
 
 document.querySelectorAll('#settings-lang-buttons .seg').forEach(b => {
@@ -1217,17 +1001,26 @@ document.querySelectorAll('#settings-theme-buttons .seg').forEach(b => {
 });
 
 /* ========== MY ADS ========== */
-async function loadMyAds() {
+async function loadMyAds(skipPreloader = false) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  showPreloader();
+  if (!skipPreloader) showPreloader();
   const list = $('myads-list');
-  list.innerHTML = '';
+  
+  // Не очищаем список если это скрытая загрузка в фоне
+  if (!skipPreloader) {
+    list.innerHTML = '';
+  }
+  
   try {
     const pendingRes = await fetch(`${GAS_SYS_URL}?action=getMyPending&userID=${getUserID()}`);
     const pending = await pendingRes.json();
     const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${getUserID()}`);
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
+    
+    // Теперь обновляем список (очищаем только перед заполнением)
+    list.innerHTML = '';
+    
     if (allAds.length === 0) {
       show($('myads-empty'));
     } else {
@@ -1238,30 +1031,48 @@ async function loadMyAds() {
         const statusText = i18n[lang][status + 'Status'] || status;
         const commentsText = ad.comments == 1 ? i18n[lang].enabled : i18n[lang].disabled;
         const footerText = !ad.footer ? i18n[lang].noFooter : (ad.footer === 'top' ? i18n[lang].footerTop : i18n[lang].footerBottom);
+        const platformRow = document.querySelector(`#platform-list .platform-row[data-value="${ad.platform}"]`);
+        const platformUsers = platformRow ? ` (${platformRow.querySelector('div:last-child').textContent})` : '';
+        
         const card = document.createElement('div');
         card.className = 'card ad-card';
         card.innerHTML = `
-          <div class="ad-card__head">
-            <div><strong>${i18n[lang].adName}:</strong> ${ad.name}</div>
-            <div class="pill ${statusClass}">${statusText}</div>
+          <p><strong>${i18n[lang].adName}:</strong> <span>${ad.name}</span>
+            <button class="btn btn--ghost copy-name-btn" type="button" style="padding: 4px 8px; font-size: 12px; margin-left: 8px;">
+              <i class="fa-solid fa-copy"></i>
+            </button>
+          </p>
+          <p><strong>${i18n[lang].adTextLabel}:</strong> ${ad.text}</p>
+          <p><strong>${i18n[lang].videoLabel}:</strong> <a href="${ad.videoUrl}" target="_blank">ссылка</a></p>
+          <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
+          <p><strong>${i18n[lang].platformLabel}:</strong> ${ad.platform} ${platformUsers}</p>
+          <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
+          <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
+          <p><strong>${i18n[lang].status}:</strong> ${statusText}</p>
+          <div class="row" style="gap: 8px; margin-top: 12px;">
+            <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
+            <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
           </div>
-          <div class="ad-card__details">
-            <p><strong>${i18n[lang].platformLabel}:</strong> ${ad.platform}</p>
-            <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
-            <p><strong>${i18n[lang].comments}:</strong> ${commentsText}</p>
-            <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
-            <p><strong>${i18n[lang].status}:</strong> ${statusText}</p>
-          </div>
-          <div class="row">
-            <button class="btn btn--ghost edit-btn">${i18n[lang].edit}</button>
-            <button class="btn btn--danger delete-btn" ${status === 'pending' || status === 'rejected' ? 'disabled' : ''}>${i18n[lang].delete}</button>
-          </div>
-          ${status === 'approved' ? `<p style="font-size:12px; color:#888; margin-top:8px;">${i18n[lang].viewed} ${ad.views || 0}</p>` : ''}
+          ${status === 'approved' ? `<p style="font-size:12px; color:#888; margin-top:8px;">${i18n[lang].viewsLabel || 'Рекламу посмотрели'}: ${ad.views || 0} ${getRussianPlural(ad.views || 0)}.</p>` : ''}
         `;
+        
+        // Copy name button
+        card.querySelector('.copy-name-btn').onclick = () => {
+          navigator.clipboard.writeText(ad.name).then(() => {
+            const btn = card.querySelector('.copy-name-btn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            setTimeout(() => {
+              btn.innerHTML = originalHTML;
+            }, 2000);
+          });
+        };
+        
         card.querySelector('.edit-btn').onclick = () => {
           editMode = true;
           editName = ad.name;
           editStatus = status;
+          previousEditScreen = 'screen-myads'; // Remember we came from My Ads
           hideAllScreens();
           show($('screen-create'));
           $('btn-create-ad').querySelector('span').textContent = i18n[lang].saveChanges;
@@ -1269,7 +1080,6 @@ async function loadMyAds() {
           loadEditAd(ad);
         };
         card.querySelector('.delete-btn').onclick = async () => {
-          if (status === 'pending' || status === 'rejected') return; // Should not reach here due to disabled attribute
           const confirmed = await new Promise(resolve => {
             openModal(i18n[lang].confirmTitle, i18n[lang].delete + '?', [
               { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
@@ -1277,12 +1087,15 @@ async function loadMyAds() {
             ]);
           });
           if (!confirmed) return;
+          showPreloader();
           try {
             await fetch(`https://script.google.com/macros/s/AKfycbzEd3CR8iqMQc9zMIRn2Dz_qf6LKMXKzmeKVD9EneofM8xuOIXOXh49lFtLqoZVE6tt/exec?elements=${encodeURIComponent(ad.name)}`);
             await updateAdsCount();
             loadMyAds();
           } catch (e) {
             console.warn('Failed to delete ad:', e);
+          } finally {
+            hidePreloader();
           }
         };
         list.appendChild(card);
@@ -1321,6 +1134,8 @@ async function loadMyAds() {
             loadMyAds();
           } catch (e) {
             console.warn('Failed to delete all ads:', e);
+          } finally {
+            hidePreloader();
           }
         };
       }
@@ -1331,6 +1146,23 @@ async function loadMyAds() {
   } finally {
     hidePreloader();
   }
+}
+
+/* ========== APPROVE/REJECT ADS ========== */
+async function approveAd(adName, status) {
+  const action = status === 'pending' ? 'approvePending' : 'approveAd';
+  const url = status === 'pending' ? GAS_SYS_URL : GAS_ADS_URL;
+  const response = await fetch(`${url}?action=${action}&adName=${encodeURIComponent(adName)}`);
+  if (!response.ok) throw new Error('Failed to approve ad');
+  return response.json();
+}
+
+async function rejectAd(adName, status) {
+  const action = status === 'pending' ? 'rejectPending' : 'rejectAd';
+  const url = status === 'pending' ? GAS_SYS_URL : GAS_ADS_URL;
+  const response = await fetch(`${url}?action=${action}&adName=${encodeURIComponent(adName)}`);
+  if (!response.ok) throw new Error('Failed to reject ad');
+  return response.json();
 }
 
 /* ========== CRYSTALS ========== */
@@ -1390,6 +1222,12 @@ async function buyCrystals(amount, stars) {
 /* ========== ADMIN FUNCTIONS ========== */
 $('admin-check').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (GASES === 'no') {
+    // Fallback: показываем пустой список
+    const list = $('admin-check-list');
+    list.innerHTML = '';
+    return;
+  }
   showPreloader();
   show($('admin-panel-check'));
   const list = $('admin-check-list');
@@ -1434,6 +1272,10 @@ $('admin-check').onclick = async () => {
 
 async function handleAdAction(adName, action, userID = null) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (GASES === 'no') {
+    openModal(i18n[lang].errorTitle, 'GAS отключён');
+    return;
+  }
   showPreloader();
   try {
     let url = `${GAS_SYS_URL}?action=${action}&adName=${adName}`;
@@ -1450,6 +1292,12 @@ async function handleAdAction(adName, action, userID = null) {
 
 $('admin-restricted').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (GASES === 'no') {
+    // Fallback: пустой список
+    const list = $('admin-restricted-list');
+    list.innerHTML = '';
+    return;
+  }
   showPreloader();
   show($('admin-panel-restricted'));
   const list = $('admin-restricted-list');
@@ -1479,6 +1327,10 @@ $('admin-restricted').onclick = async () => {
 
 async function handleUnban(userID) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (GASES === 'no') {
+    openModal(i18n[lang].errorTitle, 'GAS отключён');
+    return;
+  }
   showPreloader();
   try {
     await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
@@ -1496,6 +1348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   showPreloader();
 // Инициализация пользователя в таблице Users
 (async () => {
+  if (GASES === 'no') return; // Пропускаем GAS
   try {
     await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
   } catch (e) {
@@ -1534,6 +1387,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedPlatform = platFirst.dataset.value;
     updatePlatformListActive();
   }
+  
+  // Initialize token display on page load
+  initTokenDisplay();
 
   hidePreloader();
 });
