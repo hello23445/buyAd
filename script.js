@@ -139,6 +139,7 @@ function applyLang(lang) {
   if (! $('screen-settings').hidden) {
     // Initialize token display in settings
     initTokenDisplay();
+    initTelegramIdDisplay();
   }
   if (! $('screen-create').hidden) {
     const span = $('btn-create-ad').querySelector('span');
@@ -158,6 +159,7 @@ function generateRandomString(length) {
 }
 
 let telegramUserId = tg?.initDataUnsafe?.user?.id;
+let hasTelegramId = !!telegramUserId; // Отслеживаем, был ли реальный Telegram ID
 
 // Если Telegram ID недоступен, используем сгенерированный ID (fallback)
 if (!telegramUserId) {
@@ -168,6 +170,7 @@ if (!telegramUserId) {
 }
 
 console.log('User ID:', telegramUserId);
+console.log('Has Telegram ID:', hasTelegramId);
 
 // Инициализируем TOKEN
 if (!localStorage.getItem(LS.token)) {
@@ -389,6 +392,7 @@ $('btn-open-settings').onclick = () => {
   hideAllScreens();
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
+  initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings
 };
 
 $('nav-admin').onclick = () => {
@@ -952,6 +956,37 @@ function initTokenDisplay() {
   }
 }
 
+// Helper to initialize Telegram ID display in settings
+function initTelegramIdDisplay() {
+  const telegramIdEl = $('user-telegram-id');
+  const btnCopyTelegramId = $('btn-copy-telegram-id');
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  
+  if (!telegramIdEl || !btnCopyTelegramId) return;
+  
+  if (!hasTelegramId) {
+    // Show "Not defined" when Telegram ID doesn't exist (only fallback)
+    telegramIdEl.textContent = i18n[lang].notDefined || 'Не определено';
+    telegramIdEl.dataset.revealed = 'true';
+    btnCopyTelegramId.disabled = true;
+    const span = btnCopyTelegramId.querySelector('span');
+    if (span) span.textContent = i18n[lang].copy || 'Копировать';
+  } else {
+    // Show masked Telegram ID with dots
+    const masked = '•'.repeat(String(telegramUserId).length);
+    telegramIdEl.textContent = masked;
+    telegramIdEl.dataset.revealed = 'false';
+    btnCopyTelegramId.disabled = false;
+    
+    // Update button text to "Show"
+    const span = btnCopyTelegramId.querySelector('span');
+    if (span) {
+      span.textContent = i18n[lang].show || 'Показать';
+      span.dataset.isShow = 'true';
+    }
+  }
+}
+
 /* ========== SETTINGS ========== */
 $('btn-copy-token').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -968,6 +1003,36 @@ $('btn-copy-token').onclick = () => {
   } else {
     // Copy token to clipboard
     navigator.clipboard.writeText(token).then(() => {
+      if (span) {
+        span.textContent = i18n[lang].copied || 'Скопировано';
+        setTimeout(() => { 
+          span.textContent = i18n[lang].copy || 'Скопировать'; 
+        }, 3000);
+      }
+    }).catch(() => {
+      openModal(i18n[lang].errorTitle, i18n[lang].failedToCopy);
+    });
+  }
+};
+
+$('btn-copy-telegram-id').onclick = () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const telegramId = String(telegramUserId);
+  const telegramIdEl = $('user-telegram-id');
+  const span = $('btn-copy-telegram-id').querySelector('span');
+  const isRevealed = telegramIdEl.dataset.revealed === 'true';
+  
+  // If Telegram ID is not defined (only fallback), do nothing
+  if (!hasTelegramId) return;
+  
+  if (!isRevealed) {
+    // Show Telegram ID
+    telegramIdEl.textContent = telegramId;
+    telegramIdEl.dataset.revealed = 'true';
+    if (span) span.textContent = i18n[lang].copy || 'Скопировать';
+  } else {
+    // Copy Telegram ID to clipboard
+    navigator.clipboard.writeText(telegramId).then(() => {
       if (span) {
         span.textContent = i18n[lang].copied || 'Скопировано';
         setTimeout(() => { 
@@ -1390,6 +1455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Initialize token display on page load
   initTokenDisplay();
+  initTelegramIdDisplay();
 
   hidePreloader();
 });
