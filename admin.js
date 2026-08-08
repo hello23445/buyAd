@@ -1,6 +1,6 @@
 /* admin.js */
 
-const ADMIN_TOKENS = ['FQ87GDWKJSLLUVOA', 'L7DE073SCSHV7T8V', '1LJPUBXN5L9PH7S8'];
+const ADMIN_TOKENS = ['VbknQtkspXvnPpW9', 'L7DE073SCSHV7T8V', '1LJPUBXN5L9PH7S8'];
 
 /* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
 const disableCreateAds = '';// '' или 'disabled'
