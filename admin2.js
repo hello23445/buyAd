@@ -8,6 +8,6 @@ export const CloseApp = ""; // '' или 'closed' — если 'closed' тогд
 export const GASESES = "true"; // '' или 'no' — если 'no' тогда блокируем обращения к GAS.
 export const Purchases2 = ""; // '' или 'no' — если 'no' тогда отключаем платежи.
 export const disableCreateAds2 = "enabled"; // '' или 'disabled' — если 'disabled' тогда запрещаем создавать рекламу.
-export const disableEditingAds = "disabled"; // '' или 'disabled' — если 'disabled' тогда запрещаем редактировать рекламу.
+export const disableEditingAds = "enabled"; // '' или 'disabled' — если 'disabled' тогда запрещаем редактировать рекламу.
 
 
