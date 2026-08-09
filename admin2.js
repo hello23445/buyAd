@@ -1,5 +1,5 @@
 //Пользователю
-export const BanForever = [""]; //Токены пользователей, которые будут забанены в приложении навсегда.
+export const BanForever = ["tDnPynUSrAPP0eWB"]; //Токены пользователей, которые будут забанены в приложении навсегда.
 export const BlockCreateAds = [""]; //Токены пользователей, которым запрещено создавать и редактировать рекламу.
 export const BlockedUsersTelegramID = [""]; //Telegram ID пользователей, которые будут забанены в приложении навсегда.
 export const BlockedUsersIPadresses = [""]; //IP адреса пользователей, которые будут забанены в приложении навсегда.
