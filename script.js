@@ -1,6 +1,7 @@
 ﻿// script.js 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
+let isRulesModalOpen = false;
 if (tg) {
   tg.ready();
   tg.expand();
@@ -42,6 +43,11 @@ if (tg) {
   
   // Telegram BackButton handler
   tg.BackButton.onClick(() => {
+    if (isRulesModalOpen) {
+      closeModal();
+      return;
+    }
+
     const currentScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
     
     if (currentScreen === 'screen-create' && document.getElementById('back-from-create')) {
@@ -60,16 +66,29 @@ if (tg) {
 
 /* ========== HELPERS ========== */
 const $ = id => document.getElementById(id);
+function refreshBackButton() {
+  if (!tg?.BackButton) return;
+
+  const currentScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-main';
+  const shouldShow = isRulesModalOpen || [
+    'screen-create',
+    'screen-myads',
+    'screen-crystals',
+    'screen-admin',
+    'screen-settings'
+  ].includes(currentScreen);
+
+  if (shouldShow) {
+    tg.BackButton.show();
+  } else {
+    tg.BackButton.hide();
+  }
+}
 function show(el) { 
   if (!el) return; 
   try { 
     el.hidden = false;
-    // Show BackButton when showing a non-main screen
-    if (tg?.BackButton && el.classList?.contains('screen')) {
-      if (el.id !== 'screen-main' && el.id !== 'screen-first' && el.id !== 'screen-blocked') {
-        tg.BackButton.show();
-      }
-    }
+    refreshBackButton();
   } catch (e) { /* ignore */ } 
 }
 function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
@@ -604,10 +623,7 @@ async function showMainMenu(updateWhat = 'both') {
 /* ========== NAVIGATION ========== */
 function hideAllScreens() {
   document.querySelectorAll('.screen').forEach(s => hide(s));
-  // Hide BackButton when no screen is shown
-  if (tg?.BackButton) {
-    tg.BackButton.hide();
-  }
+  refreshBackButton();
 }
 
 $('btn-open-settings').onclick = () => {
@@ -700,9 +716,16 @@ $('nav-rules').onclick = () => {
   const pre = document.createElement('pre');
   pre.className = 'rules__text';
   pre.innerHTML = RULES_TEXT[lang];
+  isRulesModalOpen = true;
+  refreshBackButton();
   openModal(i18n[lang].rulesTitle, pre, [
     { text: i18n[lang].rulesAcceptBtn || 'Я принимаю все эти правила' }
-  ]);
+  ], {
+    onClose: () => {
+      isRulesModalOpen = false;
+      refreshBackButton();
+    }
+  });
 };
 
 $('nav-report').onclick = () => {

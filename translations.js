@@ -1,5 +1,4 @@
 /* translations.js */
-
 /* ========== RULES TEXT ========== */
 const RULES_TEXT = {
   ru: `<b>Создавая рекламу через наше приложение, вы соглашаетесь с нижеприведёнными правилами размещения рекламы.</b>
@@ -19,6 +18,9 @@ const RULES_TEXT = {
 🔹 <b>4.</b> Отказ и блокировка
 <b>4.1.</b> При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
 <b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
+
+
+
   en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules listed below.</b>
   📌 ADVERTISEMENT PLACEMENT RULES
 🔹 <b>1.</b> General Provisions
@@ -65,7 +67,7 @@ const i18n = {
     btnCreateAd: 'Создать рекламу',
     btnMyAds: 'Мои рекламы',
     btnSettings: 'Настройки',
-    appClosed: 'Приложение временнл закрыто на техническое обслуживание',
+    appClosed: 'Приложение временно закрыто на техническое обслуживание',
     createDisabled: 'Возможность создавать рекламы и редактировать их временно отключена на техническое обслуживание.',
     chooseLangTitle: 'Выберите язык интерфейса. Choose interface language.',
     chooseLangSubtitle: 'Язык можно будет изменить позже в настройках.',
