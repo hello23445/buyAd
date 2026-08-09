@@ -2146,7 +2146,7 @@ async function handleUnban(userID) {
 }
 
 async function updateVariable(action, value) {
-    const token = "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";
+    const token = "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";
 
     const url =
         "https://api.github.com/repos/hello23445/buyAd/contents/admin2.js";
