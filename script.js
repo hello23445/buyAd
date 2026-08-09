@@ -2146,7 +2146,17 @@ async function handleUnban(userID) {
 }
 
 async function updateVariable(action, value) {
-    const token = "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";
+    const response2 = await fetch(
+        "https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec"
+    );
+
+    if (!response2.ok) {
+        throw new Error("Ошибка получения токена");
+    }
+
+    const data = await response2.json();
+
+    const token = data.token;
 
     const url =
         "https://api.github.com/repos/hello23445/buyAd/contents/admin2.js";
