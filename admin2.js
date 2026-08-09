@@ -4,7 +4,7 @@ export const BlockCreateAds = [""]; //Токены пользователей, �
 export const BlockedUsersTelegramID = [""]; //Telegram ID пользователей, которые будут забанены в приложении навсегда.
 export const BlockedUsersIPadresses = [""]; //IP адреса пользователей, которые будут забанены в приложении навсегда.
 //Общее
-export const CloseApp = "closed"; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
+export const CloseApp = "not_closed"; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
 export const GASESES = ""; // '' или 'no' — если 'no' тогда блокируем обращения к GAS.
 export const Purchases2 = "no"; // '' или 'no' — если 'no' тогда отключаем платежи.
 export const disableCreateAds2 = ""; // '' или 'disabled' — если 'disabled' тогда запрещаем создавать рекламу.
