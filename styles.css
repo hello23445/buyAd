@@ -301,6 +301,16 @@ body.theme-dark {
   gap: 6px;
 }
 
+.menu__group {
+  margin-top: 4px;
+  padding: 6px 4px 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f90ff;
+}
+
 .menu__item {
   display: flex;
   align-items: center;

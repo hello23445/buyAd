@@ -191,12 +191,294 @@ function closeModal() {
 }
 $('modal-close').onclick = closeModal;
 
+function showFeatureBlockedModal(type) {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const i18nLang = i18n[lang] || i18n.ru;
+  const title = i18nLang.attentionTitle || 'Внимание';
+  const body = type === 'edit'
+    ? (i18nLang.editDisabled || 'Возможность редактировать рекламу временно отключена.')
+    : (i18nLang.createDisabled || 'Возможность создавать рекламу временно отключена.');
+  const okText = i18nLang.ok || i18nLang.yes || 'ОК';
+  openModal(title, body, [
+    { text: okText, class: 'btn btn--primary', onClick: () => {} }
+  ]);
+}
+
 /* ========== STORAGE ========== */
 const LS = {
   lang: 'lang',
   token: 'get_UserToken',
   theme: 'theme'
 };
+
+const ADMIN2_PATH = './admin2.js';
+let runtimeAdmin2ConfigLoaded = false;
+let runtimeAdmin2Config = {
+  BanForever: [''],
+  BlockCreateAds: [''],
+  BlockedUsersTelegramID: [''],
+  BlockedUsersIPadresses: [''],
+  CloseApp: '',
+  GASESES: '',
+  Purchases2: '',
+  disableCreateAds2: '',
+  disableEditingAds: ''
+};
+
+function parseExportArray(name, content) {
+  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;`);
+  const match = content.match(re);
+  if (!match) return [''];
+  try {
+    return JSON.parse(match[1]);
+  } catch (e) {
+    return [''];
+  }
+}
+
+function parseExportValue(name, content) {
+  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(['"])(.*?)\\1\\s*;`);
+  const match = content.match(re);
+  return match ? match[2] : '';
+}
+
+async function loadAdmin2Config() {
+  try {
+    const response = await fetch(ADMIN2_PATH, { cache: 'no-store' });
+    if (!response.ok) {
+      console.warn('admin2.js load failed', response.status);
+      return;
+    }
+    const content = await response.text();
+    runtimeAdmin2Config = {
+      BanForever: parseExportArray('BanForever', content),
+      BlockCreateAds: parseExportArray('BlockCreateAds', content),
+      BlockedUsersTelegramID: parseExportArray('BlockedUsersTelegramID', content),
+      BlockedUsersIPadresses: parseExportArray('BlockedUsersIPadresses', content),
+      CloseApp: parseExportValue('CloseApp', content),
+      GASESES: parseExportValue('GASESES', content),
+      Purchases2: parseExportValue('Purchases2', content),
+      disableCreateAds2: parseExportValue('disableCreateAds2', content),
+      disableEditingAds: parseExportValue('disableEditingAds', content)
+    };
+    runtimeAdmin2ConfigLoaded = true;
+    const lang = localStorage.getItem(LS.lang) || 'ru';
+    const token = localStorage.getItem(LS.token);
+    const isAdmin = ADMIN_TOKENS.includes(token);
+    if (isAppClosed() && !isAdmin) {
+      hideAllScreens();
+      showAppUnavailableModal(lang);
+      return;
+    }
+    await applyRuntimeBlockings();
+  } catch (e) {
+    console.warn('Failed to load admin2 config', e);
+  }
+}
+
+function getRuntimeConfig(name, fallback) {
+  if (runtimeAdmin2ConfigLoaded && Object.prototype.hasOwnProperty.call(runtimeAdmin2Config, name)) {
+    return runtimeAdmin2Config[name];
+  }
+  return fallback;
+}
+
+function runtimeArray(name, fallback) {
+  const value = getRuntimeConfig(name, fallback);
+  if (Array.isArray(value)) return value;
+  return fallback || [];
+}
+
+function isRuntimeValue(name, expectedValue, fallback) {
+  return getRuntimeConfig(name, fallback) === expectedValue;
+}
+
+function isAppClosed() {
+  return isRuntimeValue('CloseApp', 'closed', closeApp);
+}
+
+function isGasDisabled() {
+  return isRuntimeValue('GASESES', 'no', GASES);
+}
+
+function isPaymentsDisabled() {
+  return isRuntimeValue('Purchases2', 'no', '');
+}
+
+function isEditingDisabledGlobally() {
+  return isRuntimeValue('disableEditingAds', 'disabled', '');
+}
+
+function isTokenCreateBlocked() {
+  const token = localStorage.getItem(LS.token);
+  return runtimeArray('BlockCreateAds', []).includes(token);
+}
+
+function isTokenFullyBlocked() {
+  const token = localStorage.getItem(LS.token);
+  return runtimeArray('BanForever', []).includes(token);
+}
+
+function isCreateAdsDisabledGlobally() {
+  return isRuntimeValue('disableCreateAds2', 'disabled', disableCreateAds) || isTokenCreateBlocked();
+}
+
+function isTelegramIdBlocked() {
+  const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
+  return telegramId && runtimeArray('BlockedUsersTelegramID', []).includes(telegramId);
+}
+
+let cachedClientIp = null;
+async function getClientIp() {
+  if (cachedClientIp) return cachedClientIp;
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    if (!response.ok) return null;
+    const data = await response.json();
+    cachedClientIp = data.ip;
+    return data.ip;
+  } catch (e) {
+    console.warn('IP fetch failed', e);
+    return null;
+  }
+}
+
+async function isIpBlocked() {
+  const ip = await getClientIp();
+  return ip && runtimeArray('BlockedUsersIPadresses', []).includes(ip);
+}
+
+function updateBlockedSubtitle(reason, lang) {
+  const subtitle = $('screen-blocked')?.querySelector('.card__subtitle');
+  if (!subtitle) return;
+
+  if (reason === 'telegram') {
+    subtitle.dataset.i18n = 'blockedSubtitleTelegram';
+    subtitle.textContent = i18n[lang].blockedSubtitleTelegram || 'Your Telegram ID is blocked in the app';
+  } else if (reason === 'ip') {
+    subtitle.dataset.i18n = 'blockedSubtitleIp';
+    subtitle.textContent = i18n[lang].blockedSubtitleIp || 'Your IP address is blocked in the app';
+  } else {
+    subtitle.dataset.i18n = 'blockedSubtitle';
+    subtitle.textContent = i18n[lang].blockedSubtitle || 'You have been blocked';
+  }
+}
+
+let specialModalType = null;
+
+function showSpecialModal(title, body, type) {
+  openModal(title, body, [], {
+    onClose: () => {
+      specialModalType = null;
+    }
+  });
+  const closeBtn = $('modal-close');
+  if (closeBtn) closeBtn.hidden = true;
+  specialModalType = type;
+}
+
+function showAppUnavailableModal(lang) {
+  if (specialModalType === 'offline') return;
+  showSpecialModal(i18n[lang].attentionTitle || 'Внимание', i18n[lang].appUnavailable || 'Приложение временно недоступно.', 'appUnavailable');
+}
+
+function hideAppUnavailableModal() {
+  if (specialModalType !== 'appUnavailable') return;
+  const closeBtn = $('modal-close');
+  if (closeBtn) closeBtn.hidden = false;
+  closeModal();
+}
+
+function showOfflineModal() {
+  showSpecialModal('Нет подключения к интернету!', 'Подключитесь к интернету чтобы продолжить!', 'offline');
+}
+
+function hideOfflineModal() {
+  if (specialModalType !== 'offline') return;
+  const closeBtn = $('modal-close');
+  if (closeBtn) closeBtn.hidden = false;
+  closeModal();
+}
+
+function updateOnlineStatus() {
+  if (!navigator.onLine) {
+    showOfflineModal();
+  } else {
+    hideOfflineModal();
+  }
+}
+
+async function applyRuntimeBlockings() {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const token = localStorage.getItem(LS.token);
+  const isTokenBan = isTokenFullyBlocked();
+  const isCreateBan = isTokenCreateBlocked();
+  const isTelegramBan = isTelegramIdBlocked();
+  const isIpBan = await isIpBlocked();
+
+  const blockedByIpOrTelegram = isTelegramBan || isIpBan;
+  const anyBlocked = isTokenBan || blockedByIpOrTelegram;
+
+  const createAdsDisabledGlobally = isCreateAdsDisabledGlobally();
+  if ($('nav-create')) {
+    $('nav-create').disabled = false;
+  }
+  if ($('btn-create-ad')) {
+    $('btn-create-ad').disabled = false;
+  }
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.disabled = false;
+  });
+
+  if (anyBlocked) {
+    hideAllScreens();
+    show($('screen-blocked'));
+    if ($('btn-open-settings')) {
+      $('btn-open-settings').hidden = true;
+    }
+    if (tg?.SettingsButton) {
+      tg.SettingsButton.hide();
+    }
+    if (isTokenBan) {
+      updateBlockedSubtitle('token', lang);
+      $('user-token-blocked').textContent = token || '—';
+    } else if (isTelegramBan) {
+      updateBlockedSubtitle('telegram', lang);
+      $('user-token-blocked').textContent = tg?.initDataUnsafe?.user?.id || '—';
+    } else if (isIpBan) {
+      updateBlockedSubtitle('ip', lang);
+      $('user-token-blocked').textContent = token || '—';
+    }
+    $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
+    $('btn-copy-token-blocked').onclick = () => {
+      navigator.clipboard.writeText(token || '—').then(() => {
+        const span = $('btn-copy-token-blocked').querySelector('span');
+        if (span) {
+          span.textContent = i18n[lang].copied;
+          setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
+        }
+      }).catch(() => {
+        openModal(i18n[lang].failedToCopy, '');
+      });
+    };
+    document.querySelectorAll('#blocked-lang-buttons .seg').forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll('#blocked-lang-buttons .seg').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        const langVal = b.dataset.value;
+        localStorage.setItem(LS.lang, langVal);
+        applyLang(langVal);
+      };
+    });
+    return true;
+  }
+  return false;
+}
+
+async function pollAdmin2Config() {
+  await loadAdmin2Config();
+  setInterval(loadAdmin2Config, 1000);
+}
 
 function applyLang(lang) {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -278,7 +560,7 @@ function generateSessionId() {
 
 // Записать session_id на GAS (action: "write")
 async function writeSessionToGAS(userID, sessionId) {
-  if (GASES === 'no') return true; // Пропускаем если GAS отключены
+  if (isGasDisabled()) return true; // Пропускаем если GAS отключены
   try {
     const response = await fetch(GAS_SESSION_URL, {
       method: 'POST',
@@ -300,7 +582,7 @@ async function writeSessionToGAS(userID, sessionId) {
 
 // Проверить session_id на GAS (action: "check")
 async function checkSessionOnGAS(userID, sessionId) {
-  if (GASES === 'no') return 'No changes'; // Пропускаем если GAS отключены
+  if (isGasDisabled()) return 'No changes'; // Пропускаем если GAS отключены
   try {
     const response = await fetch(GAS_SESSION_URL, {
       method: 'POST',
@@ -460,11 +742,13 @@ async function checkUserStatus(isAdmin) {
 /* ========== CHECK APP OPEN (локально) ========== */
 function checkAppOpen(isAdmin) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (closeApp === 'closed' && !isAdmin) {
+  if (isAppClosed() && !isAdmin) {
     hideAllScreens();
-    openModal(i18n[lang].attentionTitle, i18n[lang].appClosed, []);
-    $('modal-close').hidden = true;
+    showAppUnavailableModal(lang);
     return false;
+  }
+  if (specialModalType === 'appUnavailable') {
+    hideAppUnavailableModal();
   }
   return true;
 }
@@ -489,8 +773,7 @@ function firstEntry(lang) {
 let currentCrystals = 0;
 
 async function updateAdsCount() {
-  // Если GASES === 'no', можно добавить проверку: return или fallback на localStorage
-  if (GASES === 'no') {
+  if (isGasDisabled()) {
     $('ads-count').textContent = localStorage.getItem('adsCount') || 0;
     return;
   }
@@ -523,7 +806,7 @@ async function updateAdsCount() {
 }
 
 async function fetchCrystals() {
-  if (GASES === 'no') {
+  if (isGasDisabled()) {
     return parseInt(localStorage.getItem('crystals')) || 0;
   }
   try {
@@ -540,7 +823,7 @@ async function fetchCrystals() {
 }
 
 async function updateCrystalsInGAS(amount, isAdd = true) {
-  if (GASES === 'no') {
+  if (isGasDisabled()) {
     // Локальный fallback: обновляем только localStorage
     currentCrystals = isAdd ? currentCrystals + amount : currentCrystals - amount;
     localStorage.setItem('crystals', String(currentCrystals));
@@ -570,6 +853,7 @@ async function showMainMenu(updateWhat = 'both') {
 
   if (!await checkUserStatus(isAdmin)) return;
   if (!checkAppOpen(isAdmin)) return;
+  if (await applyRuntimeBlockings()) return;
 
   hideAllScreens();
   show($('screen-main'));
@@ -625,8 +909,8 @@ async function showMainMenu(updateWhat = 'both') {
 
   // Локальное отключение создания (после загрузки кристаллов)
   // Проверяем: 1) флаг disableCreateAds 2) забан на создание рекламы
-  const isBannedFromAds = banForeverAds.includes(token);
-  $('nav-create').disabled = disableCreateAds === 'disabled' || isBannedFromAds;
+  const isBannedFromAds = banForeverAds.includes(token) || isTokenCreateBlocked();
+  $('nav-create').disabled = isCreateAdsDisabledGlobally() || isBannedFromAds;
 }
 
 /* ========== NAVIGATION ========== */
@@ -660,8 +944,8 @@ $('nav-admin').onclick = () => {
 
 $('nav-create').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (disableCreateAds === 'disabled') {
-    openModal(i18n[lang].createDisabled, '');
+  if (isCreateAdsDisabledGlobally()) {
+    showFeatureBlockedModal('create');
     return;
   }
   // Show create screen immediately
@@ -679,10 +963,10 @@ $('nav-create').onclick = () => {
 
   // Run pending check in background; if user has pending ad — inform and return to main
   (async () => {
-    if (GASES === 'no') {
+    if (isGasDisabled()) {
       // Fallback: предположим, нет pending
       if (createBtn) {
-        createBtn.disabled = disableCreateAds === 'disabled';
+        createBtn.disabled = isCreateAdsDisabledGlobally();
         const span = createBtn.querySelector('span');
         if (span) span.textContent = i18n[lang].createBtn;
       }
@@ -701,7 +985,7 @@ $('nav-create').onclick = () => {
       // network error — allow user to proceed but re-enable button
     } finally {
       if (createBtn) {
-        createBtn.disabled = disableCreateAds === 'disabled';
+        createBtn.disabled = isCreateAdsDisabledGlobally();
         const span = createBtn.querySelector('span');
         if (span) span.textContent = i18n[lang].createBtn;
       }
@@ -1072,8 +1356,8 @@ $('footer-remove').onclick = async () => {
 $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
 
-  if (disableCreateAds === 'disabled') {
-    openModal(i18n[lang].createDisabled, '');
+  if (isCreateAdsDisabledGlobally()) {
+    showFeatureBlockedModal('create');
     return;
   }
 
@@ -1370,8 +1654,7 @@ document.querySelectorAll('#settings-lang-buttons .seg').forEach(b => {
     b.classList.add('active');
     const lang = b.dataset.value;
     localStorage.setItem(LS.lang, lang);
-    // reload so all text nodes and backend state refresh cleanly
-    location.reload();
+    applyLang(lang);
   };
 });
 
@@ -1440,6 +1723,12 @@ async function loadMyAds(skipPreloader = false) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (!skipPreloader) showPreloader();
   const list = $('myads-list');
+  if (isGasDisabled()) {
+    list.innerHTML = '';
+    show($('myads-empty'));
+    if (!skipPreloader) hidePreloader();
+    return;
+  }
   
   // Не очищаем список если это скрытая загрузка в фоне
   if (!skipPreloader) {
@@ -1505,8 +1794,13 @@ async function loadMyAds(skipPreloader = false) {
         
         card.querySelector('.edit-btn').onclick = () => {
           const token = localStorage.getItem(LS.token);
-          if (banForeverAds.includes(token)) {
-            openModal(i18n[lang].createDisabled, '');
+          const isBannedFromAds = banForeverAds.includes(token) || runtimeArray('BlockCreateAds', []).includes(token);
+          if (isEditingDisabledGlobally()) {
+            showFeatureBlockedModal('edit');
+            return;
+          }
+          if (isBannedFromAds) {
+            showFeatureBlockedModal('create');
             return;
           }
           editMode = true;
@@ -1649,6 +1943,9 @@ async function loadMyAds(skipPreloader = false) {
 
 /* ========== APPROVE/REJECT ADS ========== */
 async function approveAd(adName, status) {
+  if (isGasDisabled()) {
+    throw new Error(i18n[localStorage.getItem(LS.lang) || 'ru'].gasDisabled || 'GAS отключён');
+  }
   const action = status === 'pending' ? 'approvePending' : 'approveAd';
   const url = status === 'pending' ? GAS_SYS_URL : GAS_ADS_URL;
   const response = await fetch(`${url}?action=${action}&adName=${encodeURIComponent(adName)}`);
@@ -1657,6 +1954,9 @@ async function approveAd(adName, status) {
 }
 
 async function rejectAd(adName, status) {
+  if (isGasDisabled()) {
+    throw new Error(i18n[localStorage.getItem(LS.lang) || 'ru'].gasDisabled || 'GAS отключён');
+  }
   const action = status === 'pending' ? 'rejectPending' : 'rejectAd';
   const url = status === 'pending' ? GAS_SYS_URL : GAS_ADS_URL;
   const response = await fetch(`${url}?action=${action}&adName=${encodeURIComponent(adName)}`);
@@ -1683,8 +1983,8 @@ async function loadCrystals() {
 async function buyCrystals(amount, stars) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   // Если платежи отключены в конфиге
-  if (typeof PURCHASES !== 'undefined' && PURCHASES === 'no') {
-    openModal(i18n[lang].paymentsDisabled || 'Платежи отключены', '');
+  if (isPaymentsDisabled()) {
+    openModal(i18n[lang].paymentsDisabled || 'Платежи временно отключены', '');
     return;
   }
   try {
@@ -1726,8 +2026,7 @@ async function buyCrystals(amount, stars) {
 /* ========== ADMIN FUNCTIONS ========== */
 $('admin-check').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (GASES === 'no') {
-    // Fallback: показываем пустой список
+  if (isGasDisabled()) {
     const list = $('admin-check-list');
     list.innerHTML = '';
     return;
@@ -1776,8 +2075,8 @@ $('admin-check').onclick = async () => {
 
 async function handleAdAction(adName, action, userID = null) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (GASES === 'no') {
-    openModal('GAS отключён', '');
+  if (isGasDisabled()) {
+    openModal(i18n[lang].gasDisabled || 'GAS отключён', '');
     return;
   }
   showPreloader();
@@ -1796,8 +2095,7 @@ async function handleAdAction(adName, action, userID = null) {
 
 $('admin-restricted').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (GASES === 'no') {
-    // Fallback: пустой список
+  if (isGasDisabled()) {
     const list = $('admin-restricted-list');
     list.innerHTML = '';
     return;
@@ -1831,8 +2129,8 @@ $('admin-restricted').onclick = async () => {
 
 async function handleUnban(userID) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (GASES === 'no') {
-    openModal('GAS отключён', '');
+  if (isGasDisabled()) {
+    openModal(i18n[lang].gasDisabled || 'GAS отключён', '');
     return;
   }
   showPreloader();
@@ -1847,6 +2145,671 @@ async function handleUnban(userID) {
   }
 }
 
+async function updateVariable(action, value) {
+    const token = "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";
+
+    const url =
+        "https://api.github.com/repos/hello23445/buyAd/contents/admin2.js";
+
+    // =====================================================
+    // ПОЛУЧАЕМ ФАЙЛ
+    // =====================================================
+
+    const response = await fetch(url, {
+        headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+
+        throw new Error(
+            `Ошибка получения файла: ${response.status} — ${error.message || ""}`
+        );
+    }
+
+    const file = await response.json();
+
+    // =====================================================
+    // ДЕКОДИРУЕМ ФАЙЛ
+    // =====================================================
+
+    const content = decodeURIComponent(
+        escape(
+            atob(file.content.replace(/\n/g, ""))
+        )
+    );
+
+    let variableName;
+    let newValue;
+
+    // =====================================================
+    // ОПРЕДЕЛЯЕМ ПЕРЕМЕННУЮ
+    // =====================================================
+
+    switch (action) {
+
+        // -------------------------
+        // BAN FOREVER
+        // -------------------------
+
+        case "BanForever":
+            variableName = "BanForever";
+            newValue = value;
+            break;
+
+        case "UnBanForever":
+            variableName = "BanForever";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // BLOCK CREATE ADS
+        // -------------------------
+
+        case "BlockCreateAds":
+            variableName = "BlockCreateAds";
+            newValue = value;
+            break;
+
+        case "UnBlockCreateAds":
+            variableName = "BlockCreateAds";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // CLOSE APP
+        // -------------------------
+
+        case "CloseApp":
+            variableName = "CloseApp";
+            newValue = value;
+            break;
+
+        case "UnCloseApp":
+            variableName = "CloseApp";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // GAS
+        // -------------------------
+
+        case "GASESES":
+            variableName = "GASESES";
+            newValue = value;
+            break;
+
+        case "UnGASESES":
+            variableName = "GASESES";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // PURCHASES
+        // -------------------------
+
+        case "Purchases2":
+            variableName = "Purchases2";
+            newValue = value;
+            break;
+
+        case "UnPurchases2":
+            variableName = "Purchases2";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // CREATE ADS
+        // -------------------------
+
+        case "disableCreateAds2":
+            variableName = "disableCreateAds2";
+            newValue = value;
+            break;
+
+        case "UndisableCreateAds2":
+            variableName = "disableCreateAds2";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // EDIT ADS
+        // -------------------------
+
+        case "disableEditingAds":
+            variableName = "disableEditingAds";
+            newValue = value;
+            break;
+
+        case "UndisableEditingAds":
+            variableName = "disableEditingAds";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // TELEGRAM ID
+        // -------------------------
+
+        case "BlockedUsersTelegramID":
+            variableName = "BlockedUsersTelegramID";
+            newValue = value;
+            break;
+
+        case "UnBlockedUsersTelegramID":
+            variableName = "BlockedUsersTelegramID";
+            newValue = value;
+            break;
+
+
+        // -------------------------
+        // IP ADDRESS
+        // -------------------------
+
+        case "BlockedUsersIPadresses":
+            variableName = "BlockedUsersIPadresses";
+            newValue = value;
+            break;
+
+        case "UnBlockedUsersIPadresses":
+            variableName = "BlockedUsersIPadresses";
+            newValue = value;
+            break;
+
+
+        default:
+            throw new Error(
+                `Неизвестное действие: ${action}`
+            );
+    }
+
+    let newContent;
+
+    // =====================================================
+    // ПРОВЕРЯЕМ, ЯВЛЯЕТСЯ ЛИ ПЕРЕМЕННАЯ МАССИВОМ
+    // =====================================================
+
+    const isArrayVariable =
+        variableName === "BanForever" ||
+        variableName === "BlockCreateAds" ||
+        variableName === "BlockedUsersTelegramID" ||
+        variableName === "BlockedUsersIPadresses";
+
+    // =====================================================
+    // МАССИВЫ
+    // =====================================================
+
+    if (isArrayVariable) {
+
+        const regex = new RegExp(
+            `(^\\s*(?:export\\s+)?(?:let|const|var)\\s+${variableName}\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)`,
+            "m"
+        );
+
+        const match = content.match(regex);
+
+        if (!match) {
+            throw new Error(
+                `Массив ${variableName} не найден`
+            );
+        }
+
+        let oldArray;
+
+        try {
+            oldArray = JSON.parse(match[2]);
+        } catch {
+            throw new Error(
+                `Не удалось прочитать массив ${variableName}: ${match[2]}`
+            );
+        }
+
+        if (!Array.isArray(oldArray)) {
+            throw new Error(
+                `${variableName} не является массивом`
+            );
+        }
+
+        // Удаляем пустые элементы
+        oldArray = oldArray.filter(
+            item => item !== ""
+        );
+
+        // =================================================
+        // ДОБАВЛЕНИЕ
+        // =================================================
+
+        const isAddAction =
+            action === "BanForever" ||
+            action === "BlockCreateAds" ||
+            action === "BlockedUsersTelegramID" ||
+            action === "BlockedUsersIPadresses";
+
+        if (isAddAction) {
+
+            const valuesToAdd =
+                Array.isArray(value)
+                    ? value
+                    : [value];
+
+            for (const item of valuesToAdd) {
+
+                if (
+                    item !== "" &&
+                    !oldArray.includes(item)
+                ) {
+                    oldArray.push(item);
+                }
+            }
+        }
+
+        // =================================================
+        // УДАЛЕНИЕ
+        // =================================================
+
+        const isRemoveAction =
+            action === "UnBanForever" ||
+            action === "UnBlockCreateAds" ||
+            action === "UnBlockedUsersTelegramID" ||
+            action === "UnBlockedUsersIPadresses";
+
+        if (isRemoveAction) {
+
+            const valuesToRemove =
+                Array.isArray(value)
+                    ? value
+                    : [value];
+
+            oldArray = oldArray.filter(
+                item => !valuesToRemove.includes(item)
+            );
+        }
+
+        // Если массив пустой — оставляем [""]
+        if (oldArray.length === 0) {
+            oldArray = [""];
+        }
+
+        const newArrayText =
+            JSON.stringify(oldArray);
+
+        newContent = content.replace(
+            regex,
+            `$1${newArrayText}$3`
+        );
+    }
+
+    // =====================================================
+    // ОБЫЧНЫЕ ПЕРЕМЕННЫЕ
+    // =====================================================
+
+    else {
+
+        const regex = new RegExp(
+            `(^\\s*(?:export\\s+)?(?:let|const|var)\\s+${variableName}\\s*=\\s*)([^;]+)(\\s*;)`,
+            "m"
+        );
+
+        const match = content.match(regex);
+
+        if (!match) {
+            throw new Error(
+                `Переменная ${variableName} не найдена`
+            );
+        }
+
+        newContent = content.replace(
+            regex,
+            `$1${JSON.stringify(newValue)}$3`
+        );
+    }
+
+    // =====================================================
+    // ПРОВЕРКА
+    // =====================================================
+
+    if (newContent === content) {
+        throw new Error(
+            `Содержимое ${variableName} не изменилось`
+        );
+    }
+
+    // =====================================================
+    // КОДИРУЕМ В BASE64
+    // =====================================================
+
+    const encodedContent = btoa(
+        unescape(
+            encodeURIComponent(newContent)
+        )
+    );
+
+    // =====================================================
+    // ОБНОВЛЯЕМ GITHUB
+    // =====================================================
+
+    const updateResponse = await fetch(url, {
+        method: "PUT",
+
+        headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            message: `${action}: ${variableName}`,
+            content: encodedContent,
+            sha: file.sha
+        })
+    });
+
+    const result =
+        await updateResponse.json();
+
+    if (!updateResponse.ok) {
+        throw new Error(
+            result.message ||
+            `Ошибка GitHub: ${updateResponse.status}`
+        );
+    }
+
+    alert(
+        `${variableName} успешно изменена`
+    );
+
+    return result;
+}
+
+function openAdminTokenModal(title, onSubmit, placeholder = 'Введите токен пользователя') {
+  const body = document.createElement('div');
+  body.style.display = 'grid';
+  body.style.gap = '0.75rem';
+
+  const label = document.createElement('label');
+  label.textContent = title;
+  label.style.fontWeight = '600';
+  body.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = placeholder;
+  input.style.width = '100%';
+  input.style.padding = '0.75rem';
+  input.style.border = '1px solid #ccc';
+  input.style.borderRadius = '0.5rem';
+  input.style.fontSize = '1rem';
+  body.appendChild(input);
+
+  openModal(title, body, [
+    {
+      text: 'Отправить',
+      onClick: () => {
+        if (onSubmit) onSubmit(input.value.trim());
+      }
+    },
+    {
+      text: 'Отмена',
+      class: 'btn btn--ghost'
+    }
+  ]);
+}
+
+$('admin-block-user').onclick = () => {
+  openAdminTokenModal('Заблокировать пользователя по токену', async token => {
+    if (!token) {
+      alert('Введите токен пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('BanForever', token);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  });
+};
+
+$('admin-unblock-user').onclick = () => {
+  openAdminTokenModal('Разблокировать пользователя по токену', async token => {
+    if (!token) {
+      alert('Введите токен пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('UnBanForever', token);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  });
+};
+
+$('admin-ban-create-edit').onclick = () => {
+  openAdminTokenModal('Заблокировать пользователю возможность создавать и редактировать рекламы', async token => {
+    if (!token) {
+      alert('Введите токен пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('BlockCreateAds', token);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  });
+};
+
+$('admin-unban-create-edit').onclick = () => {
+  openAdminTokenModal('Разблокировать пользователю возможность создавать и редактировать рекламы', async token => {
+    if (!token) {
+      alert('Введите токен пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('UnBlockCreateAds', token);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  });
+};
+
+$('admin-ban-ip').onclick = () => {
+  openAdminTokenModal('Забанить пользователя по его IP-адресу', async ip => {
+    if (!ip) {
+      alert('Введите IP-адрес пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('BlockedUsersIPadresses', ip);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  }, 'Введите IP-адрес пользователя');
+};
+
+$('admin-unban-ip').onclick = () => {
+  openAdminTokenModal('Разбанить пользователя по его IP-адресу', async ip => {
+    if (!ip) {
+      alert('Введите IP-адрес пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('UnBlockedUsersIPadresses', ip);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  }, 'Введите IP-адрес пользователя');
+};
+
+$('admin-ban-telegram-id').onclick = () => {
+  openAdminTokenModal('Забанить пользователя по его Telegram ID', async telegramId => {
+    if (!telegramId) {
+      alert('Введите Telegram ID пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('BlockedUsersTelegramID', telegramId);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  }, 'Введите Telegram ID пользователя');
+};
+
+$('admin-unban-telegram-id').onclick = () => {
+  openAdminTokenModal('Разбанить пользователя по его Telegram ID', async telegramId => {
+    if (!telegramId) {
+      alert('Введите Telegram ID пользователя');
+      return;
+    }
+    try {
+      showPreloader();
+      await updateVariable('UnBlockedUsersTelegramID', telegramId);
+    } catch (e) {
+      alert(e.message || 'Ошибка при обновлении переменной');
+    } finally {
+      hidePreloader();
+    }
+  }, 'Введите Telegram ID пользователя');
+};
+
+$('admin-close-app').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('CloseApp', 'closed');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-open-app').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('UnCloseApp', 'not_closed');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-disable-gas').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('GASESES', 'no');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-enable-gas').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('UnGASESES', 'true');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-disable-payments').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('Purchases2', 'no');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-enable-payments').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('UnPurchases2', 'enabled');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-disable-create-all').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('disableCreateAds2', 'disabled');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-enable-create-all').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('UndisableCreateAds2', 'enabled');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-disable-edit-all').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('disableEditingAds', 'disabled');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
+$('admin-enable-edit-all').onclick = async () => {
+  try {
+    showPreloader();
+    await updateVariable('UndisableEditingAds', 'enabled');
+  } catch (e) {
+    alert(e.message || 'Ошибка при обновлении переменной');
+  } finally {
+    hidePreloader();
+  }
+};
+
 /* ========== INIT ========== */
 document.addEventListener('DOMContentLoaded', async () => {
   // Отключаем кнопку настроек при входе
@@ -1859,7 +2822,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   showPreloader();
 // Инициализация пользователя в таблице Users
 (async () => {
-  if (GASES === 'no') return; // Пропускаем GAS
+  if (isGasDisabled()) return; // Пропускаем GAS
   try {
     await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
   } catch (e) {
@@ -1869,6 +2832,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lang = localStorage.getItem(LS.lang);
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
+  await pollAdmin2Config();
+  updateOnlineStatus();
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
 
   if (!lang) {
     hideAllScreens();
@@ -1923,3 +2890,4 @@ document.addEventListener('click', (e) => {
     document.activeElement?.blur();
   }
 });
+

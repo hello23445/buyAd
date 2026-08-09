@@ -459,6 +459,7 @@
 
         <div class="card">
           <div class="menu">
+            <div class="menu__group">Проверка</div>
             <button id="admin-check" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-clipboard-check"></i></span>
               <span class="menu__text" data-i18n="adminCheck">Проверить рекламу</span>
@@ -468,6 +469,121 @@
             <button id="admin-restricted" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-lock"></i></span>
               <span class="menu__text" data-i18n="adminRestricted">Список ограниченных</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group">Блокировка</div>
+            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По токену</div>
+            <button id="admin-block-user" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
+              <span class="menu__text">Забанить пользователя по токену</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-unblock-user" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
+              <span class="menu__text">Разбанить пользователя по токену</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По IP-адресу</div>
+            <button id="admin-ban-ip" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Забанить пользователя по его IP-адресу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-unban-ip" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
+              <span class="menu__text">Разбанить пользователя по его IP-адресу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По Telegram ID</div>
+            <button id="admin-ban-telegram-id" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Забанить пользователя по его Telegram ID</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-unban-telegram-id" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
+              <span class="menu__text">Разбанить пользователя по его Telegram ID</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">Блокировка рекламы</div>
+            <button id="admin-ban-create-edit" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Заблокировать пользователю возможность создавать и редактировать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-unban-create-edit" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-plus"></i></span>
+              <span class="menu__text">Разблокировать пользователю возможность создавать и редактировать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group">Рекламы / Платежи</div>
+            <button id="admin-disable-create-all" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Отключить всем возможность создавать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-enable-create-all" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-check"></i></span>
+              <span class="menu__text">Включить всем возможность создавать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-disable-edit-all" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Отключить всем возможность редактировать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-enable-edit-all" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-check"></i></span>
+              <span class="menu__text">Включить всем возможность редактировать рекламу</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-disable-payments" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
+              <span class="menu__text">Отключить платежи</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-enable-payments" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-money-bill-wave"></i></span>
+              <span class="menu__text">Включить платежи</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <div class="menu__group">Приложение / GAS</div>
+            <button id="admin-close-app" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-door-closed"></i></span>
+              <span class="menu__text">Закрыть приложение</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-open-app" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-door-open"></i></span>
+              <span class="menu__text">Открыть приложение</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-disable-gas" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-plug"></i></span>
+              <span class="menu__text">Отключить обращение к GAS</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+
+            <button id="admin-enable-gas" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-plug"></i></span>
+              <span class="menu__text">Включить обращение к GAS</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
           </div>
