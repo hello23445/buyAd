@@ -629,6 +629,10 @@ function hideAllScreens() {
 $('btn-open-settings').onclick = () => {
   previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
   hideAllScreens();
+  $('btn-open-settings').disabled = true;
+  if (tg?.SettingsButton) {
+    tg.SettingsButton.hide();
+  }
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings
@@ -788,6 +792,10 @@ let previousEditScreen = null; // To track where edit was opened from
 // Special handling for back-from-settings
 $('back-from-settings').onclick = () => {
   hideAllScreens();
+  $('btn-open-settings').disabled = false;
+  if (tg?.SettingsButton) {
+    tg.SettingsButton.show();
+  }
   show($(previousScreen));
 };
 
