@@ -32,8 +32,17 @@ if (tg) {
   
   // Включаем подтверждение при закрытии приложения
   tg.enableClosingConfirmation();
-  // Показываем кнопку Settings
-  tg.SettingsButton.show();
+  // Скрываем кнопку Settings при входе на сайт и показываем через 15 секунд
+  if (tg.SettingsButton) {
+    tg.SettingsButton.hide();
+    setTimeout(() => {
+      try {
+        tg.SettingsButton.show();
+      } catch (e) {
+        console.warn('Failed to show SettingsButton after delay:', e);
+      }
+    }, 15000);
+  }
   // Обработчик клика на кнопку Settings
   tg.SettingsButton.onClick(() => {
     const previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
