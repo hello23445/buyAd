@@ -298,7 +298,14 @@ function isAppClosed() {
 }
 
 function isGasDisabled() {
-  return isRuntimeValue('GASESES', 'no', GASES);
+  if (isRuntimeValue('GASESES', 'no', GASES)) return true;
+
+  const token = localStorage.getItem(LS.token);
+  const isTokenBan = runtimeArray('BanForever', []).includes(token);
+  const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
+  const isTelegramBan = telegramId && runtimeArray('BlockedUsersTelegramID', []).includes(telegramId);
+
+  return isTokenBan || isTelegramBan || currentUserIpBlocked;
 }
 
 function isPaymentsDisabled() {
@@ -365,6 +372,7 @@ function updateBlockedSubtitle(reason, lang) {
 }
 
 let specialModalType = null;
+let currentUserIpBlocked = false;
 
 function showSpecialModal(title, body, type) {
   openModal(title, body, [], {
@@ -420,6 +428,7 @@ async function applyRuntimeBlockings() {
   const anyBlocked = isTokenBan || blockedByIpOrTelegram;
 
   const createAdsDisabledGlobally = isCreateAdsDisabledGlobally();
+  currentUserIpBlocked = isIpBan;
   if ($('nav-create')) {
     $('nav-create').disabled = false;
   }
@@ -2842,6 +2851,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lang = localStorage.getItem(LS.lang);
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
+  currentUserIpBlocked = await isIpBlocked();
   await pollAdmin2Config();
   updateOnlineStatus();
   window.addEventListener('online', updateOnlineStatus);
