@@ -1168,214 +1168,182 @@ body.theme-light .textarea {
   border: 1px solid rgba(0,0,0,0.08);
   color: #000;
 }
+/* Etc. for buttons, notes, etc. */
+
 /* =========================
-   RESET & BASE
+   RANGE SLIDER
 ========================= */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+.range-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  position: relative;
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-               Roboto, Ubuntu, "Helvetica Neue", Arial, sans-serif;
-  height: 100%;
-}
-
-body.theme-dark {
-  background: #0b1220;
-  color: #e6e9f0;
-}
-
-body.theme-light {
-  background: #f0f2f5;
-  color: #121212;
-}
-
-body {
-  overscroll-behavior: none;
-}
-
-button {
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  color: inherit;
+.range-slider {
+  flex: 1;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  appearance: none;
+  -webkit-appearance: none;
   cursor: pointer;
+  position: relative;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.settings-button-range {
+  --zero-position: 66.6667%;
 }
 
-textarea {
-  font-family: inherit;
-  resize: vertical;
+.app-title-range {
+  --zero-position: 33.3333%;
 }
 
-[hidden] {
-  display: none !important;
+body.theme-dark .range-slider {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.1) 0%,
+    rgba(255,255,255,0.1) calc(var(--zero-position) - 1px),
+    #4f6cff var(--zero-position),
+    #4f6cff calc(var(--zero-position) + 1px),
+    rgba(255,255,255,0.1) calc(var(--zero-position) + 1px),
+    rgba(255,255,255,0.1) 100%
+  );
 }
 
-/* =========================
-   PRELOADER
-========================= */
-.preloader {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
+body.theme-light .range-slider {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.1) 0%,
+    rgba(0,0,0,0.1) calc(var(--zero-position) - 1px),
+    #4f6cff var(--zero-position),
+    #4f6cff calc(var(--zero-position) + 1px),
+    rgba(0,0,0,0.1) calc(var(--zero-position) + 1px),
+    rgba(0,0,0,0.1) 100%
+  );
 }
 
-body.theme-dark .preloader {
-  background: rgba(11, 18, 32, 0.95);
-}
-
-body.theme-light .preloader {
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.preloader__card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.spinner {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-body.theme-dark .spinner {
-  border: 4px solid rgba(255,255,255,0.15);
-  border-top-color: #4f6cff;
-}
-
-body.theme-light .spinner {
-  border: 4px solid rgba(0,0,0,0.15);
-  border-top-color: #4f6cff;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.preloader__text {
-  font-size: 14px;
-}
-
-body.theme-dark .preloader__text {
-  color: #cbd3ff;
-}
-
-body.theme-light .preloader__text {
-  color: #333;
-}
-
-/* =========================
-   TOP BAR
-========================= */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-body.theme-dark .topbar {
-  background: #0e1628;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-body.theme-light .topbar {
-  background: #fff;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-.appmark {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.appmark__dot {
-  width: 10px;
-  height: 10px;
+/* Thumb styles for Chrome/Edge */
+.range-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #4f6cff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-.appmark__title {
-  font-weight: 600;
-  letter-spacing: 0.3px;
+body.theme-light .range-slider::-webkit-slider-thumb {
+  border: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+/* Thumb styles for Firefox */
+.range-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4f6cff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(79, 108, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+body.theme-light .range-slider::-moz-range-thumb {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Track styles for Firefox */
+.range-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+/* Range value display */
+.range-value {
+  min-width: 45px;
+  text-align: right;
+  font-size: 13px;
+  color: #9aa4d6;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-number {
+  width: 68px;
+  min-width: 68px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.range-unit {
+  font-size: 13px;
+  color: #9aa4d6;
+}
+
+.ad-actions-secondary {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-body.theme-dark .icon-btn {
-  background: rgba(255,255,255,0.06);
+.ad-actions-secondary .btn {
+  flex: 1;
+  min-width: 0;
 }
 
-body.theme-light .icon-btn {
-  background: rgba(0,0,0,0.06);
-}
-
-/* Add similar theme adjustments for other elements */
-
-.card {
-  border-radius: 16px;
-  padding: 16px;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-body.theme-dark .card {
-  background: #111a2f;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-
-body.theme-light .card {
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.06);
-}
-
-/* ... Continue for other classes as needed, inverting colors where appropriate */
-
-.textarea {
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 14px;
-}
-
-body.theme-dark .textarea {
-  background: #0e1628;
-  border: 1px solid rgba(255,255,255,0.08);
+.statistics-btn {
+  background: #4f6cff;
   color: #fff;
 }
 
-body.theme-light .textarea {
-  background: #f0f2f5;
-  border: 1px solid rgba(0,0,0,0.08);
-  color: #000;
+.freeze-btn {
+  background: rgba(79, 108, 255, 0.16);
+  border: 1px solid rgba(143, 161, 255, 0.55);
+  color: #cbd3ff;
 }
-/* Etc. for buttons, notes, etc. */
+
+body.theme-light .statistics-btn {
+  background: #3d5bd9;
+}
+
+body.theme-light .freeze-btn {
+  background: rgba(79, 108, 255, 0.1);
+  border-color: rgba(48, 73, 183, 0.3);
+  color: #3049b7;
+}
+
+body.theme-light .range-number {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.settings-section-title {
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(79, 108, 255, 0.28);
+  color: #8fa1ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.theme-light .settings-section-title {
+  color: #3049b7;
+  border-bottom-color: rgba(48, 73, 183, 0.2);
+}
+
+.ad-statistics-name {
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}

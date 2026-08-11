@@ -49,20 +49,15 @@
       <div class="card card--wide">
         <div class="card__title" data-i18n="chooseLangTitle">Выберите язык</div>
         <div class="card__subtitle" data-i18n="chooseLangSubtitle">
-          Язык можно будет изменить в настройках.
+          Язык можно будет изменить позже в настройках.
         </div>
 
         <div class="grid2">
-          <button id="lang-ru" class="btn btn--primary" type="button">
-            Русский
-          </button>
-          <button id="lang-en" class="btn btn--ghost" type="button">
-            English
-          </button>
+          <button id="lang-ru" class="btn btn--primary" type="button">Русский</button>
+          <button id="lang-en" class="btn btn--ghost" type="button">English</button>
         </div>
       </div>
     </section>
-
     <!-- BLOCKED SCREEN -->
     <section id="screen-blocked" class="screen screen--center" hidden>
       <div class="card card--wide">
@@ -176,8 +171,9 @@
             <div class="field__label" data-i18n="adTextLabel">Текст рекламы (обязательно)</div>
             <textarea id="ad-text" class="textarea" rows="6" maxlength="500"
               placeholder="..." data-i18n-placeholder="adTextPlaceholder"></textarea>
-            <div class="field__hint" data-i18n="adTextHint">
-              До 500 символов. Нужна ссылка вида https://, t.me/ или @...
+            <div class="field__hint">
+              <span data-i18n="adTextLimitHint">До 500 символов.</span><br>
+              <span data-i18n="adTextLinkHint" style="font-weight: bolder;">Нужна ссылка вида https://, t.me/ или @...</span>
             </div>
           </div>
 
@@ -237,14 +233,14 @@
                 <div data-i18n="platformListHeaderRight">Пользователей</div>
               </div>
                 <div class="platform-row" data-value="Не важно"><div data-i18n="plAny">Не важно</div><div data-i18n="platformAllExceptPaid">Везде кроме платных</div></div>
-                <div class="platform-row" data-value="Канал 'Создать никнейм'"><div data-i18n="plChNick">Канал "Создать никнейм"</div><div>~410</div></div>
-                <div class="platform-row" data-value="Канал 'Millioner City News'"><div data-i18n="plChMCN">Канал “Millioner City News”</div><div>~29</div></div>
-                <div class="platform-row" data-value="Канал 'НОВОСТИ ИГРОВОГО БОТА'"><div data-i18n="plChGameNews">Канал “НОВОСТИ ИГРОВОГО БОТА”</div><div>~9</div></div>
-                <div class="platform-row" data-value="Бот 'Создать никнейм'"><div data-i18n="plBotNick">Бот “Создать никнейм”</div><div>~40.200</div></div>
-                <div class="platform-row" data-value="Бот 'Создай свой город'"><div data-i18n="plBotCity">Бот “Создай свой город”</div><div>~95</div></div>
-                <div class="platform-row" data-value="Бот 'Игровой бот'"><div data-i18n="plBotGame">Бот “Игровой бот”</div><div>~34</div></div>
-                <div class="platform-row" data-value="Мини-приложение 'Сгенерировать фото'"><div data-i18n="plMiniPhoto">Мини-приложение “Сгенерировать фото”</div><div>~190.700</div></div>
-                <div class="platform-row" data-value="Бот 'Служба поддержки'"><div data-i18n="plSupport">Бот “Служба поддержки” (20💎)</div><div>~400</div></div>
+                <div class="platform-row" data-value="Канал 'Создать никнейм'"><div data-i18n="plChNick">Канал "Создать никнейм"</div><div>~360</div></div>
+                <div class="platform-row" data-value="Канал 'Millioner City News'"><div data-i18n="plChMCN">Канал “Millioner City News”</div><div>~23</div></div>
+                <div class="platform-row" data-value="Канал 'НОВОСТИ ИГРОВОГО БОТА'"><div data-i18n="plChGameNews">Канал “НОВОСТИ ИГРОВОГО БОТА”</div><div>~6</div></div>
+                <div class="platform-row" data-value="Бот 'Создать никнейм'"><div data-i18n="plBotNick">Бот “Создать никнейм”</div><div>~45.580</div></div>
+                <div class="platform-row" data-value="Бот 'Создай свой город'"><div data-i18n="plBotCity">Бот “Создай свой город”</div><div>~85</div></div>
+                <div class="platform-row" data-value="Бот 'Игровой бот'"><div data-i18n="plBotGame">Бот “Игровой бот”</div><div>~25</div></div>
+                <div class="platform-row" data-value="Мини-приложение 'Сгенерировать фото'"><div data-i18n="plMiniPhoto">Мини-приложение “Сгенерировать фото”</div><div>~195.000</div></div>
+                <div class="platform-row" data-value="Бот 'Служба поддержки'"><div data-i18n="plSupport">Бот “Служба поддержки” (20💎)</div><div>~440</div></div>
             </div>
 
             <!-- Старые кнопки остаются для логики, скрыты визуально -->
@@ -351,6 +347,27 @@
       </div>
     </section>
 
+    <!-- AD STATISTICS -->
+    <section id="screen-ad-statistics" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-ad-statistics" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="adStatisticsTitle">Статистика</div>
+        </div>
+
+        <div class="card">
+          <div class="card__title ad-statistics-name" id="ad-statistics-name">—</div>
+          <div class="field__label" data-i18n="viewsLabel">Рекламу посмотрели</div>
+          <div class="stat__value" id="ad-statistics-views">0</div>
+          <div class="divider"></div>
+          <div class="field__label" data-i18n="linkClicksLabel">По ссылке(ссылкам) перешли</div>
+          <div class="stat__value" id="ad-statistics-clicks">0</div>
+        </div>
+      </div>
+    </section>
+
     <!-- CRYSTALS -->
     <section id="screen-crystals" class="screen" hidden>
       <div class="stack">
@@ -392,6 +409,7 @@
         </div>
 
         <div class="card">
+          <p class="settings-section-title" data-i18n="mainSettingsTitle">Основные</p>
           <div class="field">
             <div class="field__label" data-i18n="langSetting">Язык</div>
             <div class="btn-group" id="settings-lang-buttons">
@@ -420,9 +438,43 @@
               <button type="button" class="seg" data-value="fullscreen" data-i18n="sizeFullscreen">Полноэкранный</button>
             </div>
           </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="field__label" data-i18n="closingConfirmationLabel">Подтверждение перед закрытием</div>
+            <div class="btn-group" id="settings-closing-confirmation-buttons">
+              <button type="button" class="seg" data-value="enable" data-i18n="closingConfirmationEnable">Включить</button>
+              <button type="button" class="seg" data-value="disable" data-i18n="closingConfirmationDisable">Выключить</button>
+            </div>
+          </div>
         </div>
 
         <div class="card">
+          <div class="field">
+            <p class="settings-section-title" data-i18n="optimizationTitle">Оптимизация</p>
+            <div class="field__label" data-i18n="settingsButtonPositionLabel">Кнопка настроек левее</div>
+            <div class="range-container">
+              <input type="range" id="settings-button-position" class="range-slider settings-button-range" min="-100" max="50" value="0" />
+              <input type="number" id="settings-button-position-number" class="range-number" min="-100" max="50" value="0" aria-label="Settings button position in pixels" />
+              <span class="range-unit">px</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+            <div class="field__label" data-i18n="appTitlePositionLabel">Надпись "Покупка рекламы" правее</div>
+            <div class="range-container">
+              <input type="range" id="app-title-position" class="range-slider app-title-range" min="-50" max="100" value="0" />
+              <input type="number" id="app-title-position-number" class="range-number" min="-50" max="100" value="0" aria-label="Title position in pixels" />
+              <span class="range-unit">px</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="settings-section-title" data-i18n="accountSettingsTitle">Аккаунт</p>
           <div class="field">
             <div class="field__label" data-i18n="tokenTitle">Ваш токен</div>
             <div class="tokenbox">
@@ -459,7 +511,7 @@
 
         <div class="card">
           <div class="menu">
-            <div class="menu__group">Проверка</div>
+            <div class="menu__group" data-i18n="adminReviewGroup">Проверка</div>
             <button id="admin-check" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-clipboard-check"></i></span>
               <span class="menu__text" data-i18n="adminCheck">Проверить рекламу</span>
@@ -472,118 +524,118 @@
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group">Блокировка</div>
-            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По токену</div>
+            <div class="menu__group" data-i18n="adminBlockingGroup">Блокировка</div>
+            <div class="menu__group" data-i18n="adminByToken" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По токену</div>
             <button id="admin-block-user" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
-              <span class="menu__text">Забанить пользователя по токену</span>
+              <span class="menu__text" data-i18n="adminBanByToken">Забанить пользователя по токену</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-unblock-user" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
-              <span class="menu__text">Разбанить пользователя по токену</span>
+              <span class="menu__text" data-i18n="adminUnbanByToken">Разбанить пользователя по токену</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По IP-адресу</div>
+            <div class="menu__group" data-i18n="adminByIp" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По IP-адресу</div>
             <button id="admin-ban-ip" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Забанить пользователя по его IP-адресу</span>
+              <span class="menu__text" data-i18n="adminBanByIp">Забанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-unban-ip" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
-              <span class="menu__text">Разбанить пользователя по его IP-адресу</span>
+              <span class="menu__text" data-i18n="adminUnbanByIp">Разбанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По Telegram ID</div>
+            <div class="menu__group" data-i18n="adminByTelegramId" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">По Telegram ID</div>
             <button id="admin-ban-telegram-id" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Забанить пользователя по его Telegram ID</span>
+              <span class="menu__text" data-i18n="adminBanByTelegramId">Забанить пользователя по его Telegram ID</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-unban-telegram-id" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-check"></i></span>
-              <span class="menu__text">Разбанить пользователя по его Telegram ID</span>
+              <span class="menu__text" data-i18n="adminUnbanByTelegramId">Разбанить пользователя по его Telegram ID</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">Блокировка рекламы</div>
+            <div class="menu__group" data-i18n="adminAdBlockingGroup" style="margin-top: 0; padding-top: 0; font-size: 11px; text-transform: none; color: #9aa4d6;">Блокировка рекламы</div>
             <button id="admin-ban-create-edit" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Заблокировать пользователю возможность создавать и редактировать рекламу</span>
+              <span class="menu__text" data-i18n="adminBanCreateEdit">Заблокировать пользователю возможность создавать и редактировать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-unban-create-edit" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-user-plus"></i></span>
-              <span class="menu__text">Разблокировать пользователю возможность создавать и редактировать рекламу</span>
+              <span class="menu__text" data-i18n="adminUnbanCreateEdit">Разблокировать пользователю возможность создавать и редактировать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group">Рекламы / Платежи</div>
+            <div class="menu__group" data-i18n="adminAdsPaymentsGroup">Рекламы / Платежи</div>
             <button id="admin-disable-create-all" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Отключить всем возможность создавать рекламу</span>
+              <span class="menu__text" data-i18n="adminDisableCreateAll">Отключить всем возможность создавать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-enable-create-all" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-check"></i></span>
-              <span class="menu__text">Включить всем возможность создавать рекламу</span>
+              <span class="menu__text" data-i18n="adminEnableCreateAll">Включить всем возможность создавать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-disable-edit-all" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Отключить всем возможность редактировать рекламу</span>
+              <span class="menu__text" data-i18n="adminDisableEditAll">Отключить всем возможность редактировать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-enable-edit-all" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-check"></i></span>
-              <span class="menu__text">Включить всем возможность редактировать рекламу</span>
+              <span class="menu__text" data-i18n="adminEnableEditAll">Включить всем возможность редактировать рекламу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-disable-payments" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-ban"></i></span>
-              <span class="menu__text">Отключить платежи</span>
+              <span class="menu__text" data-i18n="adminDisablePayments">Отключить платежи</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-enable-payments" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-money-bill-wave"></i></span>
-              <span class="menu__text">Включить платежи</span>
+              <span class="menu__text" data-i18n="adminEnablePayments">Включить платежи</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="menu__group">Приложение / GAS</div>
+            <div class="menu__group" data-i18n="adminAppGasGroup">Приложение / GAS</div>
             <button id="admin-close-app" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-door-closed"></i></span>
-              <span class="menu__text">Закрыть приложение</span>
+              <span class="menu__text" data-i18n="adminCloseAppText">Закрыть приложение</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-open-app" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-door-open"></i></span>
-              <span class="menu__text">Открыть приложение</span>
+              <span class="menu__text" data-i18n="adminOpenAppText">Открыть приложение</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-disable-gas" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-plug"></i></span>
-              <span class="menu__text">Отключить обращение к GAS</span>
+              <span class="menu__text" data-i18n="adminDisableGas">Отключить обращение к GAS</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
             <button id="admin-enable-gas" class="menu__item" type="button">
               <span class="menu__icon"><i class="fa-solid fa-plug"></i></span>
-              <span class="menu__text">Включить обращение к GAS</span>
+              <span class="menu__text" data-i18n="adminEnableGas">Включить обращение к GAS</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
           </div>

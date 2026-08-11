@@ -63,6 +63,8 @@ if (tg) {
       document.getElementById('back-from-create').click();
     } else if (currentScreen === 'screen-myads' && document.getElementById('back-from-myads')) {
       document.getElementById('back-from-myads').click();
+    } else if (currentScreen === 'screen-ad-statistics' && document.getElementById('back-from-ad-statistics')) {
+      document.getElementById('back-from-ad-statistics').click();
     } else if (currentScreen === 'screen-crystals' && document.getElementById('back-from-crystals')) {
       document.getElementById('back-from-crystals').click();
     } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
@@ -82,6 +84,7 @@ function refreshBackButton() {
   const shouldShow = isRulesModalOpen || [
     'screen-create',
     'screen-myads',
+    'screen-ad-statistics',
     'screen-crystals',
     'screen-admin',
     'screen-settings'
@@ -142,6 +145,15 @@ function pluralPeople(num) {
   const singular = i18n[lang]?.personSingular || 'person';
   const plural = i18n[lang]?.personPlural || 'people';
   return num === 1 ? singular : plural;
+}
+
+function pluralClicks(num, lang = localStorage.getItem(LS.lang) || 'ru') {
+  if (lang !== 'ru') return num === 1 ? i18n[lang].clickOnce : i18n[lang].clickMany;
+  const ones = num % 10;
+  const tens = Math.floor((num % 100) / 10);
+  if (tens === 1 || ones === 0 || ones >= 5) return i18n[lang].clickMany;
+  if (ones === 1) return i18n[lang].clickOnce;
+  return i18n[lang].clickFew;
 }
 
 // Format number with spaces as thousand separator
@@ -816,7 +828,9 @@ async function updateAdsCount() {
 
 async function fetchCrystals() {
   if (isGasDisabled()) {
-    return parseInt(localStorage.getItem('crystals')) || 0;
+    currentCrystals = 0;
+    localStorage.setItem('crystals', '0');
+    return 0;
   }
   try {
     const userID = getUserID();
@@ -827,7 +841,9 @@ async function fetchCrystals() {
     return currentCrystals;
   } catch (e) {
     console.warn('Failed to fetch crystals:', e);
-    return parseInt(localStorage.getItem('crystals')) || 0;
+    currentCrystals = 0;
+    localStorage.setItem('crystals', '0');
+    return 0;
   }
 }
 
@@ -938,6 +954,7 @@ $('btn-open-settings').onclick = () => {
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings
+  initSettingsScreen(); // Initialize new settings
 };
 
 $('nav-admin').onclick = () => {
@@ -1006,6 +1023,13 @@ $('nav-myads').onclick = () => {
   hideAllScreens();
   show($('screen-myads'));
   loadMyAds();
+};
+
+let statisticsPreviousScreen = 'screen-myads';
+
+$('back-from-ad-statistics').onclick = () => {
+  hideAllScreens();
+  show($(statisticsPreviousScreen));
 };
 
 // // nav-settings removed from main menu (available in topbar)
@@ -1735,7 +1759,223 @@ document.querySelectorAll('#settings-size-buttons .seg').forEach(b => {
   };
 });
 
+/* ========== CLOSING CONFIRMATION SETTING ========== */
+const CLOSING_CONFIRMATION_LS = 'closingConfirmationEnabled';
+
+function applyClosingConfirmation(enabled) {
+  if (!tg) return;
+  if (enabled) {
+    tg.enableClosingConfirmation();
+  } else {
+    tg.disableClosingConfirmation();
+  }
+}
+
+document.querySelectorAll('#settings-closing-confirmation-buttons .seg').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#settings-closing-confirmation-buttons .seg').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const enabled = b.dataset.value === 'enable';
+    localStorage.setItem(CLOSING_CONFIRMATION_LS, enabled ? 'true' : 'false');
+    applyClosingConfirmation(enabled);
+  };
+});
+
+/* ========== SETTINGS BUTTON POSITION SETTING ========== */
+const SETTINGS_BTN_POSITION_LS = 'settingsButtonPosition';
+
+function applySettingsButtonPosition(offset) {
+  const btn = $('btn-open-settings');
+  if (!btn) return;
+  btn.style.marginRight = (-offset) + 'px';
+}
+
+const settingsButtonPositionInput = $('settings-button-position');
+const settingsButtonPositionNumber = $('settings-button-position-number');
+if (settingsButtonPositionInput) {
+  settingsButtonPositionInput.oninput = () => {
+    const offset = parseInt(settingsButtonPositionInput.value);
+    const valueSpan = $('settings-button-position-value');
+    if (valueSpan) valueSpan.textContent = offset + 'px';
+    if (settingsButtonPositionNumber) settingsButtonPositionNumber.value = offset;
+    localStorage.setItem(SETTINGS_BTN_POSITION_LS, offset);
+    applySettingsButtonPosition(offset);
+  };
+}
+
+if (settingsButtonPositionNumber) {
+  settingsButtonPositionNumber.onchange = () => {
+    const min = parseInt(settingsButtonPositionNumber.min);
+    const max = parseInt(settingsButtonPositionNumber.max);
+    const offset = Math.min(max, Math.max(min, parseInt(settingsButtonPositionNumber.value) || 0));
+    settingsButtonPositionNumber.value = offset;
+    settingsButtonPositionInput.value = offset;
+    localStorage.setItem(SETTINGS_BTN_POSITION_LS, offset);
+    applySettingsButtonPosition(offset);
+  };
+}
+
+/* ========== APP TITLE POSITION SETTING ========== */
+const APP_TITLE_POSITION_LS = 'appTitlePosition';
+
+function applyAppTitlePosition(offset) {
+  const appmark = $('app-title')?.closest('.appmark');
+  if (!appmark) return;
+  appmark.style.marginLeft = offset + 'px';
+}
+
+const appTitlePositionInput = $('app-title-position');
+const appTitlePositionNumber = $('app-title-position-number');
+if (appTitlePositionInput) {
+  appTitlePositionInput.oninput = () => {
+    const offset = parseInt(appTitlePositionInput.value);
+    const valueSpan = $('app-title-position-value');
+    if (valueSpan) valueSpan.textContent = offset + 'px';
+    if (appTitlePositionNumber) appTitlePositionNumber.value = offset;
+    localStorage.setItem(APP_TITLE_POSITION_LS, offset);
+    applyAppTitlePosition(offset);
+  };
+}
+
+if (appTitlePositionNumber) {
+  appTitlePositionNumber.onchange = () => {
+    const min = parseInt(appTitlePositionNumber.min);
+    const max = parseInt(appTitlePositionNumber.max);
+    const offset = Math.min(max, Math.max(min, parseInt(appTitlePositionNumber.value) || 0));
+    appTitlePositionNumber.value = offset;
+    appTitlePositionInput.value = offset;
+    localStorage.setItem(APP_TITLE_POSITION_LS, offset);
+    applyAppTitlePosition(offset);
+  };
+}
+
+/* ========== INIT SETTINGS SCREEN ========== */
+function initSettingsScreen() {
+  // Initialize closing confirmation setting
+  const closingConfirmationEnabled = localStorage.getItem(CLOSING_CONFIRMATION_LS) === 'true';
+  const closingConfirmationValue = closingConfirmationEnabled ? 'enable' : 'disable';
+  document.querySelectorAll('#settings-closing-confirmation-buttons .seg').forEach(b => {
+    if (b.dataset.value === closingConfirmationValue) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+
+  // Initialize settings button position
+  const settingsButtonPosition = parseInt(localStorage.getItem(SETTINGS_BTN_POSITION_LS) || '0');
+  const settingsButtonInput = $('settings-button-position');
+  if (settingsButtonInput) {
+    settingsButtonInput.value = settingsButtonPosition;
+    if (settingsButtonPositionNumber) settingsButtonPositionNumber.value = settingsButtonPosition;
+    const valueSpan = $('settings-button-position-value');
+    if (valueSpan) valueSpan.textContent = settingsButtonPosition + 'px';
+    applySettingsButtonPosition(settingsButtonPosition);
+  }
+
+  // Initialize app title position
+  const appTitlePosition = parseInt(localStorage.getItem(APP_TITLE_POSITION_LS) || '0');
+  const appTitleInput = $('app-title-position');
+  if (appTitleInput) {
+    appTitleInput.value = appTitlePosition;
+    if (appTitlePositionNumber) appTitlePositionNumber.value = appTitlePosition;
+    const valueSpan = $('app-title-position-value');
+    if (valueSpan) valueSpan.textContent = appTitlePosition + 'px';
+    applyAppTitlePosition(appTitlePosition);
+  }
+}
+
 /* ========== MY ADS ========== */
+const FREEZE_AD_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyHpEYf3sv7CGlAJ6c3vTdMw4TfLjCeeli90dtQFiA4EDc_ua30JEFPq7aAqV4wvDdG/exec';
+const FROZEN_AD_PLATFORMS_LS = 'frozenAdPlatforms';
+
+function getFrozenAdPlatforms() {
+  try {
+    return JSON.parse(localStorage.getItem(FROZEN_AD_PLATFORMS_LS) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveFrozenAdPlatform(adName, platform) {
+  const platforms = getFrozenAdPlatforms();
+  platforms[adName] = platform;
+  localStorage.setItem(FROZEN_AD_PLATFORMS_LS, JSON.stringify(platforms));
+}
+
+async function sendFreezeRequest(payload) {
+  const response = await fetch(FREEZE_AD_WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+    redirect: 'follow'
+  });
+  const data = await response.json();
+  if (data.status !== 'success') {
+    throw new Error(data.message || 'Request failed');
+  }
+  return data;
+}
+
+async function toggleAdFreeze(ad, button) {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const frozen = String(ad.platform) === '2';
+  button.disabled = true;
+  showPreloader();
+
+  try {
+    if (frozen) {
+      const originalPlatform = getFrozenAdPlatforms()[ad.name];
+      if (!originalPlatform) {
+        throw new Error(i18n[lang].originalPlatformUnavailable);
+      }
+      await sendFreezeRequest({
+        action: 'getBack',
+        search: getUserID(),
+        change: originalPlatform
+      });
+      ad.platform = originalPlatform;
+      const platforms = getFrozenAdPlatforms();
+      delete platforms[ad.name];
+      localStorage.setItem(FROZEN_AD_PLATFORMS_LS, JSON.stringify(platforms));
+      button.textContent = i18n[lang].freeze;
+      const platformText = button.closest('.ad-card')?.querySelector('.ad-platform-value');
+      if (platformText) platformText.textContent = originalPlatform;
+    } else {
+      saveFrozenAdPlatform(ad.name, ad.platform);
+      await sendFreezeRequest({ searchValue: getUserID() });
+      ad.platform = '2';
+      button.textContent = i18n[lang].unfreeze;
+      const platformText = button.closest('.ad-card')?.querySelector('.ad-platform-value');
+      if (platformText) platformText.textContent = i18n[lang].nowhere;
+    }
+    const statusText = button.closest('.ad-card')?.querySelector('.ad-status-value');
+    if (statusText) {
+      statusText.textContent = String(ad.platform) === '2'
+        ? i18n[lang].frozenStatus
+        : i18n[lang].approvedStatus;
+    }
+    openModal(i18n[lang].doneTitle, i18n[lang].freezeSuccess);
+  } catch (error) {
+    openModal(i18n[lang].attentionTitle, `${i18n[lang].freezeError}: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    hidePreloader();
+  }
+}
+
+function openAdStatistics(ad) {
+  statisticsPreviousScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-myads';
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const views = ad.views || 0;
+  const clicks = ad.linkClicks || 0;
+  $('ad-statistics-name').textContent = ad.name || '—';
+  $('ad-statistics-views').textContent = formatNumber(views);
+  $('ad-statistics-clicks').textContent = `${formatNumber(clicks)} ${pluralClicks(clicks, lang)}`;
+  hideAllScreens();
+  show($('screen-ad-statistics'));
+}
+
 async function loadMyAds(skipPreloader = false) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (!skipPreloader) showPreloader();
@@ -1769,9 +2009,13 @@ async function loadMyAds(skipPreloader = false) {
       allAds.forEach(ad => {
         const status = ad.status || 'approved';
         const statusClass = status === 'pending' ? 'pill--pending' : (status === 'rejected' ? 'pill--danger' : 'pill--success');
-        const statusText = i18n[lang][status + 'Status'] || status;
+        const frozen = String(ad.platform) === '2';
+        const statusText = frozen && status === 'approved'
+          ? i18n[lang].frozenStatus
+          : (i18n[lang][status + 'Status'] || status);
         const commentsText = ad.comments == 1 ? i18n[lang].enabled : i18n[lang].disabled;
         const footerText = !ad.footer ? i18n[lang].noFooter : (ad.footer === 'top' ? i18n[lang].footerTop : i18n[lang].footerBottom);
+        const platformDisplay = frozen ? i18n[lang].nowhere : ad.platform;
         const platformRow = document.querySelector(`#platform-list .platform-row[data-value="${ad.platform}"]`);
         const platformUsers = platformRow ? ` (${platformRow.querySelector('div:last-child').textContent})` : '';
         
@@ -1786,15 +2030,15 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].adTextLabel}:</strong> ${ad.text}</p>
           <p><strong>${i18n[lang].videoLabel}:</strong> <a href="${ad.videoUrl}" target="_blank">ссылка</a></p>
           <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
-          <p><strong>${i18n[lang].platformLabel}:</strong> ${ad.platform} ${platformUsers}</p>
+          <p><strong>${i18n[lang].platformLabel}:</strong> <span class="ad-platform-value">${platformDisplay}</span> ${frozen ? '' : platformUsers}</p>
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
-          <p><strong>${i18n[lang].status}:</strong> ${statusText}</p>
+          <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
           </div>
-          ${status === 'approved' ? `<p class="muted" style="font-size:12px; margin-top:8px;">${i18n[lang].viewsLabel || 'Рекламу посмотрели'}: ${formatNumber(ad.views || 0)} ${pluralPeople(ad.views || 0)}.<br>${i18n[lang].linkClicksLabel || 'По ссылке(ссылкам) перешли'}: ${formatNumber(ad.linkClicks || 0)} ${pluralPeople(ad.linkClicks || 0)}.</p>` : ''}
+          ${status === 'approved' ? `<div class="row row--wrap ad-actions-secondary"><button class="btn statistics-btn" type="button">${i18n[lang].statistics}</button><button class="btn freeze-btn" type="button">${frozen ? i18n[lang].unfreeze : i18n[lang].freeze}</button></div>` : ''}
         `;
         
         // Copy name button
@@ -1830,6 +2074,10 @@ async function loadMyAds(skipPreloader = false) {
           $('crystals-in-create').textContent = formatNumber(currentCrystals);
           loadEditAd(ad);
         };
+        if (status === 'approved') {
+          card.querySelector('.statistics-btn').onclick = () => openAdStatistics(ad);
+          card.querySelector('.freeze-btn').onclick = () => toggleAdFreeze(ad, card.querySelector('.freeze-btn'));
+        }
         card.querySelector('.delete-btn').onclick = async () => {
           const confirmed = await new Promise(resolve => {
             openModal(i18n[lang].confirmTitle, i18n[lang].delete + '?', [
@@ -2888,6 +3136,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sizeBtn = document.querySelector(`#settings-size-buttons .seg[data-value="${size}"]`);
     if (sizeBtn) sizeBtn.classList.add('active');
     applyAppSize(size);
+    
+    // Apply saved settings
+    const closingConfirmationEnabled = localStorage.getItem(CLOSING_CONFIRMATION_LS) === 'true';
+    applyClosingConfirmation(closingConfirmationEnabled);
+    
+    const settingsButtonPosition = parseInt(localStorage.getItem(SETTINGS_BTN_POSITION_LS) || '0');
+    applySettingsButtonPosition(settingsButtonPosition);
+    
+    const appTitlePosition = parseInt(localStorage.getItem(APP_TITLE_POSITION_LS) || '0');
+    applyAppTitlePosition(appTitlePosition);
   }
 
   const prioFirst = document.querySelector('#priority-buttons .seg:first-child');
@@ -2908,14 +3166,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   hidePreloader();
 });
-if (ADMIN_TOKENS.includes(localStorage.getItem(LS.token))){
-  localStorage.setItem('crystals', '999');
-}
-
-
 document.addEventListener('click', (e) => {
   if (!e.target.closest('input, textarea, select, button, [contenteditable]')) {
     document.activeElement?.blur();
   }
 });
-
