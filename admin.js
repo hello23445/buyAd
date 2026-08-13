@@ -4,7 +4,7 @@ const ADMIN_TOKENS = ['VbknQtkspXvnPpW9', 'L7DE073SCSHV7T8V', '1LJPUBXN5L9PH7S8'
 
 /* ========== ЛОКАЛЬНЫЕ ФЛАГИ (новые) ========== */
 const disableCreateAds = '';// '' или 'disabled'
-const GASES = '';//если no то блокируем обращения к GAS
+const GASES = '';//если 'no' то блокируем обращения к GAS
 const closeApp = '';// '' или 'closed'
 const PURCHASES = ''; // '' или 'no' — если 'no' тогда отключаем платежи
 

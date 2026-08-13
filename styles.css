@@ -1171,6 +1171,160 @@ body.theme-light .textarea {
 /* Etc. for buttons, notes, etc. */
 
 /* =========================
+   FORMAT TOOLBAR (MODERN)
+========================= */
+.format-toolbar-modern {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(79, 108, 255, 0.06);
+  border: 1px solid rgba(79, 108, 255, 0.12);
+}
+
+body.theme-light .format-toolbar-modern {
+  background: rgba(79, 108, 255, 0.03);
+  border-color: rgba(79, 108, 255, 0.08);
+}
+
+.format-btn-modern {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: transparent;
+  color: #4f6cff;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  padding: 0;
+}
+
+body.theme-light .format-btn-modern {
+  color: #4f6cff;
+}
+
+.format-btn-modern:hover:not(:disabled) {
+  background: rgba(79, 108, 255, 0.12);
+  transform: scale(1.05);
+}
+
+body.theme-light .format-btn-modern:hover:not(:disabled) {
+  background: rgba(79, 108, 255, 0.08);
+}
+
+.format-btn-modern:active:not(:disabled) {
+  transform: scale(0.95);
+  background: rgba(79, 108, 255, 0.2);
+}
+
+.format-btn-modern:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.format-btn-modern.active {
+  background: rgba(79, 108, 255, 0.25);
+  color: #4f6cff;
+  border-color: rgba(79, 108, 255, 0.4);
+  font-weight: 600;
+}
+
+body.theme-light .format-btn-modern.active {
+  background: rgba(79, 108, 255, 0.15);
+  border-color: rgba(79, 108, 255, 0.3);
+}
+
+/* =========================
+   EDITABLE TEXTAREA
+========================= */
+.textarea-editable {
+  min-height: 120px;
+  max-height: 200px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  outline: none;
+  overflow-y: auto;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+  background: transparent;
+}
+
+body.theme-dark .textarea-editable {
+  color: #fff;
+}
+
+body.theme-light .textarea-editable {
+  color: #000;
+  border-color: rgba(0,0,0,0.08);
+}
+
+.textarea-editable:focus {
+  border-color: rgba(79, 108, 255, 0.3);
+  box-shadow: 0 0 0 2px rgba(79, 108, 255, 0.1);
+}
+
+body.theme-light .textarea-editable:focus {
+  box-shadow: 0 0 0 2px rgba(79, 108, 255, 0.08);
+}
+
+/* Formatting styles in editor */
+.textarea-editable [data-format="bold"] {
+  font-weight: bold;
+}
+
+.textarea-editable [data-format="italic"] {
+  font-style: italic;
+}
+
+.textarea-editable [data-format="strikethrough"] {
+  text-decoration: line-through;
+}
+
+.textarea-editable [data-format="underline"] {
+  text-decoration: underline;
+}
+
+.textarea-editable [data-format="monospace"] {
+  font-family: 'Courier New', monospace;
+  background: rgba(79, 108, 255, 0.1);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+/* Global formatting styles (for display in cards, previews, etc.) */
+[data-format="bold"]:not(button) {
+  font-weight: bold;
+}
+
+[data-format="italic"]:not(button) {
+  font-style: italic;
+}
+
+[data-format="strikethrough"]:not(button) {
+  text-decoration: line-through;
+}
+
+[data-format="underline"]:not(button) {
+  text-decoration: underline;
+}
+
+[data-format="monospace"]:not(button) {
+  font-family: 'Courier New', monospace;
+  background: rgba(79, 108, 255, 0.1);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+/* =========================
    RANGE SLIDER
 ========================= */
 .range-container {

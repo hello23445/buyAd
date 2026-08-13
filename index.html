@@ -169,10 +169,30 @@
         <div class="card">
           <div class="field">
             <div class="field__label" data-i18n="adTextLabel">Текст рекламы (обязательно)</div>
-            <textarea id="ad-text" class="textarea" rows="6" maxlength="500"
-              placeholder="..." data-i18n-placeholder="adTextPlaceholder"></textarea>
+            
+            <!-- Format toolbar (compact) -->
+            <div class="format-toolbar-modern">
+              <button type="button" class="format-btn-modern" id="format-bold" data-format="bold" aria-label="Bold" title="Жирный">
+                <i class="fa-solid fa-bold"></i>
+              </button>
+              <button type="button" class="format-btn-modern" id="format-italic" data-format="italic" aria-label="Italic" title="Курсив">
+                <i class="fa-solid fa-italic"></i>
+              </button>
+              <button type="button" class="format-btn-modern" id="format-monospace" data-format="monospace" aria-label="Code" title="Код">
+                <i class="fa-solid fa-code"></i>
+              </button>
+              <button type="button" class="format-btn-modern" id="format-strikethrough" data-format="strikethrough" aria-label="Strike" title="Зачеркнуть">
+                <i class="fa-solid fa-strikethrough"></i>
+              </button>
+              <button type="button" class="format-btn-modern" id="format-underline" data-format="underline" aria-label="Underline" title="Подчеркнуть">
+                <i class="fa-solid fa-underline"></i>
+              </button>
+            </div>
+            
+            <!-- Editable text area with formatting support -->
+            <div id="ad-text" class="textarea-editable" role="textbox" contenteditable="true" data-placeholder="..."></div>
             <div class="field__hint">
-              <span data-i18n="adTextLimitHint">До 500 символов.</span><br>
+              <span data-i18n="adTextLimitHint">До 500 символов</span><br>
               <span data-i18n="adTextLinkHint" style="font-weight: bolder;">Нужна ссылка вида https://, t.me/ или @...</span>
             </div>
           </div>

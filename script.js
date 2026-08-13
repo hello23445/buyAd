@@ -1122,7 +1122,7 @@ let previousEditScreen = null; // To track where edit was opened from
       editName = '';
       editStatus = '';
       // Reset form fields
-      $('ad-text').value = '';
+      $('ad-text').innerHTML = '';
       videoFile = null;
       currentVideoUrl = '';
       document.querySelectorAll('#priority-buttons .seg').forEach(x => x.classList.remove('active'));
@@ -1178,7 +1178,7 @@ let currentVideoUrl = '';
 let originalAdData = {}; // Для отслеживания изменений при редактировании rejected
 
 function resetCreateForm() {
-  $('ad-text').value = '';
+  $('ad-text').innerHTML = '';
   videoFile = null;
   $('video-input').value = '';
   editCost = 0;
@@ -1208,7 +1208,7 @@ function checkForChanges() {
   if (editStatus !== 'rejected') return;
   
   const currentData = {
-    text: $('ad-text').value.trim(),
+    text: getFormattedText($('ad-text')).trim(),
     priority: selectedPriority,
     platform: selectedPlatform,
     comments: commentsEnabled,
@@ -1232,7 +1232,7 @@ function checkForChanges() {
 function updatePreview() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const adFooterText = i18n[lang].adFooterText || 'Эта реклама создана на площадке: @buyAdss_bot .';
-  const text = ($('ad-text') && $('ad-text').value) ? $('ad-text').value : '';
+  const text = getPlainText($('ad-text')) || '';
   const previewEl = $('preview-text');
   if (!previewEl) return;
   let out = '';
@@ -1376,8 +1376,197 @@ $('btn-remove-video').onclick = () => {
   if (editMode && currentVideoUrl) show($('current-video'));
 };
 
+/* ========== TEXT FORMATTING (MODERN) ========== */
+const FORMAT_SYMBOLS = {
+  bold: { open: '**', close: '**' },
+  italic: { open: '//*', close: '**//' },
+  monospace: { open: '``', close: '``' },
+  strikethrough: { open: '~~', close: '~~' },
+  underline: { open: '++', close: '++' }
+};
+
+function getPlainText(element) {
+  return element.innerText || element.textContent || '';
+}
+
+function getFormattedText(element) {
+  let text = '';
+  for (let node of element.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const format = node.getAttribute('data-format');
+      if (format) {
+        const symbols = FORMAT_SYMBOLS[format];
+        text += symbols.open + node.textContent + symbols.close;
+      } else {
+        text += node.textContent;
+      }
+    }
+  }
+  return text;
+}
+
+// Parse formatted text with symbols into HTML with styled spans
+function parseFormattedText(text) {
+  if (!text) return '';
+  
+  let html = text;
+  
+  // Replace bold: **text** → <span data-format="bold">text</span>
+  html = html.replace(/\*\*(.+?)\*\*/g, '<span data-format="bold">$1</span>');
+  
+  // Replace italic: //*text*// → <span data-format="italic">text</span>
+  html = html.replace(/\/\/\*(.+?)\*\/\//g, '<span data-format="italic">$1</span>');
+  
+  // Replace monospace: ``text`` → <span data-format="monospace">text</span>
+  html = html.replace(/``(.+?)``/g, '<span data-format="monospace">$1</span>');
+  
+  // Replace strikethrough: ~~text~~ → <span data-format="strikethrough">text</span>
+  html = html.replace(/~~(.+?)~~/g, '<span data-format="strikethrough">$1</span>');
+  
+  // Replace underline: ++text++ → <span data-format="underline">text</span>
+  html = html.replace(/\+\+(.+?)\+\+/g, '<span data-format="underline">$1</span>');
+  
+  return html;
+}
+
+function updateFormatButtonsState() {
+  const editor = $('ad-text');
+  const selection = window.getSelection();
+
+  if (!editor || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    document.querySelectorAll('.format-btn-modern').forEach(btn => {
+      btn.disabled = true;
+      btn.classList.remove('active');
+    });
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  const activeFormats = new Set();
+
+  if (range.toString().trim()) {
+    const formattedNodes = editor.querySelectorAll('[data-format]');
+
+    formattedNodes.forEach(node => {
+      if (!node || !node.textContent) return;
+
+      try {
+        if (range.intersectsNode(node)) {
+          const format = node.getAttribute('data-format');
+          if (format) activeFormats.add(format);
+        }
+      } catch (e) {
+        // Ignore edge cases for partial/off-by-one selection boundaries.
+      }
+    });
+  }
+
+  document.querySelectorAll('.format-btn-modern').forEach(btn => {
+    const formatType = btn.dataset.format;
+    const isActive = activeFormats.has(formatType);
+    btn.disabled = !range.toString().trim();
+    btn.classList.toggle('active', isActive);
+  });
+}
+
+function applyFormatting(formatType) {
+  const editor = $('ad-text');
+  const selection = window.getSelection();
+  
+  if (!selection.rangeCount) return;
+  
+  const range = selection.getRangeAt(0);
+  const selectedText = selection.toString();
+  
+  if (!selectedText) return;
+  
+  const format = FORMAT_SYMBOLS[formatType];
+  if (!format) return;
+  
+  // Find all format spans that intersect with the selection
+  const allFormattedNodes = Array.from(editor.querySelectorAll('[data-format]'));
+  const intersectingFormats = new Set();
+  
+  allFormattedNodes.forEach(node => {
+    try {
+      if (range.intersectsNode(node)) {
+        const fmt = node.getAttribute('data-format');
+        if (fmt) intersectingFormats.add(fmt);
+      }
+    } catch (e) {
+      // ignore edge cases
+    }
+  });
+  
+  // Check if we need to REMOVE or ADD the format
+  const formatExists = intersectingFormats.has(formatType);
+  
+  if (formatExists) {
+    // REMOVE the format: unwrap all spans with this format that intersect selection
+    allFormattedNodes.forEach(node => {
+      if (node.getAttribute('data-format') === formatType) {
+        try {
+          if (range.intersectsNode(node)) {
+            // Unwrap: move all children up to parent level, preserving other formats
+            while (node.firstChild) {
+              node.parentElement.insertBefore(node.firstChild, node);
+            }
+            node.remove();
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    });
+  } else {
+    // ADD the format: wrap selection in a new span, preserving existing formats
+    const span = document.createElement('span');
+    span.setAttribute('data-format', formatType);
+    
+    try {
+      const contents = range.extractContents();
+      span.appendChild(contents);
+      range.insertNode(span);
+      
+      // Keep text selected after adding format
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    } catch (e) {
+      console.warn('Formatting error:', e);
+    }
+  }
+  
+  editor.dispatchEvent(new Event('input', { bubbles: true }));
+  updateFormatButtonsState();
+}
+
+document.querySelectorAll('.format-btn-modern').forEach(btn => {
+  btn.onclick = (e) => {
+    e.preventDefault();
+    const formatType = btn.dataset.format;
+    applyFormatting(formatType);
+    $('ad-text').focus();
+  };
+});
+
+document.addEventListener('selectionchange', updateFormatButtonsState);
+$('ad-text').addEventListener('mouseup', updateFormatButtonsState);
+$('ad-text').addEventListener('keyup', updateFormatButtonsState);
+$('ad-text').addEventListener('input', () => {
+  const text = getPlainText($('ad-text'));
+  const count = text.length;
+  const charCountEl = document.getElementById('char-count');
+  if (charCountEl) {
+    charCountEl.textContent = Math.min(count, 500);
+  }
+});
+
 $('ad-text').oninput = () => {
-  const text = $('ad-text').value.trim();
+  const text = getPlainText($('ad-text')).trim();
   const valid = text.length > 0 && text.length <= 500 && /(https:\/\/|t\.me\/|@)/i.test(text);
   if (valid) {
     hide($('ad-footer-empty'));
@@ -1388,6 +1577,7 @@ $('ad-text').oninput = () => {
     hide($('ad-footer-controls'));
   }
   checkForChanges();
+  updateFormatButtonsState();
 };
 $('footer-top').onclick = () => {
   document.querySelectorAll('#ad-footer-controls .btn').forEach(x => x.classList.remove('active'));
@@ -1433,9 +1623,9 @@ $('btn-create-ad').onclick = async () => {
     return;
   }
 
-  const text = $('ad-text').value.trim();
-  if (!text) return openModal(i18n[lang].adTextRequired, '');
-  if (!/(https:\/\/|t\.me\/|@)/i.test(text)) return openModal(i18n[lang].linkRequired, '');
+  const plainText = getPlainText($('ad-text')).trim();
+  if (!plainText) return openModal(i18n[lang].adTextRequired, '');
+  if (!/(https:\/\/|t\.me\/|@)/i.test(plainText)) return openModal(i18n[lang].linkRequired, '');
   if (!videoFile && !editMode) return openModal(i18n[lang].videoRequired, '');
   if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].selectPrioAndPlat, '');
 
@@ -1481,6 +1671,9 @@ $('btn-create-ad').onclick = async () => {
         reader.readAsDataURL(videoFile);
       });
     }
+
+    // Get formatted text with symbols
+    const text = getFormattedText($('ad-text'));
 
     const params = new URLSearchParams({
       action, text, platform: selectedPlatform, name: adName,
@@ -1569,7 +1762,7 @@ async function loadEditAd(ad) {
     screenTitle.textContent = `${i18n[lang].editTitle || 'Редактировать рекламу'}: ${ad.name}`;
   }
   
-  $('ad-text').value = ad.text;
+  $('ad-text').textContent = ad.text;
   currentVideoUrl = ad.videoUrl || '';
   const currentVideo = $('current-video') || document.createElement('div');
   currentVideo.id = 'current-video';
@@ -1607,7 +1800,7 @@ async function loadEditAd(ad) {
     const footerField = document.querySelector('.field [data-i18n="adFooterLabel"]').parentNode;
     if (footerField) footerField.hidden = true;
   }
-  if ($('ad-text').value) {
+  if (getPlainText($('ad-text'))) {
     hide($('ad-footer-empty'));
     show($('ad-footer-controls'));
   }
@@ -2066,7 +2259,7 @@ async function loadMyAds(skipPreloader = false) {
               <i class="fa-solid fa-copy"></i>
             </button>
           </p>
-          <p><strong>${i18n[lang].adTextLabel}:</strong> ${ad.text}</p>
+          <p><strong>${i18n[lang].adTextLabel}:</strong> <span class="ad-text-formatted">${parseFormattedText(ad.text)}</span></p>
           <p><strong>${i18n[lang].videoLabel}:</strong> <a href="${ad.videoUrl}" target="_blank">ссылка</a></p>
           <p><strong>${i18n[lang].footerLabel}:</strong> ${footerText}</p>
           <p><strong>${i18n[lang].platformLabel}:</strong> <span class="ad-platform-value">${platformDisplay}</span> ${frozen ? '' : platformUsers}</p>
