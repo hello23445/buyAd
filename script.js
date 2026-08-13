@@ -5,6 +5,32 @@ let isRulesModalOpen = false;
 if (tg) {
   tg.ready();
   tg.expand();
+
+  function setTelegramBackButtonVisible(visible) {
+    if (!tg?.BackButton) return;
+    try {
+      if (visible) {
+        tg.BackButton.show();
+      } else {
+        tg.BackButton.hide();
+      }
+    } catch (e) {
+      console.warn('Failed to toggle Telegram BackButton:', e);
+    }
+  }
+
+  function setTelegramSettingsButtonVisible(visible) {
+    if (!tg?.SettingsButton) return;
+    try {
+      if (visible) {
+        tg.SettingsButton.show();
+      } else {
+        tg.SettingsButton.hide();
+      }
+    } catch (e) {
+      console.warn('Failed to toggle Telegram SettingsButton:', e);
+    }
+  }
   
   // Восстанавливаем fullscreen состояние при загрузке
   (function() {
@@ -34,45 +60,52 @@ if (tg) {
   tg.enableClosingConfirmation();
   // Скрываем кнопку Settings при входе на сайт и показываем через 15 секунд
   if (tg.SettingsButton) {
-    tg.SettingsButton.hide();
+    setTelegramSettingsButtonVisible(false);
     setTimeout(() => {
-      try {
-        tg.SettingsButton.show();
-      } catch (e) {
-        console.warn('Failed to show SettingsButton after delay:', e);
+      const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
+      if (!settingsScreenVisible) {
+        setTelegramSettingsButtonVisible(true);
       }
     }, 15000);
   }
   // Обработчик клика на кнопку Settings
-  tg.SettingsButton.onClick(() => {
-    const previousScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
-    hideAllScreens();
-    show($('screen-settings'));
-  });
+  if (tg.SettingsButton) {
+    tg.SettingsButton.onClick(() => {
+      const previousScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-main';
+      hideAllScreens();
+      if ($('btn-open-settings')) {
+        $('btn-open-settings').disabled = true;
+      }
+      setTelegramSettingsButtonVisible(false);
+      show($('screen-settings'));
+    });
+  }
   
   // Telegram BackButton handler
-  tg.BackButton.onClick(() => {
-    if (isRulesModalOpen) {
-      closeModal();
-      return;
-    }
+  if (tg.BackButton) {
+    tg.BackButton.onClick(() => {
+      if (isRulesModalOpen) {
+        closeModal();
+        return;
+      }
 
-    const currentScreen = document.querySelector('.screen:not([hidden])').id || 'screen-main';
-    
-    if (currentScreen === 'screen-create' && document.getElementById('back-from-create')) {
-      document.getElementById('back-from-create').click();
-    } else if (currentScreen === 'screen-myads' && document.getElementById('back-from-myads')) {
-      document.getElementById('back-from-myads').click();
-    } else if (currentScreen === 'screen-ad-statistics' && document.getElementById('back-from-ad-statistics')) {
-      document.getElementById('back-from-ad-statistics').click();
-    } else if (currentScreen === 'screen-crystals' && document.getElementById('back-from-crystals')) {
-      document.getElementById('back-from-crystals').click();
-    } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
-      document.getElementById('back-from-admin').click();
-    } else if (currentScreen === 'screen-settings' && document.getElementById('back-from-settings')) {
-      document.getElementById('back-from-settings').click();
-    }
-  });
+      const currentScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-main';
+      
+      if (currentScreen === 'screen-create' && document.getElementById('back-from-create')) {
+        document.getElementById('back-from-create').click();
+      } else if (currentScreen === 'screen-myads' && document.getElementById('back-from-myads')) {
+        document.getElementById('back-from-myads').click();
+      } else if (currentScreen === 'screen-ad-statistics' && document.getElementById('back-from-ad-statistics')) {
+        document.getElementById('back-from-ad-statistics').click();
+      } else if (currentScreen === 'screen-crystals' && document.getElementById('back-from-crystals')) {
+        document.getElementById('back-from-crystals').click();
+      } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
+        document.getElementById('back-from-admin').click();
+      } else if (currentScreen === 'screen-settings' && document.getElementById('back-from-settings')) {
+        document.getElementById('back-from-settings').click();
+      }
+    });
+  }
 }
 
 /* ========== HELPERS ========== */
@@ -106,12 +139,16 @@ function show(el) {
 function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
 function showPreloader() { 
   show($('preloader')); 
+  if (tg?.BackButton) {
+    tg.BackButton.hide();
+  }
   // Отключаем кнопку кристаллов во время загрузки
   $('nav-crystals').disabled = true;
   $('nav-crystals').style.pointerEvents = 'none';
 }
 function hidePreloader() { 
   hide($('preloader')); 
+  refreshBackButton();
   // Включаем кнопку кристаллов после загрузки
   $('nav-crystals').disabled = false;
   $('nav-crystals').style.pointerEvents = '';
@@ -1118,7 +1155,9 @@ let previousEditScreen = null; // To track where edit was opened from
 // Special handling for back-from-settings
 $('back-from-settings').onclick = () => {
   hideAllScreens();
-  $('btn-open-settings').disabled = false;
+  if ($('btn-open-settings')) {
+    $('btn-open-settings').disabled = false;
+  }
   if (tg?.SettingsButton) {
     tg.SettingsButton.show();
   }
