@@ -3131,8 +3131,15 @@ async function loadMyAds(skipPreloader = false) {
         const platformDisplay = frozen ? i18n[lang].nowhere : ad.platform;
         const platformRow = document.querySelector(`#platform-list .platform-row[data-value="${ad.platform}"]`);
         const platformUsers = platformRow ? ` (${platformRow.querySelector('div:last-child').textContent})` : '';
-        const rejectionReason = String(ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection || '').trim();
-        const reviewerName = String(ad.reviewedBy || ad.checkedBy || ad.adminName || '').trim() || (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+        // GAS может возвращать причину под разными именами в зависимости от источника рекламы.
+        const rejectionReason = String(
+          ad.rejectionReason || ad.rejection_reason || ad.rejectReason || ad.reject_reason ||
+          ad.reasonOfRejection || ad.reason_of_rejection || ad.rejectionReasonText || ad.reason || ''
+        ).trim();
+        const reviewerName = String(ad.reviewedBy || ad.reviewed_by || ad.checkedBy || ad.adminName || ad.admin_name || '').trim() || (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+        const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[char]);
 
         const card = document.createElement('div');
         card.className = 'card ad-card';
@@ -3149,7 +3156,7 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
           <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
-${status === 'rejected' && rejectionReason ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${rejectionReason}</p><p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${reviewerName}</p>` : ''}
+${status === 'rejected' ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${rejectionReason ? escapeHtml(rejectionReason) : (lang === 'ru' ? 'Не указана' : 'Not provided')}</p>${reviewerName ? `<p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${escapeHtml(reviewerName)}</p>` : ''}` : ''}
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
