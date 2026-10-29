@@ -3340,10 +3340,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
 
-  // Показываем публичный IP пользователя при каждом запуске приложения.
-  const startupIp = await getClientIp();
-  alert(startupIp ? `IP пользователя: ${startupIp}` : 'Не удалось определить IP пользователя');
-
   currentUserIpBlocked = await isIpBlocked();
   await pollAdmin2Config();
 
