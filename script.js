@@ -1036,7 +1036,7 @@ function maskIpList(values) { return values.length ? values.map(() => '•••
 async function initAdminIpPanel() {
   if (!$('admin-current-ip') || !$('admin-user-apis')) return;
   adminCurrentIpValue = await getClientIp() || '';
-  const ips = getSavedUserAPIs();
+  const ips = getSavedUserAPIs().slice().reverse();
   $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
   $('admin-user-apis').textContent = adminUserAPIsVisible ? (ips.length ? ips.join(', ') : 'Не определено') : maskIpList(ips);
 }
@@ -1118,11 +1118,17 @@ $('nav-create').onclick = () => {
   })();
 };
 
-$('nav-myads').onclick = () => {
-  hideAllScreens();
-  show($('screen-myads'));
-  loadMyAds();
-};
+let myAdsLoadedOnce = false;
+const MY_ADS_REFRESH_COOLDOWN = 120000;
+const MY_ADS_REFRESH_STORAGE_KEY = 'myAdsLastManualRefreshAt';
+function updateMyAdsRefreshButton() {
+ const b=$('myads-refresh'); if(!b)return;
+ const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0), remaining=MY_ADS_REFRESH_COOLDOWN-(Date.now()-last), lang=localStorage.getItem(LS.lang)||'ru';
+ b.disabled=remaining>0; b.title=remaining>0?(lang==='ru'?'Обновление доступно через ':'Refresh available in ')+Math.ceil(remaining/1000)+(lang==='ru'?' сек.':' sec.'):'';
+}
+$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();};
+setInterval(updateMyAdsRefreshButton,1000);
+$('nav-myads').onclick=()=>{hideAllScreens();show($('screen-myads'));if(!myAdsLoadedOnce){myAdsLoadedOnce=true;loadMyAds();}updateMyAdsRefreshButton();};
 
 let statisticsPreviousScreen = 'screen-myads';
 
@@ -1254,7 +1260,7 @@ function resetCreateForm() {
   videoSizeUpgrade = false;
   editingFrozenAd = false;
   const upgradeBtn = $('btn-video-size-upgrade');
-  if (upgradeBtn) { upgradeBtn.classList.remove('active'); upgradeBtn.textContent = '+500 мб (200💎)'; }
+  if (upgradeBtn) { upgradeBtn.classList.remove('active'); upgradeBtn.textContent = '+250 мб (200💎)'; }
   document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = false; btn.title = ''; });
   $('ad-text').innerHTML = '';
   videoFile = null;
@@ -1428,11 +1434,11 @@ $('btn-video-size-upgrade').onclick = () => {
   } else {
     videoSizeUpgrade = false;
     $('btn-video-size-upgrade').classList.remove('active');
-    $('btn-video-size-upgrade').textContent = '+500 мб (200💎)';
+    $('btn-video-size-upgrade').textContent = '+250 мб (200💎)';
     const file = $('video-input').files[0];
-    if (file && file.size > 500 * 1024 * 1024) {
+    if (file && file.size > 250 * 1024 * 1024) {
       videoFile = null; $('video-input').value = ''; hide($('video-meta')); hide($('btn-remove-video'));
-      openModal('Без увеличения максимальный размер видео — 500 МБ.', '');
+      openModal('Без увеличения максимальный размер видео — 250 МБ.', '');
     }
   }
 };
@@ -1444,9 +1450,9 @@ $('video-input').onchange = e => {
     openModal(i18n[lang].onlyVideoFiles, '');
     return;
   }
-  const maxVideoSize = videoSizeUpgrade ? 1024 * 1024 * 1024 : 500 * 1024 * 1024;
+  const maxVideoSize = videoSizeUpgrade ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
   if (f.size > maxVideoSize) {
-    openModal(videoSizeUpgrade ? 'Максимальный размер видео с увеличением — 1 ГБ.' : 'Максимальный размер видео — 500 МБ. Нажмите «+500 мб (200💎)», чтобы увеличить лимит до 1 ГБ для этой рекламы.', '');
+    openModal(videoSizeUpgrade ? 'Максимальный размер видео с увеличением — 500 МБ.' : 'Максимальный размер видео — 500 МБ. Нажмите «+250 мб (200💎)», чтобы увеличить лимит до 1 ГБ для этой рекламы.', '');
     e.target.value = '';
     return;
   }
@@ -1865,7 +1871,12 @@ async function loadEditAd(ad) {
     screenTitle.textContent = `${i18n[lang].editTitle || 'Редактировать рекламу'}: ${ad.name}`;
   }
   
-  $('ad-text').innerHTML = parseFormattedText(ad.text || '');
+  const adTextEditor = $('ad-text');
+  const adTextField = adTextEditor?.closest('.field');
+  if(adTextField) adTextField.hidden=false;
+  adTextEditor.hidden=false; adTextEditor.style.display='block';
+  adTextEditor.innerHTML=parseFormattedText(ad.text||'');
+  document.querySelectorAll('.format-toolbar-modern, .format-toolbar').forEach(toolbar=>{toolbar.hidden=false;toolbar.style.display='flex';});
   const adTextField = $('ad-text').closest('.field');
   if (adTextField) adTextField.hidden = false;
   $('ad-text').hidden = false;
