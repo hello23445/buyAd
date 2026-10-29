@@ -372,7 +372,7 @@ function adminGuard(action, targetValue = '') {
   const admin = getCurrentAdmin(), lang = localStorage.getItem(LS.lang) || 'ru';
   const deny = message => { openModal(lang === 'ru' ? 'Недостаточно прав' : 'Permission denied', message); return false; };
   if (!admin) return deny(lang === 'ru' ? 'Действие доступно только администраторам.' : 'This action is for administrators only.');
-  const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unban', banIp:'banIp', unbanIp:'unban', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
+  const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'banTelegramId', banIp:'banIp', unbanIp:'banIp', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
   const permission = permissionByAction[action]; if (permission && !adminHasPermission(permission)) return deny(lang === 'ru' ? 'Это действие запрещено настройками ваших прав.' : 'Your permissions do not allow this action.');
   const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === String(targetValue || '').trim());
   if (['banTelegramId','unbanTelegramId'].includes(action)) {
@@ -519,7 +519,7 @@ async function persistNewAdminRecord(newAdmin) {
   const closeIndex = source.indexOf('];', arrayStart);
   if (arrayStart < 0 || closeIndex < 0) throw new Error('Не удалось определить список ADMINS в admin.js.');
 
-  const newSource = source.slice(0, closeIndex).trimEnd() + ',\n  ' + JSON.stringify(newAdmin) + '\n' + source.slice(closeIndex);
+  const permissionKeys = Object.keys(ADMIN_PERMISSION_LABELS);\n  const normalizedAdmin = {\n    admin_name: newAdmin.admin_name,\n    admin_level: newAdmin.admin_level,\n    admin_token: newAdmin.admin_token,\n    permissions: Object.fromEntries(permissionKeys.map(permission => [permission, newAdmin.permissions?.[permission] === true])),\n    custom_permissions: true\n  };\n  const newSource = source.slice(0, closeIndex).trimEnd() + ',\n  ' + JSON.stringify(normalizedAdmin) + '\n' + source.slice(closeIndex);
   const encoded = btoa(unescape(encodeURIComponent(newSource)));
   const saveResponse = await fetch(url, {
     method: 'PUT',
