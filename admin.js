@@ -69,25 +69,25 @@ const ADMINS = [
     }
   },
   {
-    "admin_name": "Vlad_Molinov",
-    "admin_level": 2,
+    "admin_name": "Главный администратор",
+    "admin_level": 5,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
       "banToken": true,
       "unban": true,
-      "unbanTelegramId": false,
-      "unbanIp": false,
+      "unbanTelegramId": true,
+      "unbanIp": true,
       "restrictAds": true,
-      "banTelegramId": false,
-      "banIp": false,
-      "globalCreateToggle": false,
+      "banTelegramId": true,
+      "banIp": true,
+      "globalCreateToggle": true,
       "manageAdmins": true,
       "changeOwnLevelLocally": true,
-      "hideNameOnRejection": false,
-      "hideNameOnBan": false,
-      "viewOwnIp": false
+      "hideNameOnRejection": true,
+      "hideNameOnBan": true,
+      "viewOwnIp": true
     },
     "custom_permissions": true
   }
