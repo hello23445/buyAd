@@ -25,18 +25,18 @@ const ADMINS = [
     }
   },
   {
-    "admin_name": "Администратор 2 уровня",
-    "admin_level": 2,
-    "admin_token": "7LH5NUT7JF18167K",
+    "admin_name": "Администратор 3 уровня",
+    "admin_level": 3,
+    "admin_token": "1LJPUBXN5L9PH7S8",
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
       "banToken": true,
       "unban": true,
-      "unbanTelegramId": false,
+      "unbanTelegramId": true,
       "unbanIp": false,
       "restrictAds": true,
-      "banTelegramId": false,
+      "banTelegramId": true,
       "banIp": false,
       "globalCreateToggle": false,
       "manageAdmins": true,
@@ -47,25 +47,25 @@ const ADMINS = [
     }
   },
   {
-    "admin_name": "Администратор 2 уровня",
-    "admin_level": 2,
+    "admin_name": "Главный администратор",
+    "admin_level": 5,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
       "banToken": true,
       "unban": true,
-      "unbanTelegramId": false,
-      "unbanIp": false,
+      "unbanTelegramId": true,
+      "unbanIp": true,
       "restrictAds": true,
-      "banTelegramId": false,
-      "banIp": false,
-      "globalCreateToggle": false,
+      "banTelegramId": true,
+      "banIp": true,
+      "globalCreateToggle": true,
       "manageAdmins": true,
       "changeOwnLevelLocally": true,
-      "hideNameOnRejection": false,
-      "hideNameOnBan": false,
-      "viewOwnIp": false
+      "hideNameOnRejection": true,
+      "hideNameOnBan": true,
+      "viewOwnIp": true
     },
     "custom_permissions": true
   }
