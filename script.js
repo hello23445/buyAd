@@ -3341,6 +3341,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(theme);
   currentUserIpBlocked = await isIpBlocked();
   await pollAdmin2Config();
+
+  // Не продолжаем запуск приложения, если пользователь заблокирован по IP или Telegram ID.
+  // loadAdmin2Config() уже загрузил конфигурацию и применил блокировки.
+  if (await applyRuntimeBlockings()) {
+    updateOnlineStatus();
+    hidePreloader();
+    return;
+  }
+
   updateOnlineStatus();
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
