@@ -365,14 +365,26 @@ function isEditingDisabledGlobally() {
   return isRuntimeValue('disableEditingAds', 'disabled', '');
 }
 
+function punishmentEntryValue(entry) {
+  if (entry && typeof entry === 'object') return String(entry.value || entry.token || entry.ip || entry.telegramId || '').trim();
+  return String(entry || '').trim();
+}
+function findPunishmentEntry(arrayName, value) {
+  const normalized = String(value || '').trim();
+  return runtimeArray(arrayName, []).find(entry => punishmentEntryValue(entry) === normalized) || null;
+}
+function getPunishmentReason(arrayName, value) {
+  const entry = findPunishmentEntry(arrayName, value);
+  return entry && typeof entry === 'object' ? String(entry.reason || '').trim() : '';
+}
 function isTokenCreateBlocked() {
   const token = localStorage.getItem(LS.token);
-  return runtimeArray('BlockCreateAds', []).includes(token);
+  return runtimeArray('BlockCreateAds', []).some(entry => punishmentEntryValue(entry) === String(token || ''));
 }
 
 function isTokenFullyBlocked() {
   const token = localStorage.getItem(LS.token);
-  return runtimeArray('BanForever', []).includes(token);
+  return !!findPunishmentEntry('BanForever', token);
 }
 
 function isCreateAdsDisabledGlobally() {
@@ -381,7 +393,7 @@ function isCreateAdsDisabledGlobally() {
 
 function isTelegramIdBlocked() {
   const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
-  return telegramId && runtimeArray('BlockedUsersTelegramID', []).includes(telegramId);
+  return telegramId && !!findPunishmentEntry('BlockedUsersTelegramID', telegramId);
 }
 
 let cachedClientIp = null;
@@ -435,9 +447,7 @@ async function isIpBlocked() {
   // Текущий IP добавляется в userAPIs, а блокировка проверяет всю историю IP.
   await getClientIp();
   const userAPIs = getSavedUserAPIs();
-  const blockedIPs = runtimeArray('BlockedUsersIPadresses', [])
-    .map(value => String(value || '').trim())
-    .filter(Boolean);
+  const blockedIPs = runtimeArray('BlockedUsersIPadresses', []).map(punishmentEntryValue).filter(Boolean);
   return userAPIs.some(userIP => blockedIPs.includes(userIP));
 }
 
@@ -534,15 +544,24 @@ async function applyRuntimeBlockings() {
     if (tg?.SettingsButton) {
       tg.SettingsButton.hide();
     }
+    let punishmentReason = '';
     if (isTokenBan) {
-      updateBlockedSubtitle('token', lang);
-      $('user-token-blocked').textContent = token || '—';
+      updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—';
+      punishmentReason = getPunishmentReason('BanForever', token);
     } else if (isTelegramBan) {
-      updateBlockedSubtitle('telegram', lang);
-      $('user-token-blocked').textContent = tg?.initDataUnsafe?.user?.id || '—';
+      const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
+      updateBlockedSubtitle('telegram', lang); $('user-token-blocked').textContent = telegramId || '—';
+      punishmentReason = getPunishmentReason('BlockedUsersTelegramID', telegramId);
     } else if (isIpBan) {
-      updateBlockedSubtitle('ip', lang);
-      $('user-token-blocked').textContent = token || '—';
+      updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—';
+      const blockedIPs = runtimeArray('BlockedUsersIPadresses', []);
+      const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
+      punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
+    }
+    const reasonEl = $('blocked-reason');
+    if (reasonEl) {
+      if (punishmentReason) { reasonEl.textContent = (i18n[lang].blockedReasonPrefix || (lang === 'ru' ? 'Причина:' : 'Reason:')) + ' ' + punishmentReason; reasonEl.hidden = false; }
+      else { reasonEl.textContent = ''; reasonEl.hidden = true; }
     }
     $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
     $('btn-copy-token-blocked').onclick = () => {
@@ -3015,10 +3034,10 @@ async function updateVariable(action, value) {
             );
         }
 
-        // Удаляем пустые элементы
-        oldArray = oldArray.filter(
-            item => item !== ""
-        );
+        oldArray = oldArray.filter(item => item !== "");
+        const isPunishmentArray = ["BanForever", "BlockedUsersTelegramID", "BlockedUsersIPadresses"].includes(variableName);
+        const entryValue = item => item && typeof item === "object" ? String(item.value || item.token || item.ip || item.telegramId || "").trim() : String(item || "").trim();
+        if (isPunishmentArray) oldArray = oldArray.map(item => typeof item === "string" ? { value: item, reason: "" } : item);
 
         // =================================================
         // ДОБАВЛЕНИЕ
@@ -3038,13 +3057,12 @@ async function updateVariable(action, value) {
                     : [value];
 
             for (const item of valuesToAdd) {
-
-                if (
-                    item !== "" &&
-                    !oldArray.includes(item)
-                ) {
-                    oldArray.push(item);
-                }
+                if (isPunishmentArray) {
+                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim() } : { value: String(item || "").trim(), reason: "" };
+                    if (!normalized.value) continue;
+                    const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value);
+                    if (idx >= 0) oldArray[idx] = normalized; else oldArray.push(normalized);
+                } else if (item !== "" && !oldArray.includes(item)) oldArray.push(item);
             }
         }
 
@@ -3065,15 +3083,12 @@ async function updateVariable(action, value) {
                     ? value
                     : [value];
 
-            oldArray = oldArray.filter(
-                item => !valuesToRemove.includes(item)
-            );
+            const normalizedValues = valuesToRemove.map(item => item && typeof item === "object" ? entryValue(item) : String(item || "").trim());
+            oldArray = oldArray.filter(item => !normalizedValues.includes(entryValue(item)));
         }
 
         // Если массив пустой — оставляем [""]
-        if (oldArray.length === 0) {
-            oldArray = [""];
-        }
+        if (oldArray.length === 0) oldArray = isPunishmentArray ? [] : [""];
 
         const newArrayText =
             JSON.stringify(oldArray);
@@ -3166,6 +3181,19 @@ async function updateVariable(action, value) {
     return result;
 }
 
+function openAdminPunishmentModal(title, onSubmit, placeholder) {
+  const body = document.createElement('div'); body.style.display = 'grid'; body.style.gap = '0.75rem';
+  const label = document.createElement('label'); label.textContent = title; label.style.fontWeight = '600'; body.appendChild(label);
+  const input = document.createElement('input'); input.type = 'text'; input.placeholder = placeholder; input.style.width = '100%'; input.style.padding = '0.75rem'; input.style.border = '1px solid #ccc'; input.style.borderRadius = '0.5rem'; input.style.fontSize = '1rem'; body.appendChild(input);
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const reasonLabel = document.createElement('label'); reasonLabel.textContent = lang === 'ru' ? 'Причина наказания (необязательно)' : 'Reason for punishment (optional)'; reasonLabel.style.fontWeight = '600'; body.appendChild(reasonLabel);
+  const reason = document.createElement('textarea'); reason.placeholder = lang === 'ru' ? 'Введите причину блокировки' : 'Enter the reason for the block'; reason.rows = 3; reason.style.width = '100%'; reason.style.padding = '0.75rem'; reason.style.border = '1px solid #ccc'; reason.style.borderRadius = '0.5rem'; reason.style.fontSize = '1rem'; reason.style.resize = 'vertical'; body.appendChild(reason);
+  openModal(title, body, [
+    { text: lang === 'ru' ? 'Отправить' : 'Submit', onClick: () => { if (onSubmit) onSubmit(input.value.trim(), reason.value.trim()); } },
+    { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
+  ]);
+}
+
 function openAdminTokenModal(title, onSubmit, placeholder = 'Введите токен пользователя') {
   const body = document.createElement('div');
   body.style.display = 'grid';
@@ -3201,14 +3229,14 @@ function openAdminTokenModal(title, onSubmit, placeholder = 'Введите то
 }
 
 $('admin-block-user').onclick = () => {
-  openAdminTokenModal('Заблокировать пользователя по токену', async token => {
+  openAdminPunishmentModal('Заблокировать пользователя по токену', async (token, reason) => {
     if (!token) {
       alert('Введите токен пользователя');
       return;
     }
     try {
       showPreloader();
-      await updateVariable('BanForever', token);
+      await updateVariable('BanForever', { value: token, reason });
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3269,14 +3297,14 @@ $('admin-unban-create-edit').onclick = () => {
 };
 
 $('admin-ban-ip').onclick = () => {
-  openAdminTokenModal('Забанить пользователя по его IP-адресу', async ip => {
+  openAdminPunishmentModal('Забанить пользователя по его IP-адресу', async (ip, reason) => {
     if (!ip) {
       alert('Введите IP-адрес пользователя');
       return;
     }
     try {
       showPreloader();
-      await updateVariable('BlockedUsersIPadresses', ip);
+      await updateVariable('BlockedUsersIPadresses', { value: ip, reason });
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3303,14 +3331,14 @@ $('admin-unban-ip').onclick = () => {
 };
 
 $('admin-ban-telegram-id').onclick = () => {
-  openAdminTokenModal('Забанить пользователя по его Telegram ID', async telegramId => {
+  openAdminPunishmentModal('Забанить пользователя по его Telegram ID', async (telegramId, reason) => {
     if (!telegramId) {
       alert('Введите Telegram ID пользователя');
       return;
     }
     try {
       showPreloader();
-      await updateVariable('BlockedUsersTelegramID', telegramId);
+      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason });
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
