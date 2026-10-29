@@ -1754,40 +1754,21 @@ $('btn-open-settings').onclick = () => {
 
 let adminCurrentIpValue = '';
 let adminCurrentIpVisible = false;
-let adminUserAPIsVisible = false;
-function formatIpHistory(values) {
-  return values.length ? values.map((ip, index) => `${String(index + 1).padStart(2, '0')}. ${ip}`).join('\n') : 'Не определено';
-}
-function maskIpList(values) {
-  return values.length ? values.map((_, index) => `${String(index + 1).padStart(2, '0')}. ••••••••`).join('\n') : 'Не определено';
-}
 async function initAdminIpPanel() {
-  if (!$('admin-current-ip') || !$('admin-user-apis')) return;
+  if (!$('admin-current-ip')) return;
   const card = $('admin-ip-info-card');
   const allowed = !!getCurrentAdmin() && adminHasPermission('viewOwnIp');
   if (card) card.hidden = !allowed;
   if (!allowed) return;
   adminCurrentIpValue = await getClientIp() || '';
-  // Показываем историю от нового IP к старому; нумерация отдельная для каждой строки.
-  const ips = getSavedUserAPIs().slice().reverse();
   $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
-  const history = $('admin-user-apis');
-  history.textContent = adminUserAPIsVisible ? formatIpHistory(ips) : maskIpList(ips);
-  history.classList.add('admin-ip-history');
 }
 $('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
-$('admin-user-apis-show').onclick = async () => { adminUserAPIsVisible = !adminUserAPIsVisible; $('admin-user-apis-show').textContent = adminUserAPIsVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
 $('admin-current-ip-copy').onclick = async () => {
   const ip = adminCurrentIpValue || await getClientIp();
   if (!ip) return openModal('Не удалось определить IP-адрес', '');
   try { await navigator.clipboard.writeText(ip); $('admin-current-ip-copy').textContent = 'Скопировано'; setTimeout(() => $('admin-current-ip-copy').textContent = 'Скопировать', 2000); }
   catch (e) { openModal('Не удалось скопировать IP-адрес', ''); }
-};
-$('admin-user-apis-copy').onclick = async () => {
-  const ips = getSavedUserAPIs();
-  if (!ips.length) return openModal('История IP-адресов пуста', '');
-  try { await navigator.clipboard.writeText(formatIpHistory(ips.slice().reverse())); $('admin-user-apis-copy').textContent = 'Скопировано'; setTimeout(() => $('admin-user-apis-copy').textContent = 'Скопировать', 2000); }
-  catch (e) { openModal('Не удалось скопировать IP-адреса', ''); }
 };
 
 $('nav-admin').onclick = () => {
@@ -3483,7 +3464,9 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
     if (action === 'reject' || action === 'banUser') url += `&userID=${encodeURIComponent(userID || '')}`;
     if (action === 'reject') {
       const admin = getCurrentAdmin();
-      url += `&reason=${encodeURIComponent(rejectionReason || '')}&adminName=${encodeURIComponent(getAdminDisplayName(admin, 'rejection'))}&adminLevel=${encodeURIComponent(admin?.admin_level || '')}`;
+      const encodedReason = encodeURIComponent(rejectionReason || '');
+      // Передаём совместимые имена параметра, чтобы серверные версии GAS могли сохранить причину.
+      url += `&reason=${encodedReason}&rejectionReason=${encodedReason}&rejectReason=${encodedReason}&adminName=${encodeURIComponent(getAdminDisplayName(admin, 'rejection'))}&adminLevel=${encodeURIComponent(admin?.admin_level || '')}`;
     }
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to process ad');
