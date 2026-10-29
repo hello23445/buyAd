@@ -261,6 +261,51 @@ const LS = {
 };
 
 const ADMIN2_PATH = './admin2.js';
+
+const ADMIN_LEVEL_LOCAL_KEY = 'buyAdsAdminLocalLevel';
+const ADMIN_DAILY_ACTIONS_KEY = 'buyAdsAdminDailyActions';
+function getCurrentAdmin() {
+  const token = localStorage.getItem(LS.token) || '';
+  const admin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === token);
+  if (!admin) return null;
+  const copy = { ...admin, permissions: { ...(admin.permissions || {}) } };
+  if (Number(admin.admin_level) === 5) { const localLevel = Number(localStorage.getItem(ADMIN_LEVEL_LOCAL_KEY)); if ([1,2,3,4,5].includes(localLevel)) copy.admin_level = localLevel; }
+  return copy;
+}
+function adminHasPermission(permission) {
+  const admin = getCurrentAdmin(); if (!admin || admin.permissions[permission] === false) return false;
+  const level = Number(admin.admin_level);
+  const minLevel = { banToken:2, unban:2, restrictAds:2, banTelegramId:3, banIp:4, globalCreateToggle:4, manageAdmins:2, changeOwnLevelLocally:5, hideNameOnRejection:5, hideNameOnBan:5, viewOwnIp:5 };
+  return !minLevel[permission] || level >= minLevel[permission];
+}
+function adminDailyCountKey(action) { const admin = getCurrentAdmin(); return ADMIN_DAILY_ACTIONS_KEY + ':' + (admin?.admin_token || '') + ':' + new Date().toISOString().slice(0,10) + ':' + action; }
+function adminDailyCount(action) { try { return Number(localStorage.getItem(adminDailyCountKey(action)) || 0); } catch { return 0; } }
+function recordAdminAction(action) { const key = adminDailyCountKey(action); localStorage.setItem(key, String(adminDailyCount(action) + 1)); }
+function adminDailyLimit(action) { const level = Number(getCurrentAdmin()?.admin_level || 0); if (level >= 5) return Infinity; if (level === 4) return 6; if (level === 3) return ({ banToken:3, restrictAds:4, banTelegramId:3, banAdmin:3 })[action] ?? 0; if (level === 2) return ({ banToken:2, restrictAds:2, banAdmin:2 })[action] ?? 0; return 0; }
+function adminGuard(action, targetValue = '') {
+  const admin = getCurrentAdmin(), lang = localStorage.getItem(LS.lang) || 'ru';
+  const deny = message => { openModal(lang === 'ru' ? 'Недостаточно прав' : 'Permission denied', message); return false; };
+  if (!admin) return deny(lang === 'ru' ? 'Действие доступно только администраторам.' : 'This action is for administrators only.');
+  const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unban', banIp:'banIp', unbanIp:'unban', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
+  const permission = permissionByAction[action]; if (permission && !adminHasPermission(permission)) return deny(lang === 'ru' ? 'Это действие запрещено настройками ваших прав.' : 'Your permissions do not allow this action.');
+  const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === String(targetValue || '').trim());
+  if (targetAdmin && ['banToken','unbanToken','restrictAds','unrestrictAds'].includes(action)) {
+    const level = Number(admin.admin_level), targetLevel = Number(targetAdmin.admin_level);
+    if (targetAdmin.admin_token === admin.admin_token) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
+    const allowed = level === 4 ? targetLevel === 1 : level === 5 ? targetLevel < level : targetLevel === 1 && (level === 2 || level === 3);
+    if (!allowed) return deny(lang === 'ru' ? 'Нельзя применить это действие к администратору своего или старшего уровня.' : 'You cannot act against an administrator of your level or higher.');
+    action = 'banAdmin';
+  }
+  const limit = adminDailyLimit(action); if (adminDailyCount(action) >= limit) return deny(lang === 'ru' ? 'Достигнут дневной лимит для этого действия (' + limit + ').' : 'Daily limit reached for this action (' + limit + ').');
+  return true;
+}
+function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
+  if (!admin) return '';
+  if (Number(admin.admin_level) === 5 && localStorage.getItem(mode === 'rejection' ? 'hideAdminNameOnRejection' : 'hideAdminNameOnBan') === 'true') return '';
+  return String(admin.admin_name || ('Администратор ' + admin.admin_level + ' уровня'));
+}
+function updateAdminLevelBadge() { const admin = getCurrentAdmin(), badge = $('admin-level-badge'); if (badge) { badge.textContent = admin ? String(admin.admin_level) : ''; badge.hidden = !admin; } }
+
 let runtimeAdmin2ConfigLoaded = false;
 let runtimeAdmin2Config = {
   BanForever: [''],
@@ -975,6 +1020,7 @@ async function showMainMenu(updateWhat = 'both') {
   hideAllScreens();
   show($('screen-main'));
   $('nav-admin').hidden = !isAdmin;
+  updateAdminLevelBadge();
 
   // Показываем состояние загрузки пока данные загружаются
   const loadingText = lang === 'ru' ? 'Загрузка...' : 'Loading...';
@@ -2734,24 +2780,36 @@ $('admin-check').onclick = async () => {
   }
 };
 
-async function handleAdAction(adName, action, userID = null) {
+async function handleAdAction(adName, action, userID = null, rejectionReason = '', confirmed = false) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (isGasDisabled()) {
-    openModal(i18n[lang].gasDisabled || 'GAS отключён', '');
+  if (action === 'reject' && !confirmed) {
+    const admin = getCurrentAdmin();
+    const body = document.createElement('div'); body.style.display = 'grid'; body.style.gap = '10px';
+    const label = document.createElement('label'); label.textContent = lang === 'ru' ? 'Причина отказа' : 'Rejection reason'; body.appendChild(label);
+    const input = document.createElement('textarea'); input.rows = 3; input.placeholder = lang === 'ru' ? 'Укажите причину отказа' : 'Enter rejection reason'; input.style.width = '100%'; body.appendChild(input);
+    openModal(lang === 'ru' ? 'Отклонить рекламу' : 'Reject ad', body, [
+      { text: lang === 'ru' ? 'Отклонить' : 'Reject', onClick: () => { if (Number(admin?.admin_level) === 1 && !input.value.trim()) { openModal(lang === 'ru' ? 'Причина обязательна' : 'Reason required', i18n[lang].rejectionReasonRequired); return; } handleAdAction(adName, action, userID, input.value.trim(), true); } },
+      { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
+    ]);
     return;
   }
+  if (!adminGuard('reviewAds')) return;
+  if (isGasDisabled()) { openModal(i18n[lang].gasDisabled || 'GAS отключён', ''); return; }
   showPreloader();
   try {
-    let url = `${GAS_SYS_URL}?action=${action}&adName=${adName}`;
-    if (action === 'reject' || action === 'banUser') url += `&userID=${userID}`;
-    await fetch(url);
+    let url = `${GAS_SYS_URL}?action=${action}&adName=${encodeURIComponent(adName)}`;
+    if (action === 'reject' || action === 'banUser') url += `&userID=${encodeURIComponent(userID || '')}`;
+    if (action === 'reject') {
+      const admin = getCurrentAdmin();
+      url += `&reason=${encodeURIComponent(rejectionReason || '')}&adminName=${encodeURIComponent(getAdminDisplayName(admin, 'rejection'))}&adminLevel=${encodeURIComponent(admin?.admin_level || '')}`;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to process ad');
+    if (action === 'reject') recordAdminAction('rejectAd');
     openModal(i18n[lang].doneTitle, i18n[lang].actionPerformed);
     $('admin-check').click();
-  } catch (e) {
-    openModal(i18n[lang].failedToPerform, '');
-  } finally {
-    hidePreloader();
-  }
+  } catch (e) { openModal(i18n[lang].failedToPerform, ''); }
+  finally { hidePreloader(); }
 }
 
 $('admin-restricted').onclick = async () => {
