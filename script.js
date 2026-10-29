@@ -3310,15 +3310,25 @@ async function updateVariable(action, value) {
     return result;
 }
 
-function openAdminPunishmentModal(title, onSubmit, placeholder) {
+function openAdminPunishmentModal(title, onSubmit, placeholder = 'Введите токен пользователя') {
   const body = document.createElement('div'); body.style.display = 'grid'; body.style.gap = '0.75rem';
   const label = document.createElement('label'); label.textContent = title; label.style.fontWeight = '600'; body.appendChild(label);
   const input = document.createElement('input'); input.type = 'text'; input.placeholder = placeholder; input.style.width = '100%'; input.style.padding = '0.75rem'; input.style.border = '1px solid #ccc'; input.style.borderRadius = '0.5rem'; input.style.fontSize = '1rem'; body.appendChild(input);
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  const reasonLabel = document.createElement('label'); reasonLabel.textContent = lang === 'ru' ? 'Причина наказания (необязательно)' : 'Reason for punishment (optional)'; reasonLabel.style.fontWeight = '600'; body.appendChild(reasonLabel);
+  const admin = getCurrentAdmin();
+  const reasonLabel = document.createElement('label'); reasonLabel.textContent = lang === 'ru' ? 'Причина блокировки' + (Number(admin?.admin_level) === 1 ? ' (обязательно)' : ' (необязательно)') : 'Reason for block' + (Number(admin?.admin_level) === 1 ? ' (required)' : ' (optional)'); reasonLabel.style.fontWeight = '600'; body.appendChild(reasonLabel);
   const reason = document.createElement('textarea'); reason.placeholder = lang === 'ru' ? 'Введите причину блокировки' : 'Enter the reason for the block'; reason.rows = 3; reason.style.width = '100%'; reason.style.padding = '0.75rem'; reason.style.border = '1px solid #ccc'; reason.style.borderRadius = '0.5rem'; reason.style.fontSize = '1rem'; reason.style.resize = 'vertical'; body.appendChild(reason);
+  if (Number(admin?.admin_level) === 5 && adminHasPermission('hideNameOnBan')) {
+    const wrap = document.createElement('label'); wrap.style.display = 'flex'; wrap.style.gap = '0.5rem'; wrap.style.alignItems = 'center';
+    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = localStorage.getItem('hideAdminNameOnBan') === 'true';
+    checkbox.addEventListener('change', () => localStorage.setItem('hideAdminNameOnBan', checkbox.checked ? 'true' : 'false'));
+    wrap.appendChild(checkbox); wrap.appendChild(document.createTextNode(lang === 'ru' ? 'Скрывать моё имя при блокировке' : 'Hide my name when blocking')); body.appendChild(wrap);
+  }
   openModal(title, body, [
-    { text: lang === 'ru' ? 'Отправить' : 'Submit', onClick: () => { if (onSubmit) onSubmit(input.value.trim(), reason.value.trim()); } },
+    { text: lang === 'ru' ? 'Отправить' : 'Submit', onClick: () => {
+      if (Number(admin?.admin_level) === 1 && !reason.value.trim()) { openModal(lang === 'ru' ? 'Причина обязательна' : 'Reason required', lang === 'ru' ? 'Укажите причину блокировки.' : 'Please enter a reason for the block.'); return; }
+      if (onSubmit) onSubmit(input.value.trim(), reason.value.trim());
+    } },
     { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
   ]);
 }
