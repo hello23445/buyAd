@@ -619,6 +619,18 @@ function openAddAdminModal() {
   const form = document.createElement('div');
   form.className = 'admin-create-form';
 
+  const nameLabel = document.createElement('label');
+  nameLabel.className = 'admin-create-field';
+  const nameTitle = document.createElement('span');
+  nameTitle.textContent = 'Имя нового админа';
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.autocomplete = 'off';
+  nameInput.maxLength = 80;
+  nameInput.placeholder = 'Введите имя администратора';
+  nameLabel.append(nameTitle, nameInput);
+  form.appendChild(nameLabel);
+
   const tokenLabel = document.createElement('label');
   tokenLabel.className = 'admin-create-field';
   const tokenTitle = document.createElement('span');
@@ -692,6 +704,12 @@ function openAddAdminModal() {
   saveButton.className = 'btn btn--primary';
   saveButton.textContent = 'Создать администратора';
   saveButton.onclick = async () => {
+    const adminName = String(nameInput.value || '').trim();
+    if (!adminName) {
+      alert('Введите имя нового администратора.');
+      nameInput.focus();
+      return;
+    }
     const token = String(tokenInput.value || '').trim();
     if (!token) {
       alert('Введите токен нового администратора.');
@@ -710,7 +728,7 @@ function openAddAdminModal() {
       permissions[permission] = checkbox.checked;
     });
     const newAdmin = {
-      admin_name: 'Администратор ' + selectedLevel + ' уровня',
+      admin_name: adminName,
       admin_level: selectedLevel,
       admin_token: token,
       permissions,
