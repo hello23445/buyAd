@@ -305,7 +305,15 @@ function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
   if (Number(admin.admin_level) === 5 && localStorage.getItem(mode === 'rejection' ? 'hideAdminNameOnRejection' : 'hideAdminNameOnBan') === 'true') return '';
   return String(admin.admin_name || ('Администратор ' + admin.admin_level + ' уровня'));
 }
-function updateAdminLevelBadge() { const admin = getCurrentAdmin(), badge = $('admin-level-badge'); if (badge) { badge.textContent = admin ? String(admin.admin_level) : ''; badge.hidden = !admin; } }
+function updateAdminLevelBadge() {
+ const admin=getCurrentAdmin(), badge=$('admin-level-badge'); if(badge){badge.textContent=admin?String(admin.admin_level):'';badge.hidden=!admin;}
+ const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token), tools=$('admin-level-tools');
+ if(tools)tools.hidden=!(base&&Number(base.admin_level)===5);
+ if(tools&&base&&Number(base.admin_level)===5){if($('admin-local-level'))$('admin-local-level').value=String(admin?.admin_level||5);if($('admin-hide-name-ban'))$('admin-hide-name-ban').checked=localStorage.getItem('hideAdminNameOnBan')==='true';if($('admin-hide-name-rejection'))$('admin-hide-name-rejection').checked=localStorage.getItem('hideAdminNameOnRejection')==='true';}
+}
+$('admin-local-level-save')?.addEventListener('click',()=>{const level=Number($('admin-local-level')?.value||5);if(![1,2,3,4,5].includes(level))return;localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY,String(level));updateAdminLevelBadge();openModal('Уровень обновлён','Изменение действует только в этом браузере.');});
+$('admin-hide-name-ban')?.addEventListener('change',e=>localStorage.setItem('hideAdminNameOnBan',e.target.checked?'true':'false'));
+$('admin-hide-name-rejection')?.addEventListener('change',e=>localStorage.setItem('hideAdminNameOnRejection',e.target.checked?'true':'false'));
 
 let runtimeAdmin2ConfigLoaded = false;
 let runtimeAdmin2Config = {
@@ -3474,6 +3482,7 @@ $('admin-unban-telegram-id').onclick = () => {
 };
 
 $('admin-close-app').onclick = async () => {
+  if (!adminGuard('globalCreateToggle')) return;
   try {
     showPreloader();
     await updateVariable('CloseApp', 'closed');
@@ -3485,6 +3494,7 @@ $('admin-close-app').onclick = async () => {
 };
 
 $('admin-open-app').onclick = async () => {
+  if (!adminGuard('globalCreateToggle')) return;
   try {
     showPreloader();
     await updateVariable('UnCloseApp', 'not_closed');
