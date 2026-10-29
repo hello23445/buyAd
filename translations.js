@@ -436,7 +436,7 @@ const i18n = {
     rejectedReasonLabel: 'Rejection reason',
     reviewedByLabel: 'Reviewed by admin',
     rejectionReasonRequired: 'Please provide a reason for rejecting the ad.',
-    adminNameHidden: 'Administrator'
+    adminNameHidden: 'Administrator',
     adminCheck: 'Check ad',
     adminRestricted: 'Restricted list',
     adminToggleCreate: 'Enable/Disable ad creation',
