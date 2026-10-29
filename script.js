@@ -596,6 +596,7 @@ function applyLang(lang) {
     // Initialize token display in settings
     initTokenDisplay();
     initTelegramIdDisplay();
+    initAdminUserIPsDisplay();
   }
   if (! $('screen-create').hidden) {
     const span = $('btn-create-ad').querySelector('span');
@@ -1028,6 +1029,7 @@ $('btn-open-settings').onclick = () => {
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings
+  initAdminUserIPsDisplay(); // Show IP history to admins
   initSettingsScreen(); // Initialize new settings
 };
 
@@ -1870,6 +1872,20 @@ function initTokenDisplay() {
 }
 
 // Helper to initialize Telegram ID display in settings
+function initAdminUserIPsDisplay() {
+  const field = $('admin-user-ips-field');
+  const value = $('admin-user-ips');
+  if (!field || !value) return;
+
+  const token = localStorage.getItem(LS.token);
+  const isAdmin = ADMIN_TOKENS.includes(token);
+  field.hidden = !isAdmin;
+  if (!isAdmin) return;
+
+  const userAPIs = getSavedUserAPIs();
+  value.textContent = userAPIs.length ? userAPIs.join(', ') : 'Не определено';
+}
+
 function initTelegramIdDisplay() {
   const telegramIdEl = $('user-telegram-id');
   const btnCopyTelegramId = $('btn-copy-telegram-id');
