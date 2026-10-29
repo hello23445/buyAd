@@ -67,29 +67,6 @@ const ADMINS = [
       "hideNameOnBan": false,
       "viewOwnIp": false
     }
-  },
-  {
-    "admin_name": "Администратор 1 уровня",
-    "admin_level": 1,
-    "admin_token": "GoYy3n2oRheOiByJ",
-    "permissions": {
-      "reviewAds": true,
-      "viewRestricted": false,
-      "banToken": false,
-      "unban": false,
-      "unbanTelegramId": false,
-      "unbanIp": false,
-      "restrictAds": false,
-      "banTelegramId": false,
-      "banIp": false,
-      "globalCreateToggle": false,
-      "manageAdmins": false,
-      "changeOwnLevelLocally": false,
-      "hideNameOnRejection": false,
-      "hideNameOnBan": false,
-      "viewOwnIp": false
-    },
-    "custom_permissions": true
   }
 ];
 
