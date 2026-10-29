@@ -269,6 +269,8 @@ const ADMIN_PERMISSION_MIN_LEVEL = {
   viewRestricted: 2,
   banToken: 2,
   unban: 2,
+  unbanTelegramId: 3,
+  unbanIp: 4,
   restrictAds: 2,
   banTelegramId: 3,
   banIp: 4,
@@ -283,7 +285,9 @@ const ADMIN_PERMISSION_LABELS = {
   reviewAds: 'Проверка рекламы',
   viewRestricted: 'Просмотр списка ограниченных пользователей',
   banToken: 'Блокировка пользователя по токену',
-  unban: 'Разблокировка пользователя',
+  unban: 'Разблокировка пользователя по токену',
+  unbanTelegramId: 'Разблокировка по Telegram ID',
+  unbanIp: 'Разблокировка по IP-адресу',
   restrictAds: 'Запрет создания и редактирования рекламы',
   banTelegramId: 'Блокировка по Telegram ID',
   banIp: 'Блокировка по IP-адресу',
@@ -372,7 +376,7 @@ function adminGuard(action, targetValue = '') {
   const admin = getCurrentAdmin(), lang = localStorage.getItem(LS.lang) || 'ru';
   const deny = message => { openModal(lang === 'ru' ? 'Недостаточно прав' : 'Permission denied', message); return false; };
   if (!admin) return deny(lang === 'ru' ? 'Действие доступно только администраторам.' : 'This action is for administrators only.');
-  const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unban', banIp:'banIp', unbanIp:'unban', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
+  const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unbanTelegramId', banIp:'banIp', unbanIp:'unbanIp', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
   const permission = permissionByAction[action]; if (permission && !adminHasPermission(permission)) return deny(lang === 'ru' ? 'Это действие запрещено настройками ваших прав.' : 'Your permissions do not allow this action.');
   const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === String(targetValue || '').trim());
   if (['banTelegramId','unbanTelegramId'].includes(action)) {
@@ -418,10 +422,14 @@ function updateAdminLevelBadge() {
   }
   if (save) save.hidden = !canLocallySet;
 
-  const addAdminButton = $('admin-add-new');
-  if (addAdminButton) {
-    addAdminButton.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5 && adminHasPermission('manageAdmins'));
-  }
+  const canManageAdmins = baseLevel === 5
+    && Number(admin?.admin_level) === 5
+    && base?.permissions?.manageAdmins === true
+    && adminHasPermission('manageAdmins');
+  ['admin-add-new', 'admin-edit-admin', 'admin-delete-admin'].forEach(id => {
+    const button = $(id);
+    if (button) button.hidden = !canManageAdmins;
+  });
   const clear = $('admin-clear-localstorage');
   if (clear) clear.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5);
 
@@ -431,9 +439,9 @@ function updateAdminLevelBadge() {
     'admin-block-user': 'banToken',
     'admin-unblock-user': 'unban',
     'admin-ban-ip': 'banIp',
-    'admin-unban-ip': 'unban',
+    'admin-unban-ip': 'unbanIp',
     'admin-ban-telegram-id': 'banTelegramId',
-    'admin-unban-telegram-id': 'unban',
+    'admin-unban-telegram-id': 'unbanTelegramId',
     'admin-ban-create-edit': 'restrictAds',
     'admin-unban-create-edit': 'restrictAds',
     'admin-close-app': 'globalCreateToggle',
@@ -493,7 +501,46 @@ $('admin-level-save')?.addEventListener('click', () => {
 });
 
 
-async function persistNewAdminRecord(newAdmin) {
+function canManageAdminRegistry() {
+  const base = getBaseAdminByToken();
+  const active = getCurrentAdmin();
+  return Number(base?.admin_level) === 5
+    && Number(active?.admin_level) === 5
+    && base?.permissions?.manageAdmins === true
+    && adminHasPermission('manageAdmins');
+}
+
+async function persistAdminRegistry(nextAdmins, commitMessage) {
+  if (!canManageAdminRegistry()) {
+    throw new Error('Управлять списком администраторов может только главный администратор 5-го уровня.');
+  }
+  if (!Array.isArray(nextAdmins) || !nextAdmins.length) {
+    throw new Error('В списке должен оставаться хотя бы один администратор.');
+  }
+
+  const permissionNames = Object.keys(ADMIN_PERMISSION_LABELS);
+  const seenTokens = new Set();
+  const normalizedAdmins = nextAdmins.map(admin => {
+    const token = String(admin?.admin_token || '').trim();
+    if (!token || seenTokens.has(token)) {
+      throw new Error('У каждого администратора должен быть уникальный непустой токен.');
+    }
+    seenTokens.add(token);
+    const level = Number(admin.admin_level);
+    if (!Number.isInteger(level) || level < 1 || level > 5) {
+      throw new Error('Уровень администратора должен быть от 1 до 5.');
+    }
+    const defaults = getDefaultAdminPermissions(level);
+    const currentPermissions = admin.permissions && typeof admin.permissions === 'object' ? admin.permissions : {};
+    const permissions = {};
+    permissionNames.forEach(permission => {
+      permissions[permission] = Object.prototype.hasOwnProperty.call(currentPermissions, permission)
+        ? currentPermissions[permission] === true
+        : defaults[permission] === true;
+    });
+    return { ...admin, admin_level: level, admin_token: token, permissions };
+  });
+
   const tokenEndpoint = 'https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec';
   const authResponse = await fetch(tokenEndpoint, { cache: 'no-store' });
   if (!authResponse.ok) throw new Error('Не удалось получить разрешение на сохранение администраторов.');
@@ -510,16 +557,12 @@ async function persistNewAdminRecord(newAdmin) {
   }
   const file = await fileResponse.json();
   const source = decodeURIComponent(escape(atob(String(file.content || '').replace(/\n/g, ''))));
-  const tokenMatches = [...source.matchAll(/["']?admin_token["']?\s*:\s*(['"])(.*?)\1/g)];
-  if (tokenMatches.some(match => match[2] === newAdmin.admin_token)) {
-    throw new Error('Такой токен уже зарегистрирован у администратора.');
-  }
-
   const arrayStart = source.indexOf('const ADMINS = [');
   const closeIndex = source.indexOf('];', arrayStart);
   if (arrayStart < 0 || closeIndex < 0) throw new Error('Не удалось определить список ADMINS в admin.js.');
 
-  const newSource = source.slice(0, closeIndex).trimEnd() + ',\n  ' + JSON.stringify(newAdmin) + '\n' + source.slice(closeIndex);
+  const replacement = 'const ADMINS = ' + JSON.stringify(normalizedAdmins, null, 2) + ';';
+  const newSource = source.slice(0, arrayStart) + replacement + source.slice(closeIndex + 2);
   const encoded = btoa(unescape(encodeURIComponent(newSource)));
   const saveResponse = await fetch(url, {
     method: 'PUT',
@@ -529,16 +572,40 @@ async function persistNewAdminRecord(newAdmin) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      message: 'Add administrator from admin menu',
+      message: commitMessage || 'Update administrator registry from admin menu',
       content: encoded,
       sha: file.sha
     })
   });
   const saveResult = await saveResponse.json().catch(() => ({}));
   if (!saveResponse.ok) {
-    throw new Error('GitHub не сохранил нового администратора: ' + (saveResult.message || saveResponse.status));
+    throw new Error('GitHub не сохранил список администраторов: ' + (saveResult.message || saveResponse.status));
   }
   return saveResult;
+}
+
+function openAdminRegistryResult(title, message) {
+  openModal(title, message, [
+    { text: 'Перезагрузить приложение', onClick: () => location.reload() }
+  ]);
+}
+
+async function saveAdminRegistryChanges(nextAdmins, commitMessage, successTitle, successMessage) {
+  if (!canManageAdminRegistry()) {
+    closeModal();
+    openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+    return;
+  }
+  closeModal();
+  showPreloader();
+  try {
+    await persistAdminRegistry(nextAdmins, commitMessage);
+    hidePreloader();
+    openAdminRegistryResult(successTitle, successMessage + ' Перезагрузите приложение, чтобы применить изменения.');
+  } catch (error) {
+    hidePreloader();
+    openModal('Не удалось сохранить изменения', error?.message || 'Произошла ошибка при сохранении.');
+  }
 }
 
 function openAddAdminModal() {
@@ -650,26 +717,18 @@ function openAddAdminModal() {
       custom_permissions: true
     };
 
-    // Проверяем доступ непосредственно перед записью в GitHub.
-    const currentBase = getBaseAdminByToken();
-    if (Number(currentBase?.admin_level) !== 5 || Number(getCurrentAdmin()?.admin_level) !== 5 || !adminHasPermission('manageAdmins')) {
-      alert('Добавлять администраторов может только администратор 5-го уровня.');
+    if (!canManageAdminRegistry()) {
+      alert('Добавлять администраторов может только главный администратор 5-го уровня.');
       closeModal();
       return;
     }
 
-    closeModal();
-    showPreloader();
-    try {
-      await persistNewAdminRecord(newAdmin);
-      hidePreloader();
-      openModal('Администратор добавлен', 'Новый администратор сохранён. Перезагрузите приложение, чтобы применить обновлённый список.', [
-        { text: 'Перезагрузить приложение', onClick: () => location.reload() }
-      ]);
-    } catch (error) {
-      hidePreloader();
-      openModal('Не удалось добавить администратора', error?.message || 'Произошла ошибка при сохранении.');
-    }
+    await saveAdminRegistryChanges(
+      [...ADMINS, newAdmin],
+      'Add administrator from admin menu',
+      'Администратор добавлен',
+      'Новый администратор сохранён.'
+    );
   };
 
   if (actions) {
@@ -678,6 +737,195 @@ function openAddAdminModal() {
   setTimeout(() => tokenInput.focus(), 50);
 }
 $('admin-add-new')?.addEventListener('click', openAddAdminModal);
+
+function appendAdminModalActions(cancelText, actionText, actionHandler, actionClass = 'btn btn--primary') {
+  const actions = $('modal-actions');
+  if (actions) actions.innerHTML = '';
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.className = 'btn btn--ghost';
+  cancelButton.textContent = 'Отмена';
+  cancelButton.onclick = () => closeModal();
+  const actionButton = document.createElement('button');
+  actionButton.type = 'button';
+  actionButton.className = actionClass;
+  actionButton.textContent = actionText;
+  actionButton.onclick = actionHandler;
+  if (actions) actions.append(cancelButton, actionButton);
+}
+
+function appendAdminOption(select, admin) {
+  const option = document.createElement('option');
+  option.value = admin.admin_token;
+  const tokenSuffix = String(admin.admin_token || '').slice(-4);
+  option.textContent = (admin.admin_name || 'Администратор') + ' — ' + admin.admin_level + '-й уровень' + (tokenSuffix ? ' (…' + tokenSuffix + ')' : '');
+  select.appendChild(option);
+}
+
+function createAdminPermissionEditor(initialLevel, initialPermissions = {}) {
+  const levelLabel = document.createElement('label');
+  levelLabel.className = 'admin-create-field';
+  const levelTitle = document.createElement('span');
+  levelTitle.textContent = 'Уровень админа';
+  const levelSelect = document.createElement('select');
+  for (let level = 1; level <= 5; level++) {
+    const option = document.createElement('option');
+    option.value = String(level);
+    option.textContent = level + '-й уровень';
+    levelSelect.appendChild(option);
+  }
+  levelSelect.value = String(initialLevel);
+  levelLabel.append(levelTitle, levelSelect);
+
+  const permissionsTitle = document.createElement('div');
+  permissionsTitle.className = 'admin-permissions-heading';
+  permissionsTitle.textContent = 'Права доступа';
+  const permissionsList = document.createElement('div');
+  permissionsList.className = 'admin-permissions-list';
+  const permissionInputs = {};
+  Object.entries(ADMIN_PERMISSION_LABELS).forEach(([permission, labelText]) => {
+    const optionLabel = document.createElement('label');
+    optionLabel.className = 'admin-permission-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    const label = document.createElement('span');
+    label.textContent = labelText;
+    optionLabel.append(checkbox, label);
+    permissionsList.appendChild(optionLabel);
+    permissionInputs[permission] = checkbox;
+  });
+
+  const setPermissions = permissions => {
+    const defaults = getDefaultAdminPermissions(Number(levelSelect.value));
+    Object.entries(permissionInputs).forEach(([permission, checkbox]) => {
+      checkbox.checked = Object.prototype.hasOwnProperty.call(permissions || {}, permission)
+        ? permissions[permission] === true
+        : defaults[permission] === true;
+    });
+  };
+  levelSelect.addEventListener('change', () => setPermissions(getDefaultAdminPermissions(Number(levelSelect.value))));
+  setPermissions(initialPermissions);
+
+  const readPermissions = () => Object.fromEntries(
+    Object.entries(permissionInputs).map(([permission, checkbox]) => [permission, checkbox.checked])
+  );
+  return { levelLabel, levelSelect, permissionsTitle, permissionsList, setPermissions, readPermissions };
+}
+
+function openEditAdminModal() {
+  if (!canManageAdminRegistry()) {
+    openModal('Недостаточно прав', 'Изменять администраторов может только главный администратор 5-го уровня.');
+    return;
+  }
+  const currentAdmin = getBaseAdminByToken();
+  const manageableAdmins = (typeof ADMINS !== 'undefined' ? ADMINS : []).filter(item => item.admin_token !== currentAdmin?.admin_token);
+  if (!manageableAdmins.length) {
+    openModal('Нет других администраторов', 'Для изменения прав должен существовать хотя бы один другой администратор.');
+    return;
+  }
+
+  const form = document.createElement('div');
+  form.className = 'admin-create-form';
+  const targetLabel = document.createElement('label');
+  targetLabel.className = 'admin-create-field';
+  const targetTitle = document.createElement('span');
+  targetTitle.textContent = 'Выберите администратора';
+  const targetSelect = document.createElement('select');
+  manageableAdmins.forEach(item => appendAdminOption(targetSelect, item));
+  targetLabel.append(targetTitle, targetSelect);
+  form.appendChild(targetLabel);
+
+  const editor = createAdminPermissionEditor(manageableAdmins[0].admin_level, manageableAdmins[0].permissions);
+  form.append(editor.levelLabel, editor.permissionsTitle, editor.permissionsList);
+  targetSelect.addEventListener('change', () => {
+    const target = manageableAdmins.find(item => item.admin_token === targetSelect.value);
+    if (!target) return;
+    editor.levelSelect.value = String(target.admin_level);
+    editor.setPermissions(target.permissions || {});
+  });
+
+  openModal('Изменить права админа', form, []);
+  appendAdminModalActions('Отмена', 'Сохранить изменения', async () => {
+    if (!canManageAdminRegistry()) {
+      closeModal();
+      openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+      return;
+    }
+    const target = manageableAdmins.find(item => item.admin_token === targetSelect.value);
+    if (!target || target.admin_token === getBaseAdminByToken()?.admin_token) {
+      openModal('Неверный выбор', 'Нельзя изменить текущего администратора.');
+      return;
+    }
+    const nextLevel = Number(editor.levelSelect.value);
+    const nextPermissions = editor.readPermissions();
+    const nextAdmins = ADMINS.map(item => {
+      if (item.admin_token !== target.admin_token) return item;
+      let name = item.admin_name;
+      if (/^Администратор\s+\d+\s+уровня$/i.test(name || '') || name === 'Главный администратор') {
+        name = nextLevel === 5 ? 'Главный администратор' : 'Администратор ' + nextLevel + ' уровня';
+      }
+      return { ...item, admin_name: name, admin_level: nextLevel, permissions: nextPermissions, custom_permissions: true };
+    });
+    await saveAdminRegistryChanges(
+      nextAdmins,
+      'Update administrator level and permissions',
+      'Права админа обновлены',
+      'Уровень и разрешения администратора сохранены.'
+    );
+  });
+}
+$('admin-edit-admin')?.addEventListener('click', openEditAdminModal);
+
+function openDeleteAdminModal() {
+  if (!canManageAdminRegistry()) {
+    openModal('Недостаточно прав', 'Удалять администраторов может только главный администратор 5-го уровня.');
+    return;
+  }
+  const currentAdmin = getBaseAdminByToken();
+  const manageableAdmins = (typeof ADMINS !== 'undefined' ? ADMINS : []).filter(item => item.admin_token !== currentAdmin?.admin_token);
+  if (!manageableAdmins.length) {
+    openModal('Нет других администраторов', 'Для удаления должен существовать хотя бы один другой администратор.');
+    return;
+  }
+
+  const form = document.createElement('div');
+  form.className = 'admin-create-form';
+  const targetLabel = document.createElement('label');
+  targetLabel.className = 'admin-create-field';
+  const targetTitle = document.createElement('span');
+  targetTitle.textContent = 'Выберите администратора';
+  const targetSelect = document.createElement('select');
+  manageableAdmins.forEach(item => appendAdminOption(targetSelect, item));
+  targetLabel.append(targetTitle, targetSelect);
+  form.appendChild(targetLabel);
+
+  const warning = document.createElement('p');
+  warning.className = 'hint';
+  warning.textContent = 'Удаление необратимо. Текущий главный администратор недоступен для удаления.';
+  form.appendChild(warning);
+
+  openModal('Удалить админа', form, []);
+  appendAdminModalActions('Отмена', 'Удалить админа', async () => {
+    if (!canManageAdminRegistry()) {
+      closeModal();
+      openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+      return;
+    }
+    const target = manageableAdmins.find(item => item.admin_token === targetSelect.value);
+    if (!target || target.admin_token === getBaseAdminByToken()?.admin_token) {
+      openModal('Неверный выбор', 'Нельзя удалить текущего администратора.');
+      return;
+    }
+    if (!confirm('Удалить администратора «' + (target.admin_name || target.admin_token) + '»? Это действие нельзя отменить.')) return;
+    await saveAdminRegistryChanges(
+      ADMINS.filter(item => item.admin_token !== target.admin_token),
+      'Delete administrator from admin menu',
+      'Администратор удалён',
+      'Администратор удалён из списка.'
+    );
+  }, 'btn btn--ghost');
+}
+$('admin-delete-admin')?.addEventListener('click', openDeleteAdminModal);
 
 $('admin-clear-localstorage')?.addEventListener('click',()=>{
  const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
