@@ -13,19 +13,29 @@ const RULES_TEXT = {
 
 <b>1.3.</b> Главный администратор имеет полное право выдать наказание на своё усмотрение и перевыдать наказание.
 
+<b>1.4.</b> Систематические нарушения одних и тех же правил за короткий промежуток времени могут привести к удвоению наказания(рецидив).
+
 🔹 <b>2. Правила поведения</b>
 
-<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram. | <b>Наказание:</b> отказ в размещении и блокировка создания и редактирования рекламы вплоть до блокировки аккаунта навсегда.
+<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram. | <b>Наказание:</b> отказ в размещении + от блокировки создания и редактирования реклам до блокировки аккаунта навсегда.
 
-<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем. | <b>Наказание:</b> блокировка аккаунта на срок от 30 дней до полной блокировки аккаунта навсегда.
+<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем. | <b>Наказание:</b> от блокировки аккаунта на 30 дней до полной блокировки аккаунта навсегда.
 
-<b>2.3.</b> Неправильная ссылка в тексте рекламы. Например: @ссылка, t.me/ссылка и т. д. | <b>Наказание:</b> от отказа в размещении до блокировки аккаунта на 2 дня.
+<b>2.3.</b> Запрещено указывать неправильные ссылки в тексте рекламы.
 
-<b>2.4.</b> Распространение, направление или финансирование (либо просьба о финансировании) терроризма, террористических группировок и т. д. | <b>Наказание:</b> полная блокировка аккаунта навсегда.
+Примеры: @ссылка, t.me/ссылка и т. д. | <b>Наказание:</b> от отказа в размещении до блокировки создания и редактирования реклам на 2 дня.
 
-<b>2.5.</b> Создание рекламы с оскорблением или завуалированным оскорблением родных или данного проекта. | <b>Наказание:</b> блокировка создания и редактирования рекламы на срок от 2 до 5 дней.
+<b>2.4.</b> Запрещены распространение, направление или финансирование (либо просьбы о финансировании) терроризма, террористических группировок и т. д. | <b>Наказание:</b> полная блокировка аккаунта навсегда.
 
-<b>2.6.</b> Использование багов или неисправностей приложения для получения преимуществ. | <b>Наказание:</b> блокировка аккаунта на 5 дней.
+<b>2.5.</b> Запрещено создавать рекламу с оскорблением или завуалированным оскорблением родных или данного проекта | <b>Наказание:</b> блокировка создания и редактирования реклам на срок от 2 до 5 дней.
+
+<b>2.6.</b> Запрещено использовать баги или неисправности приложения для получения преимуществ | <b>Наказание:</b> блокировка аккаунта от 2 до 10 дней.
+
+<b>2.7.</b> Запрещено использование нецензурных лексик в рекламе | <b>Наказание:</b> отказ в размещении, при повторных нарушениях - блокировка аккаунта от 2 до 15 дней.
+
+<b>2.8.</b> Запрещено оскорбление кого-либо и чего-либо | <b>Наказание:</b> отказ в размещении, при повторных - блокировка аккаунта от 5 до 30 дней.
+
+<b>2.9.</b> Запрещено создавать рекламу с оскорблением/завуалированным оскорблением национальности/наций или религии/религий | <b>Наказание:</b> отказ в размещении + блокировка аккаунта от 10 дней до полной блокировки аккаунта навсегда.
 
 🔹 <b>3. Размещение и оплата</b>
 
@@ -35,9 +45,10 @@ const RULES_TEXT = {
 
 🔹 <b>4. Отказ и блокировка</b>
 
-<b>4.1.</b> При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
+<b>4.1.</b> При нарушении правил администрация вправе отказать в размещении рекламы или заблокировать рекламодателя без возврата средств.
 
-<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть полностью заблокирован без права восстановления. Решение принимается Главным Администратором.`,
+<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть полностью заблокирован без права восстановления.
+(На усмотрение Главного Администратора)`,
 
   en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules below.</b>
 
@@ -51,19 +62,29 @@ const RULES_TEXT = {
 
 <b>1.3.</b> The Chief Administrator has full authority to impose penalties at their discretion and to change or reissue a penalty.
 
+<b>1.4.</b> Repeated violations of the same rules over a short period of time may result in a doubled penalty (recidivism).
+
 🔹 <b>2. Conduct Rules</b>
 
-<b>2.1.</b> Advertisements must not violate the law or Telegram's rules. | <b>Penalty:</b> refusal to publish and suspension of ad creation and editing, up to a permanent account ban.
+<b>2.1.</b> Advertisements must not violate the law or Telegram's rules. | <b>Penalty:</b> refusal to publish + suspension of ad creation and editing, up to a permanent account ban.
 
-<b>2.2.</b> Advertising scams, betting, pyramid schemes, drugs, weapons, 18+ content, or other prohibited topics is forbidden. | <b>Penalty:</b> an account suspension of 30 days or longer, up to a permanent account ban.
+<b>2.2.</b> Advertising scams, betting, pyramid schemes, drugs, weapons, 18+ content, or other prohibited topics is forbidden. | <b>Penalty:</b> an account ban for 30 days up to a permanent account ban.
 
-<b>2.3.</b> An incorrect link in the ad text, for example @link, t.me/link, etc. | <b>Penalty:</b> from refusal to publish to an account ban of up to 2 days.
+<b>2.3.</b> Providing incorrect links in ad text is prohibited.
 
-<b>2.4.</b> Promoting, directing, or financing terrorism or terrorist groups, or requesting such financing. | <b>Penalty:</b> permanent account ban.
+Examples: @link, t.me/link, etc. | <b>Penalty:</b> from refusal to publish to blocking ad creation and editing for 2 days.
 
-<b>2.5.</b> Creating an advertisement that insults or indirectly insults a person's family or this project. | <b>Penalty:</b> suspension of ad creation and editing for 2 to 5 days.
+<b>2.4.</b> Promoting, directing, or financing terrorism or terrorist groups, or requesting such financing, is prohibited. | <b>Penalty:</b> permanent account ban.
 
-<b>2.6.</b> Exploiting bugs or app malfunctions to gain an advantage. | <b>Penalty:</b> account suspension for 5 days.
+<b>2.5.</b> Creating an advertisement that insults or indirectly insults a person's family or this project is prohibited | <b>Penalty:</b> blocking ad creation and editing for 2 to 5 days.
+
+<b>2.6.</b> Using bugs or app malfunctions to gain an advantage is prohibited | <b>Penalty:</b> account ban for 2 to 10 days.
+
+<b>2.7.</b> Using obscene language in advertisements is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations, an account ban for 2 to 15 days.
+
+<b>2.8.</b> Insulting anyone or anything is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations, an account ban for 5 to 30 days.
+
+<b>2.9.</b> Creating an advertisement that insults or indirectly insults a nationality/nationalities or religion/religions is prohibited | <b>Penalty:</b> refusal to publish + account ban from 10 days up to a permanent account ban.
 
 🔹 <b>3. Placement and Payment</b>
 
@@ -75,7 +96,8 @@ const RULES_TEXT = {
 
 <b>4.1.</b> If these rules are violated, the administration may refuse to publish an advertisement or block the advertiser without a refund.
 
-<b>4.2.</b> Repeated violations may result in a permanent account ban without the possibility of restoration. The decision is made by the Chief Administrator.`
+<b>4.2.</b> Repeated violations may result in a permanent account ban without the possibility of restoration.
+(At the discretion of the Chief Administrator.)`
 };
 
 /* ========== CRYSTALS BUTTONS ========== */
