@@ -595,9 +595,7 @@ function applyLang(lang) {
   if (! $('screen-settings').hidden) {
     // Initialize token display in settings
     initTokenDisplay();
-    initTelegramIdDisplay();
-    initAdminUserIPsDisplay();
-  }
+    initTelegramIdDisplay();  }
   if (! $('screen-create').hidden) {
     const span = $('btn-create-ad').querySelector('span');
     span.dataset.i18n = editMode ? 'saveChanges' : 'createBtn';
@@ -1028,9 +1026,33 @@ $('btn-open-settings').onclick = () => {
   }
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
-  initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings
-  initAdminUserIPsDisplay(); // Show IP history to admins
-  initSettingsScreen(); // Initialize new settings
+  initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings  initSettingsScreen(); // Initialize new settings
+};
+
+let adminCurrentIpValue = '';
+let adminCurrentIpVisible = false;
+let adminUserAPIsVisible = false;
+function maskIpList(values) { return values.length ? values.map(() => '••••••••').join(', ') : 'Не определено'; }
+async function initAdminIpPanel() {
+  if (!$('admin-current-ip') || !$('admin-user-apis')) return;
+  adminCurrentIpValue = await getClientIp() || '';
+  const ips = getSavedUserAPIs();
+  $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
+  $('admin-user-apis').textContent = adminUserAPIsVisible ? (ips.length ? ips.join(', ') : 'Не определено') : maskIpList(ips);
+}
+$('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
+$('admin-user-apis-show').onclick = async () => { adminUserAPIsVisible = !adminUserAPIsVisible; $('admin-user-apis-show').textContent = adminUserAPIsVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
+$('admin-current-ip-copy').onclick = async () => {
+  const ip = adminCurrentIpValue || await getClientIp();
+  if (!ip) return openModal('Не удалось определить IP-адрес', '');
+  try { await navigator.clipboard.writeText(ip); $('admin-current-ip-copy').textContent = 'Скопировано'; setTimeout(() => $('admin-current-ip-copy').textContent = 'Скопировать', 2000); }
+  catch (e) { openModal('Не удалось скопировать IP-адрес', ''); }
+};
+$('admin-user-apis-copy').onclick = async () => {
+  const ips = getSavedUserAPIs();
+  if (!ips.length) return openModal('История IP-адресов пуста', '');
+  try { await navigator.clipboard.writeText(ips.join(', ')); $('admin-user-apis-copy').textContent = 'Скопировано'; setTimeout(() => $('admin-user-apis-copy').textContent = 'Скопировать', 2000); }
+  catch (e) { openModal('Не удалось скопировать IP-адреса', ''); }
 };
 
 $('nav-admin').onclick = () => {
@@ -1042,6 +1064,7 @@ $('nav-admin').onclick = () => {
   }
   hideAllScreens();
   show($('screen-admin'));
+  initAdminIpPanel();
 };
 
 $('nav-create').onclick = () => {
@@ -1125,7 +1148,13 @@ $('nav-rules').onclick = () => {
   isRulesModalOpen = true;
   refreshBackButton();
   openModal(i18n[lang].rulesTitle, pre, [
-    { text: i18n[lang].rulesAcceptBtn || 'Я принимаю все эти правила' }
+    {
+      text: i18n[lang].rulesAcceptBtn || 'Я принимаю все эти правила',
+      onClick: () => {
+        isRulesModalOpen = false;
+        refreshBackButton();
+      }
+    }
   ], {
     onClose: () => {
       isRulesModalOpen = false;
@@ -1212,11 +1241,21 @@ let commentsEnabled = false;
 let selectedPriority = null;
 let selectedPlatform = null;
 let videoFile = null;
+let videoSizeUpgrade = false;
+let editingFrozenAd = false;
 let footer = 'top';
 let currentVideoUrl = '';
 let originalAdData = {}; // Для отслеживания изменений при редактировании rejected
 
 function resetCreateForm() {
+  const adTextField = $('ad-text')?.closest('.field');
+  if (adTextField) adTextField.hidden = false;
+  $('ad-text').hidden = false;
+  videoSizeUpgrade = false;
+  editingFrozenAd = false;
+  const upgradeBtn = $('btn-video-size-upgrade');
+  if (upgradeBtn) { upgradeBtn.classList.remove('active'); upgradeBtn.textContent = '+500 мб (200💎)'; }
+  document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = false; btn.title = ''; });
   $('ad-text').innerHTML = '';
   videoFile = null;
   $('video-input').value = '';
@@ -1330,6 +1369,7 @@ document.querySelectorAll('#priority-buttons .seg').forEach(b => {
 
 document.querySelectorAll('#platform-buttons .seg').forEach(b => {
   b.onclick = async () => {
+    if (editingFrozenAd) return;
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const cost = parseInt(b.dataset.cost) || 0;
     let confirmed = true;
@@ -1377,6 +1417,25 @@ document.addEventListener('click', (e) => {
 });
 
 $('btn-pick-video').onclick = () => $('video-input').click();
+$('btn-video-size-upgrade').onclick = () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (!videoSizeUpgrade) {
+    const availableCrystals = editMode ? currentCrystals + editCost : currentCrystals;
+    if (availableCrystals < 200) { openModal(i18n[lang].notEnoughCrystals || 'Недостаточно кристаллов', ''); return; }
+    videoSizeUpgrade = true;
+    $('btn-video-size-upgrade').classList.add('active');
+    $('btn-video-size-upgrade').textContent = '✓ Лимит 1 ГБ для этой рекламы';
+  } else {
+    videoSizeUpgrade = false;
+    $('btn-video-size-upgrade').classList.remove('active');
+    $('btn-video-size-upgrade').textContent = '+500 мб (200💎)';
+    const file = $('video-input').files[0];
+    if (file && file.size > 500 * 1024 * 1024) {
+      videoFile = null; $('video-input').value = ''; hide($('video-meta')); hide($('btn-remove-video'));
+      openModal('Без увеличения максимальный размер видео — 500 МБ.', '');
+    }
+  }
+};
 $('video-input').onchange = e => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const f = e.target.files[0];
@@ -1385,8 +1444,10 @@ $('video-input').onchange = e => {
     openModal(i18n[lang].onlyVideoFiles, '');
     return;
   }
-  if (f.size > 50 * 1024 * 1024) {
-    openModal(i18n[lang].maxFileSize, '');
+  const maxVideoSize = videoSizeUpgrade ? 1024 * 1024 * 1024 : 500 * 1024 * 1024;
+  if (f.size > maxVideoSize) {
+    openModal(videoSizeUpgrade ? 'Максимальный размер видео с увеличением — 1 ГБ.' : 'Максимальный размер видео — 500 МБ. Нажмите «+500 мб (200💎)», чтобы увеличить лимит до 1 ГБ для этой рекламы.', '');
+    e.target.value = '';
     return;
   }
   const video = document.createElement('video');
@@ -1668,7 +1729,7 @@ $('btn-create-ad').onclick = async () => {
   if (!videoFile && !editMode) return openModal(i18n[lang].videoRequired, '');
   if (!selectedPriority || !selectedPlatform) return openModal(i18n[lang].selectPrioAndPlat, '');
 
-  const newTotalCost = calculateAdCost(selectedPriority, selectedPlatform, footer);
+  const newTotalCost = calculateAdCost(selectedPriority, selectedPlatform, footer) + (videoSizeUpgrade ? 200 : 0);
 
   let costDifference = 0;
   if (editMode) {
@@ -1782,6 +1843,9 @@ $('btn-create-ad').onclick = async () => {
 };
 
 async function loadEditAd(ad) {
+  editingFrozenAd = String(ad.platform) === '2';
+  document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = editingFrozenAd; btn.title = editingFrozenAd ? 'Площадка замороженной рекламы недоступна для редактирования' : ''; if (editingFrozenAd) btn.classList.remove('active'); });
+  selectedPlatform = editingFrozenAd ? '2' : ad.platform;
   editCost = ad.cost || 0; // Store the cost of the current ad being edited
   
   // Сохраняем оригинальные данные для отслеживания изменений
@@ -1801,7 +1865,10 @@ async function loadEditAd(ad) {
     screenTitle.textContent = `${i18n[lang].editTitle || 'Редактировать рекламу'}: ${ad.name}`;
   }
   
-  $('ad-text').textContent = ad.text;
+  $('ad-text').innerHTML = parseFormattedText(ad.text || '');
+  const adTextField = $('ad-text').closest('.field');
+  if (adTextField) adTextField.hidden = false;
+  $('ad-text').hidden = false;
   currentVideoUrl = ad.videoUrl || '';
   const currentVideo = $('current-video') || document.createElement('div');
   currentVideo.id = 'current-video';
@@ -1872,20 +1939,6 @@ function initTokenDisplay() {
 }
 
 // Helper to initialize Telegram ID display in settings
-function initAdminUserIPsDisplay() {
-  const field = $('admin-user-ips-field');
-  const value = $('admin-user-ips');
-  if (!field || !value) return;
-
-  const token = localStorage.getItem(LS.token);
-  const isAdmin = ADMIN_TOKENS.includes(token);
-  field.hidden = !isAdmin;
-  if (!isAdmin) return;
-
-  const userAPIs = getSavedUserAPIs();
-  value.textContent = userAPIs.length ? userAPIs.join(', ') : 'Не определено';
-}
-
 function initTelegramIdDisplay() {
   const telegramIdEl = $('user-telegram-id');
   const btnCopyTelegramId = $('btn-copy-telegram-id');
@@ -2255,6 +2308,18 @@ function openAdStatistics(ad) {
   const views = ad.views || 0;
   const clicks = ad.linkClicks || 0;
   $('ad-statistics-name').textContent = ad.name || '—';
+  const createdField = $('ad-statistics-created-field');
+  const createdLabel = $('ad-statistics-created');
+  const rawCreatedDate = ad.createdAt || ad.created_at || ad.createdDate || ad.dateCreated || ad.creationDate || ad.timestamp || ad.created || ad.date || '';
+  let createdDate = null;
+  if (rawCreatedDate !== '') {
+    const candidate = typeof rawCreatedDate === 'number' && rawCreatedDate < 1000000000000 ? new Date(rawCreatedDate * 1000) : new Date(rawCreatedDate);
+    if (!Number.isNaN(candidate.getTime())) createdDate = candidate;
+  }
+  if (createdDate && createdField && createdLabel) {
+    createdLabel.textContent = 'Реклама создана в: ' + String(createdDate.getDate()).padStart(2, '0') + '.' + String(createdDate.getMonth() + 1).padStart(2, '0') + '.' + createdDate.getFullYear();
+    createdField.hidden = false;
+  } else if (createdField) createdField.hidden = true;
   $('ad-statistics-views').textContent = formatNumber(views);
   $('ad-statistics-clicks').textContent = `${formatNumber(clicks)} ${pluralClicks(clicks, lang)}`;
   hideAllScreens();
