@@ -63,6 +63,7 @@
       <div class="card card--wide">
         <div class="card__title" data-i18n="blockedTitle">Вы заблокированы</div>
         <div class="card__subtitle" data-i18n="blockedSubtitle">You have been blocked</div>
+        <div id="blocked-reason" class="card__subtitle" hidden></div>
         <button id="btn-support" class="btn btn--primary btn--full" type="button" data-i18n="supportBtn">Служба поддержки / Support</button>
         <div class="field">
           <div class="field__label" data-i18n="tokenTitle">Ваш токен / Your token</div>
@@ -209,7 +210,7 @@
                 <span data-i18n="pickFile">Выберите файл</span>
               </button>
 
-              <button id="btn-video-size-upgrade" class="btn btn--ghost" type="button">+500 мб (200💎)</button>
+              <button id="btn-video-size-upgrade" class="btn btn--ghost" type="button">+250 мб (200💎)</button>
 
               <button id="btn-remove-video" class="btn btn--ghost" type="button" hidden>
                 <i class="fa-solid fa-trash"></i>
@@ -227,7 +228,7 @@
             </div>
 
             <div class="field__hint" data-i18n="videoHint">
-              Только видео. Макс. 500MB. Длительность: 5–60 сек.
+              Только видео. Макс. 250MB. Длительность: 5–60 сек.
             </div>
           </div>
         </div>
@@ -340,6 +341,7 @@
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="screen__title" data-i18n="myAdsTitle">Мои рекламы</div>
+          <button id="myads-refresh" class="btn btn--ghost" type="button" data-i18n="refreshAdsBtn" style="margin-left:auto; white-space:nowrap;">Обновить</button>
         </div>
 
         <div id="myads-list" class="stack">
@@ -516,9 +518,6 @@
                 <i class="fa-solid fa-copy"></i>
                 <span data-i18n="copy">Копировать</span>
               </button>
-            </div>
-          </div><div class="tokenbox">
-              <code id="admin-user-ips">—</code>
             </div>
           </div>
         </div>
