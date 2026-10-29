@@ -275,7 +275,7 @@ function getCurrentAdmin() {
 function adminHasPermission(permission) {
   const admin = getCurrentAdmin(); if (!admin || (Object.prototype.hasOwnProperty.call(admin.permissions, permission) && admin.permissions[permission] === false)) return false;
   const level = Number(admin.admin_level);
-  const minLevel = { banToken:2, unban:2, restrictAds:2, banTelegramId:3, banIp:4, globalCreateToggle:4, manageAdmins:2, changeOwnLevelLocally:5, hideNameOnRejection:5, hideNameOnBan:5, viewOwnIp:5 };
+  const minLevel = { viewRestricted:2, banToken:2, unban:2, restrictAds:2, banTelegramId:3, banIp:4, globalCreateToggle:4, manageAdmins:2, changeOwnLevelLocally:5, hideNameOnRejection:5, hideNameOnBan:5, viewOwnIp:5 };
   return !minLevel[permission] || level >= minLevel[permission];
 }
 function adminDailyCountKey(action) { const admin = getCurrentAdmin(); return ADMIN_DAILY_ACTIONS_KEY + ':' + (admin?.admin_token || '') + ':' + new Date().toISOString().slice(0,10) + ':' + action; }
