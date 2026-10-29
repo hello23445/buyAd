@@ -392,6 +392,19 @@ async function getClientIp() {
     if (!response.ok) return null;
     const data = await response.json();
     cachedClientIp = data.ip;
+
+    // Сохраняем публичные IP, с которых пользователь запускал приложение.
+    try {
+      const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
+      const userAPIs = Array.isArray(saved) ? saved : [];
+      if (data.ip && !userAPIs.includes(data.ip)) {
+        userAPIs.push(data.ip);
+        localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
+      }
+    } catch (e) {
+      localStorage.setItem('userAPIs', JSON.stringify(data.ip ? [data.ip] : []));
+    }
+
     return data.ip;
   } catch (e) {
     console.warn('IP fetch failed', e);
@@ -401,7 +414,23 @@ async function getClientIp() {
 
 async function isIpBlocked() {
   const ip = await getClientIp();
-  return ip && runtimeArray('BlockedUsersIPadresses', []).includes(ip);
+  let userAPIs = [];
+  try {
+    const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
+    userAPIs = Array.isArray(saved) ? saved : [];
+  } catch (e) {
+    userAPIs = [];
+  }
+
+  if (ip && !userAPIs.includes(ip)) {
+    userAPIs.push(ip);
+    localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
+  }
+
+  const blockedIPs = runtimeArray('BlockedUsersIPadresses', [])
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  return userAPIs.some(userIP => blockedIPs.includes(String(userIP).trim()));
 }
 
 function updateBlockedSubtitle(reason, lang) {
