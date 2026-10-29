@@ -311,7 +311,9 @@ function adminGuard(action, targetValue = '') {
 }
 function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
   if (!admin) return '';
-  if (Number(admin.admin_level) === 5 && localStorage.getItem(mode === 'rejection' ? 'hideAdminNameOnRejection' : 'hideAdminNameOnBan') === 'true') return '';
+  const hidePermission = mode === 'rejection' ? 'hideNameOnRejection' : 'hideNameOnBan';
+  const hideSetting = mode === 'rejection' ? 'hideAdminNameOnRejection' : 'hideAdminNameOnBan';
+  if (Number(admin.admin_level) === 5 && adminHasPermission(hidePermission) && localStorage.getItem(hideSetting) === 'true') return '';
   return String(admin.admin_name || ('Администратор ' + admin.admin_level + ' уровня'));
 }
 function updateAdminLevelBadge() {
