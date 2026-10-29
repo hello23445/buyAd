@@ -2,42 +2,80 @@
 /* ========== RULES TEXT ========== */
 const RULES_TEXT = {
   ru: `<b>Создавая рекламу через наше приложение, вы соглашаетесь с нижеприведёнными правилами размещения рекламы.</b>
-  📌 ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ
-🔹 <b>1.</b> Общие положения
+
+📌 <b>ПРАВИЛА РАЗМЕЩЕНИЯ РЕКЛАМЫ</b>
+
+🔹 <b>1. Общие положения</b>
+
 <b>1.1.</b> Размещая рекламу через бота, вы соглашаетесь с данными правилами.
+
 <b>1.2.</b> Администрация оставляет за собой право отказать в размещении без объяснения причин.
 
-🔹 <b>2.</b> Требования к рекламе
-<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram.
-<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем.
+<b>1.3.</b> Главный администратор имеет полное право выдать наказание на своё усмотрение и перевыдать наказание.
 
-🔹 <b>3.</b> Размещение и оплата
+🔹 <b>2. Правила поведения</b>
+
+<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram. | <b>Наказание:</b> отказ в размещении и блокировка создания и редактирования рекламы вплоть до блокировки аккаунта навсегда.
+
+<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем. | <b>Наказание:</b> блокировка аккаунта на срок от 30 дней до полной блокировки аккаунта навсегда.
+
+<b>2.3.</b> Неправильная ссылка в тексте рекламы. Например: @ссылка, t.me/ссылка и т. д. | <b>Наказание:</b> от отказа в размещении до блокировки аккаунта на 2 дня.
+
+<b>2.4.</b> Распространение, направление или финансирование (либо просьба о финансировании) терроризма, террористических группировок и т. д. | <b>Наказание:</b> полная блокировка аккаунта навсегда.
+
+<b>2.5.</b> Создание рекламы с оскорблением или завуалированным оскорблением родных или данного проекта. | <b>Наказание:</b> блокировка создания и редактирования рекламы на срок от 2 до 5 дней.
+
+<b>2.6.</b> Использование багов или неисправностей приложения для получения преимуществ. | <b>Наказание:</b> блокировка аккаунта на 5 дней.
+
+🔹 <b>3. Размещение и оплата</b>
+
 <b>3.1.</b> Изменение платного контента на бесплатный не вернёт вам утерянные средства.
+
 <b>3.2.</b> В случае удаления поста по вине рекламодателя (например, из-за жалоб пользователей) утерянные средства не возвращаются.
 
-🔹 <b>4.</b> Отказ и блокировка
+🔹 <b>4. Отказ и блокировка</b>
+
 <b>4.1.</b> При нарушении правил администрация вправе отказать в размещении или заблокировать рекламодателя без возврата средств.
-<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть заблокирован без права восстановления.`,
 
+<b>4.2.</b> При повторных нарушениях аккаунт рекламодателя может быть полностью заблокирован без права восстановления. Решение принимается Главным Администратором.`,
 
+  en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules below.</b>
 
-  en: `<b>By creating an advertisement through our application, you agree to the advertising placement rules listed below.</b>
-  📌 ADVERTISEMENT PLACEMENT RULES
-🔹 <b>1.</b> General Provisions
-<b>1.1.</b> By placing advertisements through the bot, you agree to these rules.
-<b>1.2.</b> The administration reserves the right to refuse advertisement placement without providing any reason.
+📌 <b>ADVERTISING PLACEMENT RULES</b>
 
-🔹 <b>2.</b> Advertising Requirements
-<b>2.1.</b> Advertisements must comply with applicable laws and Telegram rules.
-<b>2.2.</b> Advertising of fraudulent schemes, betting, pyramid schemes, drugs, weapons, 18+ content, and other prohibited topics is strictly forbidden.
+🔹 <b>1. General Provisions</b>
 
-🔹 <b>3.</b> Placement and Payment
-<b>3.1.</b> Changing paid content to free content does not entitle you to a refund of the spent funds.
-3.2. If an advertisement is removed due to the advertiser’s fault (for example, because of user complaints), the paid amount is non-refundable.
+<b>1.1.</b> By placing an advertisement through the bot, you agree to these rules.
 
-🔹 <b>4.</b> Refusal and Blocking
-<b>4.1.</b> In case of violation of these rules, the administration has the right to refuse placement or block the advertiser without a refund.
-<b>4.2.</b> Repeated violations may result in permanent account blocking without the right to restoration.`
+<b>1.2.</b> The administration reserves the right to refuse an advertisement without providing a reason.
+
+<b>1.3.</b> The Chief Administrator has full authority to impose penalties at their discretion and to change or reissue a penalty.
+
+🔹 <b>2. Conduct Rules</b>
+
+<b>2.1.</b> Advertisements must not violate the law or Telegram's rules. | <b>Penalty:</b> refusal to publish and suspension of ad creation and editing, up to a permanent account ban.
+
+<b>2.2.</b> Advertising scams, betting, pyramid schemes, drugs, weapons, 18+ content, or other prohibited topics is forbidden. | <b>Penalty:</b> an account suspension of 30 days or longer, up to a permanent account ban.
+
+<b>2.3.</b> An incorrect link in the ad text, for example @link, t.me/link, etc. | <b>Penalty:</b> from refusal to publish to an account ban of up to 2 days.
+
+<b>2.4.</b> Promoting, directing, or financing terrorism or terrorist groups, or requesting such financing. | <b>Penalty:</b> permanent account ban.
+
+<b>2.5.</b> Creating an advertisement that insults or indirectly insults a person's family or this project. | <b>Penalty:</b> suspension of ad creation and editing for 2 to 5 days.
+
+<b>2.6.</b> Exploiting bugs or app malfunctions to gain an advantage. | <b>Penalty:</b> account suspension for 5 days.
+
+🔹 <b>3. Placement and Payment</b>
+
+<b>3.1.</b> Changing paid content to free content will not refund any funds you have spent.
+
+<b>3.2.</b> If a post is removed due to the advertiser's actions (for example, because of user complaints), the spent funds will not be refunded.
+
+🔹 <b>4. Rejection and Blocking</b>
+
+<b>4.1.</b> If these rules are violated, the administration may refuse to publish an advertisement or block the advertiser without a refund.
+
+<b>4.2.</b> Repeated violations may result in a permanent account ban without the possibility of restoration. The decision is made by the Chief Administrator.`
 };
 
 /* ========== CRYSTALS BUTTONS ========== */
