@@ -3243,7 +3243,7 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
           <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
-\${hasStoredRejection ? \`<p><strong>\${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> \${rejectionReason ? escapeHtml(rejectionReason) : (lang === 'ru' ? 'Не указана' : 'Not provided')}</p>\${reviewerName ? \`<p><strong>\${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> \${escapeHtml(reviewerName)}</p>\` : ''}\` : ''}
+${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${rejectionReason ? escapeHtml(rejectionReason) : (lang === 'ru' ? 'Не указана' : 'Not provided')}</p>${reviewerName ? `<p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${escapeHtml(reviewerName)}</p>` : ''}` : ''}
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
