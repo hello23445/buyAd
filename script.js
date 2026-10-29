@@ -339,7 +339,16 @@ $('admin-level-save')?.addEventListener('click',()=>{
 $('admin-clear-localstorage')?.addEventListener('click',()=>{
  const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
  if(Number(base?.admin_level)!==5 || Number(getCurrentAdmin()?.admin_level)!==5){alert('Доступно только администратору 5-го уровня');return;}
- if(confirm('Вы уверены, что хотите очистить весь localStorage? Все локальные настройки и данные будут удалены.')){localStorage.clear();location.reload();}
+ if(confirm('Очистить локальные данные? Токен, Telegram ID и сохранённые настройки приложения будут сохранены.')){
+  const preserved = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key === LS.token || /telegram.?id|user.?id|setting|theme|lang|appSize|confirmation|position|title|closing/i.test(key))) preserved[key] = localStorage.getItem(key);
+  }
+  localStorage.clear();
+  Object.entries(preserved).forEach(([key, value]) => localStorage.setItem(key, value));
+  location.reload();
+}
 });
 
 let runtimeAdmin2ConfigLoaded = false;
