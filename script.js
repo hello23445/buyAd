@@ -1057,7 +1057,7 @@ async function initAdminIpPanel() {
   adminCurrentIpValue = await getClientIp() || '';
   const ips = getSavedUserAPIs().slice().reverse();
   $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
-  $('admin-user-apis').textContent = adminUserAPIsVisible ? (ips.length ? ips.join(', ') : 'Не определено') : maskIpList(ips);
+  $('admin-user-apis').textContent = adminUserAPIsVisible ? (ips.length ? ips.map((ip, index) => `${index + 1}. ${ip}`).join(', ') : 'Не определено') : maskIpList(ips);
 }
 $('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
 $('admin-user-apis-show').onclick = async () => { adminUserAPIsVisible = !adminUserAPIsVisible; $('admin-user-apis-show').textContent = adminUserAPIsVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
@@ -1141,9 +1141,22 @@ let myAdsLoadedOnce = false;
 const MY_ADS_REFRESH_COOLDOWN = 120000;
 const MY_ADS_REFRESH_STORAGE_KEY = 'myAdsLastManualRefreshAt';
 function updateMyAdsRefreshButton() {
- const b=$('myads-refresh'); if(!b)return;
- const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0), remaining=MY_ADS_REFRESH_COOLDOWN-(Date.now()-last), lang=localStorage.getItem(LS.lang)||'ru';
- b.disabled=remaining>0; b.title=remaining>0?(lang==='ru'?'Обновление доступно через ':'Refresh available in ')+Math.ceil(remaining/1000)+(lang==='ru'?' сек.':' sec.'):'';
+ const b = $('myads-refresh'); if (!b) return;
+ const last = Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY) || 0);
+ const remaining = Math.max(0, MY_ADS_REFRESH_COOLDOWN - (Date.now() - last));
+ const lang = localStorage.getItem(LS.lang) || 'ru';
+ if (remaining > 0) {
+   const totalSeconds = Math.ceil(remaining / 1000);
+   const mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+   const ss = String(totalSeconds % 60).padStart(2, '0');
+   b.textContent = (lang === 'ru' ? 'Обновить' : 'Refresh') + '(' + mm + ':' + ss + ')';
+   b.disabled = true;
+   b.title = lang === 'ru' ? 'Обновление доступно через ' + mm + ':' + ss : 'Refresh available in ' + mm + ':' + ss;
+ } else {
+   b.textContent = lang === 'ru' ? 'Обновить' : 'Refresh';
+   b.disabled = false;
+   b.title = '';
+ }
 }
 $('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();};
 setInterval(updateMyAdsRefreshButton,1000);
@@ -1274,8 +1287,10 @@ let originalAdData = {}; // Для отслеживания изменений �
 
 function resetCreateForm() {
   const adTextField = $('ad-text')?.closest('.field');
-  if (adTextField) adTextField.hidden = false;
+  if (adTextField) { adTextField.hidden = false; adTextField.style.display = ''; }
+  document.querySelectorAll('.format-toolbar-modern').forEach(toolbar => { toolbar.hidden = false; toolbar.style.display = 'flex'; });
   $('ad-text').hidden = false;
+  $('ad-text').style.display = 'block';
   videoSizeUpgrade = false;
   editingFrozenAd = false;
   const upgradeBtn = $('btn-video-size-upgrade');
@@ -1394,7 +1409,7 @@ document.querySelectorAll('#priority-buttons .seg').forEach(b => {
 
 document.querySelectorAll('#platform-buttons .seg').forEach(b => {
   b.onclick = async () => {
-    if (editingFrozenAd) return;
+    if (editingFrozenAd) { const lang = localStorage.getItem(LS.lang) || 'ru'; openModal(i18n[lang].frozenPlatformChange, ''); return; }
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const cost = parseInt(b.dataset.cost) || 0;
     let confirmed = true;
@@ -1449,7 +1464,7 @@ $('btn-video-size-upgrade').onclick = () => {
     if (availableCrystals < 200) { openModal(i18n[lang].notEnoughCrystals || 'Недостаточно кристаллов', ''); return; }
     videoSizeUpgrade = true;
     $('btn-video-size-upgrade').classList.add('active');
-    $('btn-video-size-upgrade').textContent = '✓ Лимит 1 ГБ для этой рекламы';
+    $('btn-video-size-upgrade').textContent = i18n[lang].videoUpgradeActive;
   } else {
     videoSizeUpgrade = false;
     $('btn-video-size-upgrade').classList.remove('active');
@@ -1457,7 +1472,7 @@ $('btn-video-size-upgrade').onclick = () => {
     const file = $('video-input').files[0];
     if (file && file.size > 250 * 1024 * 1024) {
       videoFile = null; $('video-input').value = ''; hide($('video-meta')); hide($('btn-remove-video'));
-      openModal('Без увеличения максимальный размер видео — 250 МБ.', '');
+      openModal(i18n[localStorage.getItem(LS.lang) || 'ru'].videoMaxSizeDefault, '');
     }
   }
 };
@@ -1471,7 +1486,7 @@ $('video-input').onchange = e => {
   }
   const maxVideoSize = videoSizeUpgrade ? 500 * 1024 * 1024 : 250 * 1024 * 1024;
   if (f.size > maxVideoSize) {
-    openModal(videoSizeUpgrade ? 'Максимальный размер видео с увеличением — 500 МБ.' : 'Максимальный размер видео — 500 МБ. Нажмите «+250 мб (200💎)», чтобы увеличить лимит до 1 ГБ для этой рекламы.', '');
+    openModal(videoSizeUpgrade ? i18n[lang].videoMaxSizeUpgraded : i18n[lang].videoMaxSizeDefault, '');
     e.target.value = '';
     return;
   }
@@ -1869,7 +1884,7 @@ $('btn-create-ad').onclick = async () => {
 
 async function loadEditAd(ad) {
   editingFrozenAd = String(ad.platform) === '2';
-  document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = editingFrozenAd; btn.title = editingFrozenAd ? 'Площадка замороженной рекламы недоступна для редактирования' : ''; if (editingFrozenAd) btn.classList.remove('active'); });
+  document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = false; btn.title = ''; });
   selectedPlatform = editingFrozenAd ? '2' : ad.platform;
   editCost = ad.cost || 0; // Store the cost of the current ad being edited
   
