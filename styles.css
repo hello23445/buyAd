@@ -1537,3 +1537,13 @@ body.theme-light .admin-create-field input:not([type="checkbox"]), body.theme-li
 }
 body.theme-dark .admin-permissions-list { background: rgba(0,0,0,.12); }
 body.theme-light .admin-permissions-list { background: rgba(0,0,0,.025); }
+
+
+/* Keep each IP-history entry on its own clearly numbered line. */
+code.admin-ip-history {
+  display: block;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+  text-align: left;
+}
