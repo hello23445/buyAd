@@ -293,10 +293,16 @@ function adminGuard(action, targetValue = '') {
     const selfTelegramId = String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
     if (selfTelegramId && String(targetValue || '').trim() === selfTelegramId) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
   }
+  if (action === 'banIp') {
+    const ownIps = typeof getSavedUserAPIs === 'function' ? getSavedUserAPIs() : [];
+    if (ownIps.includes(String(targetValue || '').trim())) return deny(lang === 'ru' ? 'Нельзя заблокировать собственный IP-адрес.' : 'You cannot block your own IP address.');
+  }
   if (targetAdmin && ['banToken','unbanToken','restrictAds','unrestrictAds'].includes(action)) {
     const level = Number(admin.admin_level), targetLevel = Number(targetAdmin.admin_level);
     if (targetAdmin.admin_token === admin.admin_token) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
-    if (level < 2 || targetLevel !== 1) return deny(lang === 'ru' ? 'Можно применять наказание только к администраторам 1-го уровня. Нельзя блокировать себя или администраторов своего/старшего уровня.' : 'You may only punish level-1 administrators. You cannot punish yourself, peers, or higher-level administrators.');
+    const allowedTarget = level === 4 ? targetLevel === 1 : level === 5 ? targetLevel < 5 : level >= 2 && targetLevel === 1;
+    if (!allowedTarget) return deny(lang === 'ru' ? (level === 4 ? 'Администратор 4-го уровня может применять наказание только к администраторам 1-го уровня.' : 'Нельзя блокировать себя и администраторов своего или старшего уровня.') : (level === 4 ? 'Level-4 administrators may only punish level-1 administrators.' : 'You cannot punish yourself, peers, or higher-level administrators.'));
+
     action = 'banAdmin';
   }
   const limitAction = ({ unbanToken:'banToken', unbanTelegramId:'banTelegramId', unbanIp:'banIp', unrestrictAds:'restrictAds' })[action] || action;
