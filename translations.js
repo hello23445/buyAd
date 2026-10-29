@@ -7,22 +7,22 @@ const RULES_TEXT = {
 
 🔹 <b>1. Общие положения</b>
 
-<b>1.1.</b> Размещая рекламу через бота, вы соглашаетесь с данными правилами.
+<b>1.1.</b> Размещая рекламу через наше приложение, вы соглашаетесь с данными правилами.
 
 <b>1.2.</b> Администрация оставляет за собой право отказать в размещении без объяснения причин.
 
-<b>1.3.</b> Главный администратор имеет полное право выдать наказание на своё усмотрение и перевыдать наказание.
+<b>1.3.</b> Главный Администратор имеет полное право выдать наказание на своё усмотрение, перевыдать наказание и изменить наказание не смотря на правила.
 
 <b>1.4.</b> Систематические нарушения одних и тех же правил за короткий промежуток времени могут привести к удвоению наказания(рецидив).
+Например: если вы недавно нарушили 2.1 пункта правил то получите наказание от блокировки создания и редактирования реклам на 4 дня до блокировки аккаунта навсегда(x2 наказание и больше).
 
 🔹 <b>2. Правила поведения</b>
 
-<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram. | <b>Наказание:</b> отказ в размещении + от блокировки создания и редактирования реклам до блокировки аккаунта навсегда.
+<b>2.1.</b> Реклама не должна нарушать законодательство и правила Telegram. | <b>Наказание:</b> отказ в размещении + от блокировки создания и редактирования реклам на 2 дня до блокировки аккаунта навсегда.
 
-<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем. | <b>Наказание:</b> от блокировки аккаунта на 30 дней до полной блокировки аккаунта навсегда.
+<b>2.2.</b> Запрещена реклама мошеннических схем, ставок, пирамид, наркотиков, оружия, контента 18+ и прочих запрещённых тем. | <b>Наказание:</b> от блокировки аккаунта на 5 дней до полной блокировки навсегда.
 
 <b>2.3.</b> Запрещено указывать неправильные ссылки в тексте рекламы.
-
 Примеры: @ссылка, t.me/ссылка и т. д. | <b>Наказание:</b> от отказа в размещении до блокировки создания и редактирования реклам на 2 дня.
 
 <b>2.4.</b> Запрещены распространение, направление или финансирование (либо просьбы о финансировании) терроризма, террористических группировок и т. д. | <b>Наказание:</b> полная блокировка аккаунта навсегда.
@@ -56,22 +56,22 @@ const RULES_TEXT = {
 
 🔹 <b>1. General Provisions</b>
 
-<b>1.1.</b> By placing an advertisement through the bot, you agree to these rules.
+<b>1.1.</b> By placing an advertisement through our application, you agree to these rules.
 
 <b>1.2.</b> The administration reserves the right to refuse an advertisement without providing a reason.
 
-<b>1.3.</b> The Chief Administrator has full authority to impose penalties at their discretion and to change or reissue a penalty.
+<b>1.3.</b> The Chief Administrator has full authority to impose penalties at their discretion, reissue penalties, and change penalties regardless of the rules.
 
 <b>1.4.</b> Repeated violations of the same rules over a short period of time may result in a doubled penalty (recidivism).
+For example: if you recently violated rule 2.1, you will receive a penalty ranging from blocking ad creation and editing for 4 days to a permanent account ban (x2 penalty and more).
 
 🔹 <b>2. Conduct Rules</b>
 
-<b>2.1.</b> Advertisements must not violate the law or Telegram's rules. | <b>Penalty:</b> refusal to publish + suspension of ad creation and editing, up to a permanent account ban.
+<b>2.1.</b> Advertisements must not violate the law or Telegram's rules. | <b>Penalty:</b> refusal to publish + blocking ad creation and editing for 2 days up to a permanent account ban.
 
-<b>2.2.</b> Advertising scams, betting, pyramid schemes, drugs, weapons, 18+ content, or other prohibited topics is forbidden. | <b>Penalty:</b> an account ban for 30 days up to a permanent account ban.
+<b>2.2.</b> Advertising scams, betting, pyramid schemes, drugs, weapons, 18+ content, or other prohibited topics is forbidden. | <b>Penalty:</b> account ban from 5 days up to a permanent ban.
 
 <b>2.3.</b> Providing incorrect links in ad text is prohibited.
-
 Examples: @link, t.me/link, etc. | <b>Penalty:</b> from refusal to publish to blocking ad creation and editing for 2 days.
 
 <b>2.4.</b> Promoting, directing, or financing terrorism or terrorist groups, or requesting such financing, is prohibited. | <b>Penalty:</b> permanent account ban.
@@ -80,11 +80,11 @@ Examples: @link, t.me/link, etc. | <b>Penalty:</b> from refusal to publish to bl
 
 <b>2.6.</b> Using bugs or app malfunctions to gain an advantage is prohibited | <b>Penalty:</b> account ban for 2 to 10 days.
 
-<b>2.7.</b> Using obscene language in advertisements is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations, an account ban for 2 to 15 days.
+<b>2.7.</b> Using obscene language in advertisements is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations - account ban from 2 to 15 days.
 
-<b>2.8.</b> Insulting anyone or anything is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations, an account ban for 5 to 30 days.
+<b>2.8.</b> Insulting anyone or anything is prohibited | <b>Penalty:</b> refusal to publish; for repeated violations - account ban from 5 to 30 days.
 
-<b>2.9.</b> Creating an advertisement that insults or indirectly insults a nationality/nationalities or religion/religions is prohibited | <b>Penalty:</b> refusal to publish + account ban from 10 days up to a permanent account ban.
+<b>2.9.</b> Creating an advertisement with an insult or veiled insult targeting a nationality/nationalities or religion/religions is prohibited | <b>Penalty:</b> refusal to publish + account ban from 10 days up to a permanent account ban.
 
 🔹 <b>3. Placement and Payment</b>
 
