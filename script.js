@@ -2759,6 +2759,7 @@ async function buyCrystals(amount, stars) {
 
 /* ========== ADMIN FUNCTIONS ========== */
 $('admin-check').onclick = async () => {
+  if (!adminGuard('reviewAds')) return;
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (isGasDisabled()) {
     const list = $('admin-check-list');
@@ -2840,6 +2841,7 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
 }
 
 $('admin-restricted').onclick = async () => {
+  if (!adminGuard('viewRestricted')) return;
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (isGasDisabled()) {
     const list = $('admin-restricted-list');
