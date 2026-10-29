@@ -69,7 +69,7 @@ const ADMINS = [
     }
   },
   {
-    "admin_name": "Администратор 1 уровня",
+    "admin_name": "Vlad_Molinov",
     "admin_level": 1,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
