@@ -317,14 +317,30 @@ function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
   return String(admin.admin_name || ('Администратор ' + admin.admin_level + ' уровня'));
 }
 function updateAdminLevelBadge() {
- const admin=getCurrentAdmin(), badge=$('admin-level-badge'); if(badge){badge.textContent=admin?String(admin.admin_level):'';badge.hidden=!admin;}
- const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token), tools=$('admin-level-tools');
- if(tools)tools.hidden=!(base&&Number(base.admin_level)===5);
- if(tools&&base&&Number(base.admin_level)===5){if($('admin-local-level'))$('admin-local-level').value=String(admin?.admin_level||5);if($('admin-hide-name-ban'))$('admin-hide-name-ban').checked=localStorage.getItem('hideAdminNameOnBan')==='true';if($('admin-hide-name-rejection'))$('admin-hide-name-rejection').checked=localStorage.getItem('hideAdminNameOnRejection')==='true';}
+ const admin=getCurrentAdmin(), input=$('admin-level-badge'), save=$('admin-level-save');
+ const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
+ const originalLevel=Number(base?.admin_level), canLocallySet=originalLevel===5 && adminHasPermission('changeOwnLevelLocally');
+ if(input){input.value=String(admin?.admin_level||5);input.hidden=!canLocallySet;}
+ if(save)save.hidden=!canLocallySet;
+ const clear=$('admin-clear-localstorage'); if(clear)clear.hidden=!(originalLevel===5 && Number(admin?.admin_level)===5);
+ const permissionVisibility={'admin-check':'reviewAds','admin-restricted':'viewRestricted','admin-block-user':'banToken','admin-unblock-user':'unbanToken','admin-ban-ip':'banIp','admin-unban-ip':'unbanIp','admin-ban-telegram-id':'banTelegramId','admin-unban-telegram-id':'unbanTelegramId','admin-ban-create-edit':'restrictAds','admin-unban-create-edit':'unrestrictAds','admin-close-app':'globalCreateToggle','admin-open-app':'globalCreateToggle','admin-disable-gas':'globalCreateToggle','admin-enable-gas':'globalCreateToggle','admin-disable-payments':'globalCreateToggle','admin-enable-payments':'globalCreateToggle','admin-disable-create-all':'globalCreateToggle','admin-enable-create-all':'globalCreateToggle','admin-disable-edit-all':'globalCreateToggle','admin-enable-edit-all':'globalCreateToggle'};
+ Object.entries(permissionVisibility).forEach(([id,permission])=>{const el=$(id);if(el)el.hidden=!adminHasPermission(permission);});
+ const ipCard=$('admin-ip-info-card'); if(ipCard)ipCard.hidden=!adminHasPermission('viewOwnIp');
 }
-$('admin-local-level-save')?.addEventListener('click',()=>{const level=Number($('admin-local-level')?.value||5);if(![1,2,3,4,5].includes(level))return;localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY,String(level));updateAdminLevelBadge();openModal('Уровень обновлён','Изменение действует только в этом браузере.');});
-$('admin-hide-name-ban')?.addEventListener('change',e=>localStorage.setItem('hideAdminNameOnBan',e.target.checked?'true':'false'));
-$('admin-hide-name-rejection')?.addEventListener('change',e=>localStorage.setItem('hideAdminNameOnRejection',e.target.checked?'true':'false'));
+$('admin-level-save')?.addEventListener('click',()=>{
+ const input=$('admin-level-badge'); if(!input)return;
+ const value=String(input.value||'').trim(), level=value===''?5:Number(value);
+ const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
+ if(Number(base?.admin_level)!==5 || !adminHasPermission('changeOwnLevelLocally')){alert('Нет разрешения');return;}
+ if(!Number.isInteger(level)||level<1||level>5){alert('Укажите уровень от 1 до 5');return;}
+ localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY,String(level)); updateAdminLevelBadge();
+ openModal('Уровень обновлён','Изменение действует только в этом браузере.');
+});
+$('admin-clear-localstorage')?.addEventListener('click',()=>{
+ const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
+ if(Number(base?.admin_level)!==5 || Number(getCurrentAdmin()?.admin_level)!==5){alert('Доступно только администратору 5-го уровня');return;}
+ if(confirm('Вы уверены, что хотите очистить весь localStorage? Все локальные настройки и данные будут удалены.')){localStorage.clear();location.reload();}
+});
 
 let runtimeAdmin2ConfigLoaded = false;
 let runtimeAdmin2Config = {
