@@ -414,13 +414,18 @@ function updateAdminLevelBadge() {
   const baseLevel = Number(base?.admin_level);
   const canLocallySet = baseLevel === 5 && base?.permissions?.changeOwnLevelLocally === true;
 
-  // Не скрываем переключатель даже при выбранном уровне ниже 5:
-  // у исходного администратора 5-го уровня всегда остаётся возможность вернуть уровень обратно.
+  // Исходный администратор 5-го уровня сохраняет переключатель даже в режиме понижения.
+  // Остальным администраторам показываем только числовой бейдж их уровня.
+  const levelBadge = $('admin-level-number');
   if (input) {
     input.value = String(admin?.admin_level || 5);
     input.hidden = !canLocallySet;
   }
   if (save) save.hidden = !canLocallySet;
+  if (levelBadge) {
+    levelBadge.textContent = String(admin?.admin_level || baseLevel || 1);
+    levelBadge.hidden = canLocallySet || !admin;
+  }
 
   const canManageAdmins = baseLevel === 5
     && Number(admin?.admin_level) === 5
@@ -3207,12 +3212,18 @@ async function loadMyAds(skipPreloader = false) {
         const platformRow = document.querySelector(`#platform-list .platform-row[data-value="${ad.platform}"]`);
         const platformUsers = platformRow ? ` (${platformRow.querySelector('div:last-child').textContent})` : '';
         // GAS может возвращать причину под разными именами в зависимости от источника рекламы.
-        const rejectionReason = String(
-          ad.rejectionReason || ad.rejection_reason || ad.rejectReason || ad.reject_reason ||
-          ad.reasonOfRejection || ad.reason_of_rejection || ad.rejectionReasonText || ad.reason ||
-          storedRejectionReasons[rejectionReasonKey(ad.userID || ad.userId || ad.telegramId || getUserID(), ad.name)]?.reason || ''
-        ).trim();
-        const reviewerName = String(ad.reviewedBy || ad.reviewed_by || ad.checkedBy || ad.adminName || ad.admin_name || '').trim() || (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+        const storedRejectionEntry = storedRejectionReasons[
+          rejectionReasonKey(ad.userID || ad.userId || ad.telegramId || getUserID(), ad.name)
+        ];
+        const hasStoredRejection = status === 'rejected'
+          && storedRejectionEntry
+          && typeof storedRejectionEntry === 'object';
+        const rejectionReason = hasStoredRejection
+          ? String(storedRejectionEntry.reason || '').trim()
+          : '';
+        const reviewerName = hasStoredRejection
+          ? String(storedRejectionEntry.adminName || '').trim()
+          : '';
         const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
           '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         })[char]);
@@ -3232,7 +3243,7 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
           <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
-${status === 'rejected' ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${rejectionReason ? escapeHtml(rejectionReason) : (lang === 'ru' ? 'Не указана' : 'Not provided')}</p>${reviewerName ? `<p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${escapeHtml(reviewerName)}</p>` : ''}` : ''}
+\${hasStoredRejection ? \`<p><strong>\${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> \${rejectionReason ? escapeHtml(rejectionReason) : (lang === 'ru' ? 'Не указана' : 'Not provided')}</p>\${reviewerName ? \`<p><strong>\${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> \${escapeHtml(reviewerName)}</p>\` : ''}\` : ''}
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
