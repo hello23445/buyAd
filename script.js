@@ -3134,13 +3134,13 @@ async function saveRejectionReasonToGitHub(userID, adName, reason, adminName) {
     const file = await fileResponse.json();
     let data = { rejections: {} };
     try {
-      const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\\n/g, ''))));
+      const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\n/g, ''))));
       data = JSON.parse(decoded);
     } catch (_) {}
     if (!data.rejections || typeof data.rejections !== 'object') data.rejections = {};
     data.rejections[key] = entry;
 
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2) + '\\n')));
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2) + '\n')));
     const saveResponse = await fetch(REJECTION_REASONS_FILE_API, {
       method: 'PUT',
       headers: {
