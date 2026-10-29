@@ -1891,14 +1891,15 @@ async function loadEditAd(ad) {
   }
   
   const adTextEditor = $('ad-text');
-  const adTextField = adTextEditor?.closest('.field');
-  if(adTextField) adTextField.hidden=false;
-  adTextEditor.hidden=false; adTextEditor.style.display='block';
-  adTextEditor.innerHTML=parseFormattedText(ad.text||'');
-  document.querySelectorAll('.format-toolbar-modern, .format-toolbar').forEach(toolbar=>{toolbar.hidden=false;toolbar.style.display='flex';});
-  const adTextField = $('ad-text').closest('.field');
+  const adTextField = adTextEditor.closest('.field');
   if (adTextField) adTextField.hidden = false;
-  $('ad-text').hidden = false;
+  adTextEditor.hidden = false;
+  adTextEditor.style.display = 'block';
+  adTextEditor.innerHTML = parseFormattedText(ad.text || '');
+  document.querySelectorAll('.format-toolbar-modern, .format-toolbar').forEach(toolbar => {
+    toolbar.hidden = false;
+    toolbar.style.display = 'flex';
+  });
   currentVideoUrl = ad.videoUrl || '';
   const currentVideo = $('current-video') || document.createElement('div');
   currentVideo.id = 'current-video';
