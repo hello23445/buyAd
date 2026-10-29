@@ -273,7 +273,7 @@ function getCurrentAdmin() {
   return copy;
 }
 function adminHasPermission(permission) {
-  const admin = getCurrentAdmin(); if (!admin || admin.permissions[permission] === false) return false;
+  const admin = getCurrentAdmin(); if (!admin || (Object.prototype.hasOwnProperty.call(admin.permissions, permission) && admin.permissions[permission] === false)) return false;
   const level = Number(admin.admin_level);
   const minLevel = { banToken:2, unban:2, restrictAds:2, banTelegramId:3, banIp:4, globalCreateToggle:4, manageAdmins:2, changeOwnLevelLocally:5, hideNameOnRejection:5, hideNameOnBan:5, viewOwnIp:5 };
   return !minLevel[permission] || level >= minLevel[permission];
@@ -496,8 +496,10 @@ async function getClientIp() {
     saveUserAPI(cachedClientIp);
     return cachedClientIp;
   }
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
+    const response = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
     if (!response.ok) return null;
     const data = await response.json();
     if (!data.ip) return null;
@@ -507,6 +509,8 @@ async function getClientIp() {
   } catch (e) {
     console.warn('IP fetch failed', e);
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -1163,6 +1167,7 @@ $('nav-admin').onclick = () => {
   }
   hideAllScreens();
   show($('screen-admin'));
+  updateAdminLevelBadge();
   initAdminIpPanel();
 };
 
@@ -2494,7 +2499,9 @@ async function loadMyAds(skipPreloader = false) {
         const platformDisplay = frozen ? i18n[lang].nowhere : ad.platform;
         const platformRow = document.querySelector(`#platform-list .platform-row[data-value="${ad.platform}"]`);
         const platformUsers = platformRow ? ` (${platformRow.querySelector('div:last-child').textContent})` : '';
-        
+        const rejectionReason = String(ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection || '').trim();
+        const reviewerName = String(ad.reviewedBy || ad.checkedBy || ad.adminName || '').trim() || (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+
         const card = document.createElement('div');
         card.className = 'card ad-card';
         card.innerHTML = `
@@ -2510,8 +2517,7 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
           <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
-          ${status === 'rejected' && (ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection) ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection}</p>` : ''}
-          ${status === 'rejected' && (ad.reviewedBy || ad.checkedBy || ad.adminName) ? `<p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${ad.reviewedBy || ad.checkedBy || ad.adminName}</p>` : ''}
+${status === 'rejected' && rejectionReason ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${rejectionReason}</p><p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${reviewerName}</p>` : ''}
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
@@ -3617,6 +3623,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 7000);
 
   showPreloader();
+  const startupPreloaderWatchdog = setTimeout(() => {
+    if ($('preloader') && !$('preloader').hidden) {
+      console.warn('Startup took too long; hiding preloader to avoid an infinite loading screen.');
+      hidePreloader();
+    }
+  }, 15000);
 // Инициализация пользователя в таблице Users
 (async () => {
   if (isGasDisabled()) return; // Пропускаем GAS
@@ -3630,8 +3642,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
 
-  currentUserIpBlocked = await isIpBlocked();
-  await pollAdmin2Config();
+  currentUserIpBlocked = await Promise.race([isIpBlocked(), new Promise(resolve => setTimeout(() => resolve(false), 5500))]);
+  await Promise.race([pollAdmin2Config(), new Promise(resolve => setTimeout(resolve, 5500))]);
 
   // Не продолжаем запуск приложения, если пользователь заблокирован по IP или Telegram ID.
   // loadAdmin2Config() уже загрузил конфигурацию и применил блокировки.
@@ -3696,6 +3708,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTokenDisplay();
   initTelegramIdDisplay();
 
+  clearTimeout(startupPreloaderWatchdog);
   hidePreloader();
 });
 document.addEventListener('click', (e) => {
