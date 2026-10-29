@@ -209,6 +209,8 @@
                 <span data-i18n="pickFile">Выберите файл</span>
               </button>
 
+              <button id="btn-video-size-upgrade" class="btn btn--ghost" type="button">+500 мб (200💎)</button>
+
               <button id="btn-remove-video" class="btn btn--ghost" type="button" hidden>
                 <i class="fa-solid fa-trash"></i>
                 <span data-i18n="removeVideo">Удалить видео-рекламу</span>
@@ -236,10 +238,10 @@
             <div class="btn-group" id="priority-buttons">
               <button type="button" class="seg" data-value="Слабый" data-i18n="prioWeak">Слабый</button>
               <button type="button" class="seg" data-value="Нормальный" data-i18n="prioNormal">Нормальный</button>
-              <button type="button" class="seg" data-value="Хороший" data-cost="10" data-i18n="prioGood">Хороший (10💎)</button>
+              <button type="button" class="seg" data-value="Хороший" data-cost="5" data-i18n="prioGood">Хороший (5💎)</button>
               <button type="button" class="seg" data-value="Высокий" data-cost="20" data-i18n="prioHigh">Высокий (20💎)</button>
-              <button type="button" class="seg" data-value="Очень высокий" data-cost="40" data-i18n="prioVeryHigh">Очень высокий (40💎)</button>
-              <button type="button" class="seg" data-value="УЛЬТРА" data-cost="60" data-i18n="prioUltra">УЛЬТРА (60💎)</button>
+              <button type="button" class="seg" data-value="Очень высокий" data-cost="30" data-i18n="prioVeryHigh">Очень высокий (30💎)</button>
+              <button type="button" class="seg" data-value="УЛЬТРА" data-cost="50" data-i18n="prioUltra">УЛЬТРА (50💎)</button>
             </div>
           </div>
 
@@ -379,6 +381,7 @@
 
         <div class="card">
           <div class="card__title ad-statistics-name" id="ad-statistics-name">—</div>
+          <div class="field" id="ad-statistics-created-field" hidden><div class="field__label" id="ad-statistics-created">—</div></div>
           <div class="field__label" data-i18n="viewsLabel">Рекламу посмотрели</div>
           <div class="stat__value" id="ad-statistics-views">0</div>
           <div class="divider"></div>
@@ -514,10 +517,7 @@
                 <span data-i18n="copy">Копировать</span>
               </button>
             </div>
-          </div>
-          <div class="field" id="admin-user-ips-field" hidden>
-            <div class="field__label" style="margin-top: 2%;">IP пользователя</div>
-            <div class="tokenbox">
+          </div><div class="tokenbox">
               <code id="admin-user-ips">—</code>
             </div>
           </div>
@@ -665,6 +665,20 @@
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
           </div>
+        </div>
+
+        <div class="card" id="admin-ip-info-card">
+          <div class="card__title">IP-адреса пользователя</div>
+          <div class="field"><div class="field__label">Текущий IP</div><div class="tokenbox">
+            <code id="admin-current-ip">••••••••</code>
+            <button id="admin-current-ip-show" class="btn btn--ghost" type="button">Показать</button>
+            <button id="admin-current-ip-copy" class="btn btn--ghost" type="button">Скопировать</button>
+          </div></div>
+          <div class="field"><div class="field__label">История IP (userAPIs)</div><div class="tokenbox">
+            <code id="admin-user-apis">••••••••</code>
+            <button id="admin-user-apis-show" class="btn btn--ghost" type="button">Показать</button>
+            <button id="admin-user-apis-copy" class="btn btn--ghost" type="button">Скопировать</button>
+          </div></div>
         </div>
 
         <!-- ADMIN: CHECK AD (панель) -->
