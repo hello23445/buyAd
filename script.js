@@ -639,8 +639,9 @@ async function applyRuntimeBlockings() {
     }
     const blockedByEl = $('blocked-by-admin');
     if (blockedByEl) {
-      if (punishmentAdminName) { blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + punishmentAdminName; blockedByEl.hidden = false; }
-      else { blockedByEl.textContent = ''; blockedByEl.hidden = true; }
+      const displayAdminName = punishmentAdminName || i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator');
+      blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayAdminName;
+      blockedByEl.hidden = false;
     }
     $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
     $('btn-copy-token-blocked').onclick = () => {
@@ -903,6 +904,11 @@ async function checkUserStatus(isAdmin) {
     if (isBlockedInApp) {
       hideAllScreens();
       show($('screen-blocked'));
+      const blockedByEl = $('blocked-by-admin');
+      if (blockedByEl) {
+        blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+        blockedByEl.hidden = false;
+      }
       $('user-token-blocked').textContent = token;
       $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
       $('btn-copy-token-blocked').onclick = () => {
