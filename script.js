@@ -625,6 +625,7 @@ function openAddAdminModal() {
   nameTitle.textContent = 'Имя нового админа';
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
+  nameInput.required = true;
   nameInput.autocomplete = 'off';
   nameInput.maxLength = 80;
   nameInput.placeholder = 'Введите имя администратора';
