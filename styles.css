@@ -1501,3 +1501,11 @@ body.theme-light .settings-section-title {
   margin-bottom: 16px;
   overflow-wrap: anywhere;
 }
+/* Admin inputs follow the active theme */
+#screen-admin input:not([type="checkbox"]), #screen-admin textarea, #screen-admin select {
+ box-sizing:border-box; color:inherit; background:transparent; border:1px solid rgba(128,128,128,.4); border-radius:10px; font:inherit; padding:10px 12px;
+}
+body.theme-dark #screen-admin input:not([type="checkbox"]), body.theme-dark #screen-admin textarea, body.theme-dark #screen-admin select {color:#f3f5ff;background:#172033;border-color:#39445c;}
+body.theme-light #screen-admin input:not([type="checkbox"]), body.theme-light #screen-admin textarea, body.theme-light #screen-admin select {color:#20283a;background:#fff;border-color:#cbd2e0;}
+#admin-level-save {flex:0 0 auto;min-width:36px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;}
+#admin-level-badge {flex:0 0 56px;width:56px!important;min-width:56px;}
