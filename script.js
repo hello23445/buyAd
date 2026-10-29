@@ -264,24 +264,110 @@ const ADMIN2_PATH = './admin2.js';
 
 const ADMIN_LEVEL_LOCAL_KEY = 'buyAdsAdminLocalLevel';
 const ADMIN_DAILY_ACTIONS_KEY = 'buyAdsAdminDailyActions';
+const ADMIN_PERMISSION_MIN_LEVEL = {
+  reviewAds: 1,
+  viewRestricted: 2,
+  banToken: 2,
+  unban: 2,
+  restrictAds: 2,
+  banTelegramId: 3,
+  banIp: 4,
+  globalCreateToggle: 4,
+  manageAdmins: 2,
+  changeOwnLevelLocally: 5,
+  hideNameOnRejection: 5,
+  hideNameOnBan: 5,
+  viewOwnIp: 5
+};
+const ADMIN_PERMISSION_LABELS = {
+  reviewAds: 'Проверка рекламы',
+  viewRestricted: 'Просмотр списка ограниченных пользователей',
+  banToken: 'Блокировка пользователя по токену',
+  unban: 'Разблокировка пользователя',
+  restrictAds: 'Запрет создания и редактирования рекламы',
+  banTelegramId: 'Блокировка по Telegram ID',
+  banIp: 'Блокировка по IP-адресу',
+  globalCreateToggle: 'Управление приложением, рекламой, GAS и платежами',
+  manageAdmins: 'Управление администраторами',
+  changeOwnLevelLocally: 'Локальное изменение своего уровня',
+  hideNameOnRejection: 'Скрывать имя при отклонении рекламы',
+  hideNameOnBan: 'Скрывать имя при блокировке',
+  viewOwnIp: 'Просмотр своих IP-адресов'
+};
+function getDefaultAdminPermissions(level) {
+  return Object.fromEntries(Object.entries(ADMIN_PERMISSION_MIN_LEVEL).map(([permission, minLevel]) => [permission, Number(level) >= minLevel]));
+}
+function getBaseAdminByToken(token = localStorage.getItem(LS.token) || '') {
+  return (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === token) || null;
+}
 function getCurrentAdmin() {
   const token = localStorage.getItem(LS.token) || '';
-  const admin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === token);
+  const admin = getBaseAdminByToken(token);
   if (!admin) return null;
   const copy = { ...admin, permissions: { ...(admin.permissions || {}) } };
-  if (Number(admin.admin_level) === 5) { const localLevel = Number(localStorage.getItem(ADMIN_LEVEL_LOCAL_KEY)); if ([1,2,3,4,5].includes(localLevel)) copy.admin_level = localLevel; }
+  if (Number(admin.admin_level) === 5) {
+    const localLevel = Number(localStorage.getItem(ADMIN_LEVEL_LOCAL_KEY));
+    if ([1, 2, 3, 4, 5].includes(localLevel)) copy.admin_level = localLevel;
+  }
   return copy;
 }
 function adminHasPermission(permission) {
-  const admin = getCurrentAdmin(); if (!admin || (Object.prototype.hasOwnProperty.call(admin.permissions, permission) && admin.permissions[permission] === false)) return false;
+  const admin = getCurrentAdmin();
+  if (!admin) return false;
+  const isExplicit = Object.prototype.hasOwnProperty.call(admin.permissions || {}, permission);
+  if (isExplicit && admin.permissions[permission] === false) return false;
+
+  // У исходного администратора 5-го уровня локальная смена уровня остаётся режимом предпросмотра.
+  // Для новых администраторов индивидуальные чекбоксы являются действующими разрешениями.
+  const baseAdmin = getBaseAdminByToken();
+  const storedLevel = Number(localStorage.getItem(ADMIN_LEVEL_LOCAL_KEY));
+  const isRootLevelPreview = Number(baseAdmin?.admin_level) === 5 && [1, 2, 3, 4, 5].includes(storedLevel) && storedLevel !== 5;
+  if (admin.custom_permissions === true && isExplicit && !isRootLevelPreview) {
+    return admin.permissions[permission] === true;
+  }
+
   const level = Number(admin.admin_level);
-  const minLevel = { viewRestricted:2, banToken:2, unban:2, restrictAds:2, banTelegramId:3, banIp:4, globalCreateToggle:4, manageAdmins:2, changeOwnLevelLocally:5, hideNameOnRejection:5, hideNameOnBan:5, viewOwnIp:5 };
+  const minLevel = ADMIN_PERMISSION_MIN_LEVEL;
   return !minLevel[permission] || level >= minLevel[permission];
 }
 function adminDailyCountKey(action) { const admin = getCurrentAdmin(); return ADMIN_DAILY_ACTIONS_KEY + ':' + (admin?.admin_token || '') + ':' + new Date().toISOString().slice(0,10) + ':' + action; }
 function adminDailyCount(action) { try { return Number(localStorage.getItem(adminDailyCountKey(action)) || 0); } catch { return 0; } }
 function recordAdminAction(action) { const key = adminDailyCountKey(action); localStorage.setItem(key, String(adminDailyCount(action) + 1)); }
-function adminDailyLimit(action) { const level = Number(getCurrentAdmin()?.admin_level || 0); if (level >= 5) return Infinity; if (level === 4) return 6; if (level === 3) return ({ banToken:3, unbanToken:3, restrictAds:4, unrestrictAds:4, banTelegramId:3, unbanTelegramId:3, banAdmin:3, unbanAdmin:3, rejectAd:Infinity })[action] ?? 0; if (level === 2) return ({ banToken:2, unbanToken:2, restrictAds:2, unrestrictAds:2, banAdmin:2, unbanAdmin:2, rejectAd:Infinity })[action] ?? 0; return action === 'rejectAd' ? Infinity : 0; }
+function adminDailyLimit(action) {
+  const admin = getCurrentAdmin();
+  const level = Number(admin?.admin_level || 0);
+  // Эти действия только открывают/просматривают панели и не расходуют дневной лимит.
+  if (['reviewAds', 'viewRestricted', 'viewOwnIp'].includes(action)) return Infinity;
+  if (level >= 5) return Infinity;
+  if (level === 4) return 6;
+
+  const level3Limits = {
+    banToken: 3, unbanToken: 3, restrictAds: 4, unrestrictAds: 4,
+    banTelegramId: 3, unbanTelegramId: 3, banAdmin: 3, unbanAdmin: 3, rejectAd: Infinity
+  };
+  const level2Limits = {
+    banToken: 2, unbanToken: 2, restrictAds: 2, unrestrictAds: 2,
+    banAdmin: 2, unbanAdmin: 2, rejectAd: Infinity
+  };
+  if (level === 3 && Object.prototype.hasOwnProperty.call(level3Limits, action)) return level3Limits[action];
+  if (level === 2 && Object.prototype.hasOwnProperty.call(level2Limits, action)) return level2Limits[action];
+  if (action === 'rejectAd') return Infinity;
+
+  if (admin?.custom_permissions === true) {
+    const permissionForAction = {
+      banToken: ['banToken'], unbanToken: ['unban'],
+      restrictAds: ['restrictAds'], unrestrictAds: ['restrictAds'],
+      banTelegramId: ['banTelegramId'], unbanTelegramId: ['banTelegramId'],
+      banIp: ['banIp'], unbanIp: ['banIp'], globalCreateToggle: ['globalCreateToggle'],
+      banAdmin: ['banToken', 'unban', 'restrictAds'], unbanAdmin: ['unban']
+    };
+    const related = permissionForAction[action] || [];
+    if (related.some(permission => adminHasPermission(permission))) {
+      return level <= 1 ? 1 : level === 2 ? 2 : level === 3 ? 3 : 6;
+    }
+  }
+  return 0;
+}
 function adminGuard(action, targetValue = '') {
   const admin = getCurrentAdmin(), lang = localStorage.getItem(LS.lang) || 'ru';
   const deny = message => { openModal(lang === 'ru' ? 'Недостаточно прав' : 'Permission denied', message); return false; };
@@ -317,25 +403,263 @@ function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
   return String(admin.admin_name || ('Администратор ' + admin.admin_level + ' уровня'));
 }
 function updateAdminLevelBadge() {
- const admin=getCurrentAdmin(), input=$('admin-level-badge'), save=$('admin-level-save');
- const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
- const originalLevel=Number(base?.admin_level), canLocallySet=originalLevel===5 && adminHasPermission('changeOwnLevelLocally');
- if(input){input.value=String(admin?.admin_level||5);input.hidden=!canLocallySet;}
- if(save)save.hidden=!canLocallySet;
- const clear=$('admin-clear-localstorage'); if(clear)clear.hidden=!(originalLevel===5 && Number(admin?.admin_level)===5);
- const permissionVisibility={'admin-check':'reviewAds','admin-restricted':'viewRestricted','admin-block-user':'banToken','admin-unblock-user':'unbanToken','admin-ban-ip':'banIp','admin-unban-ip':'unbanIp','admin-ban-telegram-id':'banTelegramId','admin-unban-telegram-id':'unbanTelegramId','admin-ban-create-edit':'restrictAds','admin-unban-create-edit':'unrestrictAds','admin-close-app':'globalCreateToggle','admin-open-app':'globalCreateToggle','admin-disable-gas':'globalCreateToggle','admin-enable-gas':'globalCreateToggle','admin-disable-payments':'globalCreateToggle','admin-enable-payments':'globalCreateToggle','admin-disable-create-all':'globalCreateToggle','admin-enable-create-all':'globalCreateToggle','admin-disable-edit-all':'globalCreateToggle','admin-enable-edit-all':'globalCreateToggle'};
- Object.entries(permissionVisibility).forEach(([id,permission])=>{const el=$(id);if(el)el.hidden=!adminHasPermission(permission);});
- const ipCard=$('admin-ip-info-card'); if(ipCard)ipCard.hidden=!adminHasPermission('viewOwnIp');
+  const admin = getCurrentAdmin();
+  const input = $('admin-level-badge');
+  const save = $('admin-level-save');
+  const base = getBaseAdminByToken();
+  const baseLevel = Number(base?.admin_level);
+  const canLocallySet = baseLevel === 5 && base?.permissions?.changeOwnLevelLocally === true;
+
+  // Не скрываем переключатель даже при выбранном уровне ниже 5:
+  // у исходного администратора 5-го уровня всегда остаётся возможность вернуть уровень обратно.
+  if (input) {
+    input.value = String(admin?.admin_level || 5);
+    input.hidden = !canLocallySet;
+  }
+  if (save) save.hidden = !canLocallySet;
+
+  const addAdminButton = $('admin-add-new');
+  if (addAdminButton) {
+    addAdminButton.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5 && adminHasPermission('manageAdmins'));
+  }
+  const clear = $('admin-clear-localstorage');
+  if (clear) clear.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5);
+
+  const permissionVisibility = {
+    'admin-check': 'reviewAds',
+    'admin-restricted': 'viewRestricted',
+    'admin-block-user': 'banToken',
+    'admin-unblock-user': 'unban',
+    'admin-ban-ip': 'banIp',
+    'admin-unban-ip': 'banIp',
+    'admin-ban-telegram-id': 'banTelegramId',
+    'admin-unban-telegram-id': 'banTelegramId',
+    'admin-ban-create-edit': 'restrictAds',
+    'admin-unban-create-edit': 'restrictAds',
+    'admin-close-app': 'globalCreateToggle',
+    'admin-open-app': 'globalCreateToggle',
+    'admin-disable-gas': 'globalCreateToggle',
+    'admin-enable-gas': 'globalCreateToggle',
+    'admin-disable-payments': 'globalCreateToggle',
+    'admin-enable-payments': 'globalCreateToggle',
+    'admin-disable-create-all': 'globalCreateToggle',
+    'admin-enable-create-all': 'globalCreateToggle',
+    'admin-disable-edit-all': 'globalCreateToggle',
+    'admin-enable-edit-all': 'globalCreateToggle'
+  };
+  Object.entries(permissionVisibility).forEach(([id, permission]) => {
+    const element = $(id);
+    if (element) element.hidden = !adminHasPermission(permission);
+  });
+  const ipCard = $('admin-ip-info-card');
+  if (ipCard) ipCard.hidden = !adminHasPermission('viewOwnIp');
 }
-$('admin-level-save')?.addEventListener('click',()=>{
- const input=$('admin-level-badge'); if(!input)return;
- const value=String(input.value||'').trim(), level=value===''?5:Number(value);
- const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
- if(Number(base?.admin_level)!==5 || !adminHasPermission('changeOwnLevelLocally')){alert('Нет разрешения');return;}
- if(!Number.isInteger(level)||level<1||level>5){alert('Укажите уровень от 1 до 5');return;}
- localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY,String(level)); updateAdminLevelBadge();
- openModal('Уровень обновлён','Изменение действует только в этом браузере.');
+$('admin-level-save')?.addEventListener('click', () => {
+  const input = $('admin-level-badge');
+  if (!input) return;
+  const value = String(input.value || '').trim();
+  const level = value === '' ? 5 : Number(value);
+  const base = getBaseAdminByToken();
+  if (Number(base?.admin_level) !== 5 || base?.permissions?.changeOwnLevelLocally !== true) {
+    alert('Нет разрешения');
+    return;
+  }
+  if (!Number.isInteger(level) || level < 1 || level > 5) {
+    alert('Укажите уровень от 1 до 5');
+    return;
+  }
+  localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY, String(level));
+  updateAdminLevelBadge();
+  openModal('Уровень обновлён', 'Изменение действует только в этом браузере.');
 });
+
+
+async function persistNewAdminRecord(newAdmin) {
+  const tokenEndpoint = 'https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec';
+  const authResponse = await fetch(tokenEndpoint, { cache: 'no-store' });
+  if (!authResponse.ok) throw new Error('Не удалось получить разрешение на сохранение администраторов.');
+  const authData = await authResponse.json();
+  if (!authData?.token) throw new Error('Источник не вернул токен GitHub.');
+
+  const url = 'https://api.github.com/repos/hello23445/buyAd/contents/admin.js';
+  const fileResponse = await fetch(url, {
+    headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + authData.token }
+  });
+  if (!fileResponse.ok) {
+    const errorData = await fileResponse.json().catch(() => ({}));
+    throw new Error('Не удалось прочитать список администраторов: ' + (errorData.message || fileResponse.status));
+  }
+  const file = await fileResponse.json();
+  const source = decodeURIComponent(escape(atob(String(file.content || '').replace(/\n/g, ''))));
+  const tokenMatches = [...source.matchAll(/["']?admin_token["']?\s*:\s*(['"])(.*?)\1/g)];
+  if (tokenMatches.some(match => match[2] === newAdmin.admin_token)) {
+    throw new Error('Такой токен уже зарегистрирован у администратора.');
+  }
+
+  const arrayStart = source.indexOf('const ADMINS = [');
+  const closeIndex = source.indexOf('];', arrayStart);
+  if (arrayStart < 0 || closeIndex < 0) throw new Error('Не удалось определить список ADMINS в admin.js.');
+
+  const newSource = source.slice(0, closeIndex).trimEnd() + ',\n  ' + JSON.stringify(newAdmin) + '\n' + source.slice(closeIndex);
+  const encoded = btoa(unescape(encodeURIComponent(newSource)));
+  const saveResponse = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: 'Bearer ' + authData.token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: 'Add administrator from admin menu',
+      content: encoded,
+      sha: file.sha
+    })
+  });
+  const saveResult = await saveResponse.json().catch(() => ({}));
+  if (!saveResponse.ok) {
+    throw new Error('GitHub не сохранил нового администратора: ' + (saveResult.message || saveResponse.status));
+  }
+  return saveResult;
+}
+
+function openAddAdminModal() {
+  const base = getBaseAdminByToken();
+  const active = getCurrentAdmin();
+  if (Number(base?.admin_level) !== 5 || Number(active?.admin_level) !== 5 || !adminHasPermission('manageAdmins')) {
+    openModal('Недостаточно прав', 'Добавлять администраторов может только администратор 5-го уровня с соответствующим правом.');
+    return;
+  }
+
+  const form = document.createElement('div');
+  form.className = 'admin-create-form';
+
+  const tokenLabel = document.createElement('label');
+  tokenLabel.className = 'admin-create-field';
+  const tokenTitle = document.createElement('span');
+  tokenTitle.textContent = 'Токен нового админа';
+  const tokenInput = document.createElement('input');
+  tokenInput.type = 'text';
+  tokenInput.autocomplete = 'off';
+  tokenInput.spellcheck = false;
+  tokenInput.placeholder = 'Введите токен';
+  tokenLabel.append(tokenTitle, tokenInput);
+  form.appendChild(tokenLabel);
+
+  const levelLabel = document.createElement('label');
+  levelLabel.className = 'admin-create-field';
+  const levelTitle = document.createElement('span');
+  levelTitle.textContent = 'Уровень админа';
+  const levelSelect = document.createElement('select');
+  for (let level = 1; level <= 5; level++) {
+    const option = document.createElement('option');
+    option.value = String(level);
+    option.textContent = level + '-й уровень';
+    levelSelect.appendChild(option);
+  }
+  levelSelect.value = '1';
+  levelLabel.append(levelTitle, levelSelect);
+  form.appendChild(levelLabel);
+
+  const permissionsTitle = document.createElement('div');
+  permissionsTitle.className = 'admin-permissions-heading';
+  permissionsTitle.textContent = 'Права доступа';
+  form.appendChild(permissionsTitle);
+
+  const permissionsList = document.createElement('div');
+  permissionsList.className = 'admin-permissions-list';
+  const permissionInputs = {};
+  Object.entries(ADMIN_PERMISSION_LABELS).forEach(([permission, labelText]) => {
+    const optionLabel = document.createElement('label');
+    optionLabel.className = 'admin-permission-option';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = false;
+    const label = document.createElement('span');
+    label.textContent = labelText;
+    optionLabel.append(checkbox, label);
+    permissionsList.appendChild(optionLabel);
+    permissionInputs[permission] = checkbox;
+  });
+  form.appendChild(permissionsList);
+
+  const applyLevelPermissions = () => {
+    const preset = getDefaultAdminPermissions(Number(levelSelect.value));
+    Object.entries(permissionInputs).forEach(([permission, checkbox]) => {
+      checkbox.checked = preset[permission] === true;
+    });
+  };
+  levelSelect.addEventListener('change', applyLevelPermissions);
+  applyLevelPermissions();
+
+  openModal('Добавить нового админа', form, []);
+  const actions = $('modal-actions');
+  if (actions) actions.innerHTML = '';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.className = 'btn btn--ghost';
+  cancelButton.textContent = 'Отмена';
+  cancelButton.onclick = () => closeModal();
+
+  const saveButton = document.createElement('button');
+  saveButton.type = 'button';
+  saveButton.className = 'btn btn--primary';
+  saveButton.textContent = 'Создать администратора';
+  saveButton.onclick = async () => {
+    const token = String(tokenInput.value || '').trim();
+    if (!token) {
+      alert('Введите токен нового администратора.');
+      tokenInput.focus();
+      return;
+    }
+    if ((typeof ADMINS !== 'undefined' ? ADMINS : []).some(item => item.admin_token === token)) {
+      alert('Такой токен уже используется.');
+      tokenInput.focus();
+      return;
+    }
+
+    const selectedLevel = Number(levelSelect.value);
+    const permissions = {};
+    Object.entries(permissionInputs).forEach(([permission, checkbox]) => {
+      permissions[permission] = checkbox.checked;
+    });
+    const newAdmin = {
+      admin_name: 'Администратор ' + selectedLevel + ' уровня',
+      admin_level: selectedLevel,
+      admin_token: token,
+      permissions,
+      custom_permissions: true
+    };
+
+    // Проверяем доступ непосредственно перед записью в GitHub.
+    const currentBase = getBaseAdminByToken();
+    if (Number(currentBase?.admin_level) !== 5 || Number(getCurrentAdmin()?.admin_level) !== 5 || !adminHasPermission('manageAdmins')) {
+      alert('Добавлять администраторов может только администратор 5-го уровня.');
+      closeModal();
+      return;
+    }
+
+    closeModal();
+    showPreloader();
+    try {
+      await persistNewAdminRecord(newAdmin);
+      hidePreloader();
+      openModal('Администратор добавлен', 'Новый администратор сохранён. Перезагрузите приложение, чтобы применить обновлённый список.', [
+        { text: 'Перезагрузить приложение', onClick: () => location.reload() }
+      ]);
+    } catch (error) {
+      hidePreloader();
+      openModal('Не удалось добавить администратора', error?.message || 'Произошла ошибка при сохранении.');
+    }
+  };
+
+  if (actions) {
+    actions.append(cancelButton, saveButton);
+  }
+  setTimeout(() => tokenInput.focus(), 50);
+}
+$('admin-add-new')?.addEventListener('click', openAddAdminModal);
+
 $('admin-clear-localstorage')?.addEventListener('click',()=>{
  const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
  if(Number(base?.admin_level)!==5 || Number(getCurrentAdmin()?.admin_level)!==5){alert('Доступно только администратору 5-го уровня');return;}
