@@ -281,7 +281,7 @@ function adminHasPermission(permission) {
 function adminDailyCountKey(action) { const admin = getCurrentAdmin(); return ADMIN_DAILY_ACTIONS_KEY + ':' + (admin?.admin_token || '') + ':' + new Date().toISOString().slice(0,10) + ':' + action; }
 function adminDailyCount(action) { try { return Number(localStorage.getItem(adminDailyCountKey(action)) || 0); } catch { return 0; } }
 function recordAdminAction(action) { const key = adminDailyCountKey(action); localStorage.setItem(key, String(adminDailyCount(action) + 1)); }
-function adminDailyLimit(action) { const level = Number(getCurrentAdmin()?.admin_level || 0); if (level >= 5) return Infinity; if (level === 4) return 6; if (level === 3) return ({ banToken:3, restrictAds:4, banTelegramId:3, banAdmin:3 })[action] ?? 0; if (level === 2) return ({ banToken:2, restrictAds:2, banAdmin:2 })[action] ?? 0; return 0; }
+function adminDailyLimit(action) { const level = Number(getCurrentAdmin()?.admin_level || 0); if (level >= 5) return Infinity; if (level === 4) return 6; if (level === 3) return ({ banToken:3, unbanToken:3, restrictAds:4, unrestrictAds:4, banTelegramId:3, unbanTelegramId:3, banAdmin:3, unbanAdmin:3, rejectAd:Infinity })[action] ?? 0; if (level === 2) return ({ banToken:2, unbanToken:2, restrictAds:2, unrestrictAds:2, banAdmin:2, unbanAdmin:2, rejectAd:Infinity })[action] ?? 0; return action === 'rejectAd' ? Infinity : 0; }
 function adminGuard(action, targetValue = '') {
   const admin = getCurrentAdmin(), lang = localStorage.getItem(LS.lang) || 'ru';
   const deny = message => { openModal(lang === 'ru' ? 'Недостаточно прав' : 'Permission denied', message); return false; };
@@ -296,7 +296,8 @@ function adminGuard(action, targetValue = '') {
     if (!allowed) return deny(lang === 'ru' ? 'Нельзя применить это действие к администратору своего или старшего уровня.' : 'You cannot act against an administrator of your level or higher.');
     action = 'banAdmin';
   }
-  const limit = adminDailyLimit(action); if (adminDailyCount(action) >= limit) return deny(lang === 'ru' ? 'Достигнут дневной лимит для этого действия (' + limit + ').' : 'Daily limit reached for this action (' + limit + ').');
+  const limitAction = ({ unbanToken:'banToken', unbanTelegramId:'banTelegramId', unbanIp:'banIp', unrestrictAds:'restrictAds' })[action] || action;
+  const limit = adminDailyLimit(limitAction); if (adminDailyCount(limitAction) >= limit) return deny(lang === 'ru' ? 'Достигнут дневной лимит для этого действия (' + limit + ').' : 'Daily limit reached for this action (' + limit + ').');
   return true;
 }
 function getAdminDisplayName(admin = getCurrentAdmin(), mode = 'ban') {
@@ -421,6 +422,10 @@ function findPunishmentEntry(arrayName, value) {
 function getPunishmentReason(arrayName, value) {
   const entry = findPunishmentEntry(arrayName, value);
   return entry && typeof entry === 'object' ? String(entry.reason || '').trim() : '';
+}
+function getPunishmentAdminName(arrayName, value) {
+  const entry = findPunishmentEntry(arrayName, value);
+  return entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
 }
 function isTokenCreateBlocked() {
   const token = localStorage.getItem(LS.token);
@@ -589,24 +594,32 @@ async function applyRuntimeBlockings() {
     if (tg?.SettingsButton) {
       tg.SettingsButton.hide();
     }
-    let punishmentReason = '';
+    let punishmentReason = '', punishmentAdminName = '';
     if (isTokenBan) {
       updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—';
       punishmentReason = getPunishmentReason('BanForever', token);
+      punishmentAdminName = getPunishmentAdminName('BanForever', token);
     } else if (isTelegramBan) {
       const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
       updateBlockedSubtitle('telegram', lang); $('user-token-blocked').textContent = telegramId || '—';
       punishmentReason = getPunishmentReason('BlockedUsersTelegramID', telegramId);
+      punishmentAdminName = getPunishmentAdminName('BlockedUsersTelegramID', telegramId);
     } else if (isIpBan) {
       updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—';
       const blockedIPs = runtimeArray('BlockedUsersIPadresses', []);
       const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
       punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
+      punishmentAdminName = matchedIP ? getPunishmentAdminName('BlockedUsersIPadresses', matchedIP) : '';
     }
     const reasonEl = $('blocked-reason');
     if (reasonEl) {
       if (punishmentReason) { reasonEl.textContent = (i18n[lang].blockedReasonPrefix || (lang === 'ru' ? 'Причина:' : 'Reason:')) + ' ' + punishmentReason; reasonEl.hidden = false; }
       else { reasonEl.textContent = ''; reasonEl.hidden = true; }
+    }
+    const blockedByEl = $('blocked-by-admin');
+    if (blockedByEl) {
+      if (punishmentAdminName) { blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + punishmentAdminName; blockedByEl.hidden = false; }
+      else { blockedByEl.textContent = ''; blockedByEl.hidden = true; }
     }
     $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
     $('btn-copy-token-blocked').onclick = () => {
@@ -1100,6 +1113,10 @@ let adminUserAPIsVisible = false;
 function maskIpList(values) { return values.length ? values.map(() => '••••••••').join(', ') : 'Не определено'; }
 async function initAdminIpPanel() {
   if (!$('admin-current-ip') || !$('admin-user-apis')) return;
+  const card = $('admin-ip-info-card');
+  const allowed = !!getCurrentAdmin() && adminHasPermission('viewOwnIp');
+  if (card) card.hidden = !allowed;
+  if (!allowed) return;
   adminCurrentIpValue = await getClientIp() || '';
   const ips = getSavedUserAPIs().slice().reverse();
   $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
@@ -2476,6 +2493,8 @@ async function loadMyAds(skipPreloader = false) {
           <p><strong>${i18n[lang].priorityLabel}:</strong> ${ad.priority}</p>
           <p><strong>${i18n[lang].commentsLabel}:</strong> ${commentsText}</p>
           <p><strong>${i18n[lang].status}:</strong> <span class="ad-status-value">${statusText}</span></p>
+          ${status === 'rejected' && (ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection) ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Причина отказа'}:</strong> ${ad.rejectionReason || ad.rejectReason || ad.reasonOfRejection}</p>` : ''}
+          ${status === 'rejected' && (ad.reviewedBy || ad.checkedBy || ad.adminName) ? `<p><strong>${i18n[lang].reviewedByLabel || 'Проверен админом'}:</strong> ${ad.reviewedBy || ad.checkedBy || ad.adminName}</p>` : ''}
           <div class="row" style="gap: 8px; margin-top: 12px;">
             <button class="btn btn--ghost edit-btn" style="flex: 1;">${i18n[lang].edit}</button>
             <button class="btn btn--danger delete-btn" style="flex: 1;" ${status === 'pending' ? 'disabled' : ''}>${i18n[lang].delete}</button>
@@ -3132,7 +3151,7 @@ async function updateVariable(action, value) {
 
             for (const item of valuesToAdd) {
                 if (isPunishmentArray) {
-                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim() } : { value: String(item || "").trim(), reason: "" };
+                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim() } : { value: String(item || "").trim(), reason: "", adminName: "" };
                     if (!normalized.value) continue;
                     const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value);
                     if (idx >= 0) oldArray[idx] = normalized; else oldArray.push(normalized);
@@ -3310,7 +3329,9 @@ $('admin-block-user').onclick = () => {
     }
     try {
       showPreloader();
-      await updateVariable('BanForever', { value: token, reason });
+      if (!adminGuard('banToken', token)) return;
+      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName() });
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3327,7 +3348,9 @@ $('admin-unblock-user').onclick = () => {
     }
     try {
       showPreloader();
+      if (!adminGuard('unbanToken', token)) return;
       await updateVariable('UnBanForever', token);
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3344,7 +3367,9 @@ $('admin-ban-create-edit').onclick = () => {
     }
     try {
       showPreloader();
+      if (!adminGuard('restrictAds', token)) return;
       await updateVariable('BlockCreateAds', token);
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3361,7 +3386,9 @@ $('admin-unban-create-edit').onclick = () => {
     }
     try {
       showPreloader();
+      if (!adminGuard('unrestrictAds', token)) return;
       await updateVariable('UnBlockCreateAds', token);
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3378,7 +3405,9 @@ $('admin-ban-ip').onclick = () => {
     }
     try {
       showPreloader();
-      await updateVariable('BlockedUsersIPadresses', { value: ip, reason });
+      if (!adminGuard('banIp', ip)) return;
+      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName() });
+      recordAdminAction('banIp');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3395,7 +3424,9 @@ $('admin-unban-ip').onclick = () => {
     }
     try {
       showPreloader();
+      if (!adminGuard('unbanIp', ip)) return;
       await updateVariable('UnBlockedUsersIPadresses', ip);
+      recordAdminAction('banIp');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3412,7 +3443,9 @@ $('admin-ban-telegram-id').onclick = () => {
     }
     try {
       showPreloader();
-      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason });
+      if (!adminGuard('banTelegramId', telegramId)) return;
+      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName() });
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === telegramId) ? 'banAdmin' : 'banTelegramId');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -3429,7 +3462,9 @@ $('admin-unban-telegram-id').onclick = () => {
     }
     try {
       showPreloader();
+      if (!adminGuard('unbanTelegramId', telegramId)) return;
       await updateVariable('UnBlockedUsersTelegramID', telegramId);
+      recordAdminAction('banTelegramId');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
