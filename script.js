@@ -752,7 +752,7 @@ function openAddAdminModal() {
   if (actions) {
     actions.append(cancelButton, saveButton);
   }
-  setTimeout(() => tokenInput.focus(), 50);
+  setTimeout(() => nameInput.focus(), 50);
 }
 $('admin-add-new')?.addEventListener('click', openAddAdminModal);
 
@@ -3088,6 +3088,80 @@ function openAdStatistics(ad) {
   show($('screen-ad-statistics'));
 }
 
+const REJECTION_REASONS_FILE_API = 'https://api.github.com/repos/hello23445/buyAd/contents/rejection-reasons.json';
+const REJECTION_REASONS_RAW_URL = 'https://raw.githubusercontent.com/hello23445/buyAd/main/rejection-reasons.json';
+const GITHUB_AUTH_TOKEN_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec';
+
+function rejectionReasonKey(userID, adName) {
+  return String(userID || '').trim() + '::' + String(adName || '').trim().toLowerCase();
+}
+
+async function loadStoredRejectionReasons() {
+  try {
+    const response = await fetch(REJECTION_REASONS_RAW_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!response.ok) return {};
+    const data = await response.json();
+    return data && data.rejections && typeof data.rejections === 'object' ? data.rejections : {};
+  } catch (error) {
+    console.warn('Could not load stored rejection reasons:', error);
+    return {};
+  }
+}
+
+async function saveRejectionReasonToGitHub(userID, adName, reason, adminName) {
+  const authResponse = await fetch(GITHUB_AUTH_TOKEN_ENDPOINT, { cache: 'no-store' });
+  if (!authResponse.ok) throw new Error('Не удалось получить разрешение GitHub.');
+  const authData = await authResponse.json();
+  if (!authData?.token) throw new Error('Не получен токен GitHub.');
+
+  const key = rejectionReasonKey(userID, adName);
+  const entry = {
+    userID: String(userID || ''),
+    adName: String(adName || ''),
+    reason: String(reason || '').trim(),
+    adminName: String(adminName || '').trim(),
+    updatedAt: new Date().toISOString()
+  };
+
+  // Повторяем один раз при конфликте, чтобы не затереть причины, сохранённые параллельно.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const fileResponse = await fetch(REJECTION_REASONS_FILE_API, {
+      cache: 'no-store',
+      headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + authData.token }
+    });
+    if (!fileResponse.ok) throw new Error('Не удалось прочитать файл причин отказа в GitHub.');
+    const file = await fileResponse.json();
+    let data = { rejections: {} };
+    try {
+      const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\\n/g, ''))));
+      data = JSON.parse(decoded);
+    } catch (_) {}
+    if (!data.rejections || typeof data.rejections !== 'object') data.rejections = {};
+    data.rejections[key] = entry;
+
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2) + '\\n')));
+    const saveResponse = await fetch(REJECTION_REASONS_FILE_API, {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: 'Bearer ' + authData.token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: 'Save ad rejection reason',
+        content: encoded,
+        sha: file.sha
+      })
+    });
+    if (saveResponse.ok) return true;
+    if (saveResponse.status !== 409 && saveResponse.status !== 422) {
+      const errorData = await saveResponse.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Не удалось сохранить причину отказа в GitHub.');
+    }
+  }
+  throw new Error('Файл причин отказа изменился одновременно. Повторите отклонение рекламы.');
+}
+
 async function loadMyAds(skipPreloader = false) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (!skipPreloader) showPreloader();
@@ -3110,6 +3184,7 @@ async function loadMyAds(skipPreloader = false) {
     const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${getUserID()}`);
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
+    const storedRejectionReasons = await loadStoredRejectionReasons();
     
     // Теперь обновляем список (очищаем только перед заполнением)
     list.innerHTML = '';
@@ -3133,7 +3208,8 @@ async function loadMyAds(skipPreloader = false) {
         // GAS может возвращать причину под разными именами в зависимости от источника рекламы.
         const rejectionReason = String(
           ad.rejectionReason || ad.rejection_reason || ad.rejectReason || ad.reject_reason ||
-          ad.reasonOfRejection || ad.reason_of_rejection || ad.rejectionReasonText || ad.reason || ''
+          ad.reasonOfRejection || ad.reason_of_rejection || ad.rejectionReasonText || ad.reason ||
+          storedRejectionReasons[rejectionReasonKey(ad.userID || ad.userId || ad.telegramId || getUserID(), ad.name)]?.reason || ''
         ).trim();
         const reviewerName = String(ad.reviewedBy || ad.reviewed_by || ad.checkedBy || ad.adminName || ad.admin_name || '').trim() || (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
         const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -3488,8 +3564,19 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
     }
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to process ad');
-    if (action === 'reject') recordAdminAction('rejectAd');
-    openModal(i18n[lang].doneTitle, i18n[lang].actionPerformed);
+    let rejectionSaveWarning = '';
+    if (action === 'reject') {
+      recordAdminAction('rejectAd');
+      try {
+        await saveRejectionReasonToGitHub(userID, adName, rejectionReason, getAdminDisplayName(getCurrentAdmin(), 'rejection'));
+      } catch (saveError) {
+        console.warn('Rejection was processed but reason was not saved to GitHub:', saveError);
+        rejectionSaveWarning = lang === 'ru'
+          ? ' Реклама отклонена, но причину не удалось сохранить в GitHub. Проверьте подключение и попробуйте ещё раз.'
+          : ' The ad was rejected, but the reason could not be saved to GitHub. Check the connection and try again.';
+      }
+    }
+    openModal(i18n[lang].doneTitle, i18n[lang].actionPerformed + rejectionSaveWarning);
     $('admin-check').click();
   } catch (e) { openModal(i18n[lang].failedToPerform, ''); }
   finally { hidePreloader(); }
