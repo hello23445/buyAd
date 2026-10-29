@@ -1,3 +1,11 @@
 {
-  "rejections": {}
+  "rejections": {
+    "7654234598::ad_ueie82isba6y": {
+      "userID": "7654234598",
+      "adName": "Ad_UEIE82ISBA6Y",
+      "reason": "Дебил",
+      "adminName": "Администратор 1 уровня",
+      "updatedAt": "2026-10-29T19:09:24.797Z"
+    }
+  }
 }
