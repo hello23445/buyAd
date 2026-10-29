@@ -385,27 +385,46 @@ function isTelegramIdBlocked() {
 }
 
 let cachedClientIp = null;
+function getSavedUserAPIs() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
+    return Array.isArray(saved)
+      ? [...new Set(saved.map(value => String(value || '').trim()).filter(Boolean))]
+      : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveUserAPI(ip) {
+  const normalizedIp = String(ip || '').trim();
+  if (!normalizedIp) return getSavedUserAPIs();
+
+  const userAPIs = getSavedUserAPIs();
+  if (!userAPIs.includes(normalizedIp)) {
+    userAPIs.push(normalizedIp);
+    try {
+      localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
+    } catch (e) {
+      console.warn('Could not save user IP history');
+    }
+  }
+  return userAPIs;
+}
+
 async function getClientIp() {
-  if (cachedClientIp) return cachedClientIp;
+  if (cachedClientIp) {
+    saveUserAPI(cachedClientIp);
+    return cachedClientIp;
+  }
   try {
     const response = await fetch('https://api.ipify.org?format=json');
     if (!response.ok) return null;
     const data = await response.json();
-    cachedClientIp = data.ip;
-
-    // Сохраняем публичные IP, с которых пользователь запускал приложение.
-    try {
-      const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
-      const userAPIs = Array.isArray(saved) ? saved : [];
-      if (data.ip && !userAPIs.includes(data.ip)) {
-        userAPIs.push(data.ip);
-        localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
-      }
-    } catch (e) {
-      localStorage.setItem('userAPIs', JSON.stringify(data.ip ? [data.ip] : []));
-    }
-
-    return data.ip;
+    if (!data.ip) return null;
+    cachedClientIp = String(data.ip).trim();
+    saveUserAPI(cachedClientIp);
+    return cachedClientIp;
   } catch (e) {
     console.warn('IP fetch failed', e);
     return null;
@@ -413,24 +432,13 @@ async function getClientIp() {
 }
 
 async function isIpBlocked() {
-  const ip = await getClientIp();
-  let userAPIs = [];
-  try {
-    const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
-    userAPIs = Array.isArray(saved) ? saved : [];
-  } catch (e) {
-    userAPIs = [];
-  }
-
-  if (ip && !userAPIs.includes(ip)) {
-    userAPIs.push(ip);
-    localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
-  }
-
+  // Текущий IP добавляется в userAPIs, а блокировка проверяет всю историю IP.
+  await getClientIp();
+  const userAPIs = getSavedUserAPIs();
   const blockedIPs = runtimeArray('BlockedUsersIPadresses', [])
     .map(value => String(value || '').trim())
     .filter(Boolean);
-  return userAPIs.some(userIP => blockedIPs.includes(String(userIP).trim()));
+  return userAPIs.some(userIP => blockedIPs.includes(userIP));
 }
 
 function updateBlockedSubtitle(reason, lang) {
