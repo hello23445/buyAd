@@ -289,11 +289,14 @@ function adminGuard(action, targetValue = '') {
   const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unban', banIp:'banIp', unbanIp:'unban', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
   const permission = permissionByAction[action]; if (permission && !adminHasPermission(permission)) return deny(lang === 'ru' ? 'Это действие запрещено настройками ваших прав.' : 'Your permissions do not allow this action.');
   const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === String(targetValue || '').trim());
+  if (['banTelegramId','unbanTelegramId'].includes(action)) {
+    const selfTelegramId = String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+    if (selfTelegramId && String(targetValue || '').trim() === selfTelegramId) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
+  }
   if (targetAdmin && ['banToken','unbanToken','restrictAds','unrestrictAds'].includes(action)) {
     const level = Number(admin.admin_level), targetLevel = Number(targetAdmin.admin_level);
     if (targetAdmin.admin_token === admin.admin_token) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
-    const allowed = level === 4 ? targetLevel === 1 : level === 5 ? targetLevel < level : targetLevel === 1 && (level === 2 || level === 3);
-    if (!allowed) return deny(lang === 'ru' ? 'Нельзя применить это действие к администратору своего или старшего уровня.' : 'You cannot act against an administrator of your level or higher.');
+    if (level < 2 || targetLevel !== 1) return deny(lang === 'ru' ? 'Можно применять наказание только к администраторам 1-го уровня. Нельзя блокировать себя или администраторов своего/старшего уровня.' : 'You may only punish level-1 administrators. You cannot punish yourself, peers, or higher-level administrators.');
     action = 'banAdmin';
   }
   const limitAction = ({ unbanToken:'banToken', unbanTelegramId:'banTelegramId', unbanIp:'banIp', unrestrictAds:'restrictAds' })[action] || action;
@@ -2865,7 +2868,7 @@ $('admin-restricted').onclick = async () => {
         End: ${u.end_time || 'Permanent'}<br>
         <button class="btn btn--primary unban">Unban</button>
       `;
-      item.querySelector('.unban').onclick = () => handleUnban(u.id);
+      item.querySelector('.unban').onclick = () => handleUnban(u.id, u.token || '');
       list.appendChild(item);
     });
   } catch (e) {
@@ -2875,15 +2878,18 @@ $('admin-restricted').onclick = async () => {
   }
 };
 
-async function handleUnban(userID) {
+async function handleUnban(userID, userToken = '') {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (!adminGuard('unbanToken', userToken)) return;
   if (isGasDisabled()) {
     openModal(i18n[lang].gasDisabled || 'GAS отключён', '');
     return;
   }
   showPreloader();
   try {
-    await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
+    const response = await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
+    if (!response.ok) throw new Error('Failed to unban user');
+    recordAdminAction((ADMINS || []).some(admin => admin.admin_token === userToken) ? 'banAdmin' : 'banToken');
     openModal(i18n[lang].doneTitle, i18n[lang].banRemoved);
     $('admin-restricted').click();
   } catch (e) {
