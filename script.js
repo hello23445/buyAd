@@ -1508,10 +1508,10 @@ let adminCurrentIpValue = '';
 let adminCurrentIpVisible = false;
 let adminUserAPIsVisible = false;
 function formatIpHistory(values) {
-  return values.length ? values.map((ip, index) => `${String(index + 1).padStart(2, '0')}. ${ip}`).join('\\n') : 'Не определено';
+  return values.length ? values.map((ip, index) => `${String(index + 1).padStart(2, '0')}. ${ip}`).join('\n') : 'Не определено';
 }
 function maskIpList(values) {
-  return values.length ? values.map((_, index) => `${String(index + 1).padStart(2, '0')}. ••••••••`).join('\\n') : 'Не определено';
+  return values.length ? values.map((_, index) => `${String(index + 1).padStart(2, '0')}. ••••••••`).join('\n') : 'Не определено';
 }
 async function initAdminIpPanel() {
   if (!$('admin-current-ip') || !$('admin-user-apis')) return;
