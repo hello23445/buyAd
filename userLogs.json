@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "storageMode": "private-server-required",
-  "repositoryNote": "Public schema contract only. Live entries must be stored by a private backend. Never commit real tokens, Telegram IDs, IP addresses, punishment reasons or user activity here.",
+  "storageMode": "github-api",
+  "repositoryNote": "Live entries are synchronized through the GitHub Contents API. Keep this repository private and restrict access to trusted maintainers. Runtime records are written to entries.",
   "entrySchema": {
     "id": "uuid",
     "timestamp": "ISO-8601 UTC",
