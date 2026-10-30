@@ -514,8 +514,9 @@ function updateAdminLevelBadge() {
   // Сначала скрываем ВСЕ действия меню. Затем явно открываем только разрешённые текущему уровню.
   const menu = document.querySelector('#screen-admin .menu');
   if (menu) {
-    menu.querySelectorAll('.menu__item').forEach(item => { item.hidden = true; });
-    menu.querySelectorAll('.menu__group').forEach(heading => { heading.hidden = true; });
+    // Полностью сбрасываем видимость всех пунктов и подписей меню перед каждым пересчётом уровня.
+    menu.querySelectorAll('.menu__item, .menu__group, button, a, label, .menu__label, .menu__description')
+      .forEach(item => { item.hidden = true; });
   }
 
   const permissionVisibility = {
@@ -587,8 +588,12 @@ $('admin-level-save')?.addEventListener('click', () => {
     return;
   }
   localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY, String(level));
+  // Пересчитываем интерфейс сразу, не показывая лишнее модальное окно.
   updateAdminLevelBadge();
-  openModal('Уровень обновлён', 'Изменение действует только в этом браузере.');
+  document.querySelectorAll('#screen-admin .menu__item[hidden], #screen-admin .menu__group[hidden]')
+    .forEach(element => { element.setAttribute('aria-hidden', 'true'); });
+  document.querySelectorAll('#screen-admin .menu__item:not([hidden]), #screen-admin .menu__group:not([hidden])')
+    .forEach(element => { element.removeAttribute('aria-hidden'); });
 });
 
 
