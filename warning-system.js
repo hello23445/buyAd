@@ -7,6 +7,7 @@
 
   const WARN_KEY = 'buyAdWarningsV2';
   const IP_HISTORY_KEY = 'buyAdUserIpHistoryV1';
+  const WARN_HIDE_NAME_KEY = 'buyAdHideWarningIssuerName';
   const LEGACY_WARN_KEY = 'buyAdWarningsV1';
   const USER_LOG_KEY = 'buyAdUserLogsV2';
   const ADMIN_LOG_KEY = 'buyAdAdminLogsV2';
@@ -134,13 +135,18 @@
     const d = String(date.getDate()).padStart(2, '0');
     return y + '-' + m + '-' + d;
   };
+  const currentLang = () => localStorage.getItem('lang') === 'en' ? 'en' : 'ru';
+  const tr = (key, fallbackRu, fallbackEn) => {
+    const lang = currentLang();
+    return (typeof i18n !== 'undefined' && i18n[lang] && i18n[lang][key]) || (lang === 'ru' ? fallbackRu : fallbackEn);
+  };
   const formatDate = value => {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU');
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(currentLang() === 'ru' ? 'ru-RU' : 'en-GB');
   };
   const formatDateTime = value => {
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ru-RU');
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString(currentLang() === 'ru' ? 'ru-RU' : 'en-GB');
   };
   const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -148,12 +154,9 @@
   const adminName = () => {
     const admin = currentAdmin();
     if (!admin) return '';
-    try {
-      if (typeof getAdminDisplayName === 'function') return String(getAdminDisplayName(admin, 'ban') || '');
-    } catch (_) {}
-    return String(admin.admin_name || ('Администратор ' + currentLevel() + ' уровня'));
+    return String(admin.admin_name || (currentLang() === 'ru' ? 'Администратор ' + currentLevel() + ' уровня' : 'Administrator level ' + currentLevel()));
   };
-  const adminNameHidden = () => !!currentAdmin() && !adminName();
+  const adminNameHidden = () => currentLevel() === 5 && localStorage.getItem(WARN_HIDE_NAME_KEY) === 'true';
   const actor = () => {
     const admin = currentAdmin();
     return {
@@ -349,19 +352,20 @@
     const reason = document.getElementById('blocked-reason');
     const duration = document.getElementById('blocked-duration');
     const byAdmin = document.getElementById('blocked-by-admin');
-    const adminLabel = lock.adminNameHidden || !lock.adminName ? 'Скрыт' : lock.adminName;
+    const adminLabel = lock.adminNameHidden || !lock.adminName ? tr('adminNameHidden', 'Скрыто', 'Hidden') : lock.adminName;
     if (reason) {
       reason.hidden = false;
-      reason.textContent = 'Причина блокировки: 3/3 предупреждений. Причина выдачи предупреждения: ' +
-        (lock.reason || 'Не указана') + '. Дата выдачи: ' + formatDate(lock.issuedAt) + '.';
+      reason.textContent = currentLang() === 'ru'
+        ? 'Причина блокировки: 3/3 предупреждений. Причина выдачи предупреждения: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '. Дата выдачи: ' + formatDate(lock.issuedAt) + '.'
+        : 'Reason for block: 3/3 warnings. Warning reason: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '. Issued: ' + formatDate(lock.issuedAt) + '.';
     }
     if (duration) {
       duration.hidden = false;
-      duration.textContent = 'Блокировка на 5 дней. Разблокировка: ' + formatDateTime(lock.lockUntil) + '.';
+      duration.textContent = currentLang() === 'ru' ? 'Блокировка на 5 дней. Разблокировка: ' + formatDateTime(lock.lockUntil) + '.' : 'Blocked for 5 days. Unlocks: ' + formatDateTime(lock.lockUntil) + '.';
     }
     if (byAdmin) {
       byAdmin.hidden = false;
-      byAdmin.textContent = 'Выдал: ' + adminLabel;
+      byAdmin.textContent = (currentLang() === 'ru' ? 'Выдал: ' : 'Issued by: ') + adminLabel;
     }
     const userToken = document.getElementById('user-token-blocked');
     if (userToken) userToken.textContent = currentToken() || currentTelegramId() || '—';
@@ -437,12 +441,11 @@
     }
   }
 
-  async function issueWarning() {
+  async function issueWarning(targetValue, reasonValue) {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
     if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
-    const targetValue = arguments[0];
-    const reason = String(arguments[1] || '').trim();
+    const reason = String(reasonValue || '').trim();
     const target = targetFromInput(targetValue);
     if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
 
@@ -546,22 +549,38 @@
   }
 
   function openIssueWarningModal() {
-    if (currentLevel() < 2) return showMessage('Недостаточно прав', 'Действие доступно с 2-го уровня.');
-    openForm('Выдать предупреждение (warn)', body => ({
-      target: field(body, 'Telegram ID или токен пользователя', { placeholder: 'Введите Telegram ID или токен', required: true }),
-      reason: field(body, 'Причина (необязательно)', { multiline: true, placeholder: 'Укажите причину, если необходимо', rows: 3 })
-    }), controls => {
-      const result = issueWarning(controls.target.value, controls.reason.value);
-      if (!result.error) refresh();
-      return result;
-    }, 'Выдать warn');
+    const lang = currentLang();
+    if (currentLevel() < 2) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedIssue', 'Выдавать предупреждения могут администраторы 2-го уровня и выше.', 'Only administrators level 2 and above can issue warnings.'));
+    openForm(tr('warningIssueButton', 'Выдать предупреждение (warn)', 'Issue warning (warn)'), body => {
+      const controls = {
+        target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true }),
+        reason: field(body, tr('warningReasonLabel', 'Причина (необязательно)', 'Reason (optional)'), { multiline: true, placeholder: tr('warningReasonPlaceholder', 'Укажите причину, если необходимо', 'Enter a reason if needed'), rows: 3 })
+      };
+      if (currentLevel() === 5) {
+        const wrap = document.createElement('label');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin:8px 0;';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = localStorage.getItem(WARN_HIDE_NAME_KEY) === 'true';
+        checkbox.addEventListener('change', () => localStorage.setItem(WARN_HIDE_NAME_KEY, checkbox.checked ? 'true' : 'false'));
+        const label = document.createElement('span');
+        label.textContent = tr('warningHideName', 'Скрыть моё имя при выдаче предупреждения', 'Hide my name when issuing a warning');
+        wrap.append(checkbox, label);
+        body.appendChild(wrap);
+        controls.hideName = checkbox;
+      }
+      return controls;
+    }, async controls => {
+      if (controls.hideName) localStorage.setItem(WARN_HIDE_NAME_KEY, controls.hideName.checked ? 'true' : 'false');
+      return await issueWarning(controls.target.value, controls.reason.value);
+    }, lang === 'ru' ? 'Выдать warn' : 'Issue warning');
   }
 
   function openRemoveWarningsModal() {
-    if (currentLevel() !== 5) return showMessage('Недостаточно прав', 'Снимать предупреждения может только администратор 5-го уровня.');
-    openForm('Снять предупреждения', body => ({
-      target: field(body, 'Telegram ID или токен пользователя', { placeholder: 'Введите Telegram ID или токен', required: true })
-    }), controls => removeWarnings(controls.target.value), 'Снять предупреждения');
+    if (currentLevel() !== 5) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.'));
+    openForm(tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'), body => ({
+      target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true })
+    }), controls => removeWarnings(controls.target.value), tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'));
   }
 
   function dateFields(body) {
