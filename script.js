@@ -281,14 +281,14 @@ function showFeatureBlockedModal(type) {
 
 
 function openSupportChat() {
-  const url = SUPPORT_URL;
+  const url = 'https://t.me/Clickerstart_bot';
   const webApp = window.Telegram?.WebApp;
-  if (webApp && typeof webApp.openTelegramLink === 'function' && /^https?:\/\/t\.me\//i.test(url)) {
+  if (webApp && typeof webApp.openTelegramLink === 'function') {
     webApp.openTelegramLink(url);
   } else if (webApp && typeof webApp.openLink === 'function') {
     webApp.openLink(url);
   } else {
-    window.open(url, '_blank', 'noopener');
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 }
 
