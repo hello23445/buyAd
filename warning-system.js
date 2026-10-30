@@ -981,8 +981,32 @@
   }
 
   function updateAdminButtonVisibility() {
-    const level = currentLevel();
-    document.querySelectorAll('#warn-tools-group, #screen-admin [data-min-level]').forEach(element => {
+    // Both warning actions are available from level 2 upwards.
+    // Set each button explicitly so a stale data-min-level or hidden parent
+    // cannot keep them hidden after the level is raised again.
+    const level = Number(currentLevel()) || 1;
+    const canUseWarnings = level >= 2;
+    const issue = document.getElementById('warn-issue');
+    const remove = document.getElementById('warn-remove');
+    const group = document.getElementById('warn-tools-group');
+    if (issue) {
+      issue.hidden = !canUseWarnings;
+      issue.removeAttribute('aria-hidden');
+      issue.style.removeProperty('display');
+    }
+    if (remove) {
+      remove.hidden = !canUseWarnings;
+      remove.removeAttribute('aria-hidden');
+      remove.style.removeProperty('display');
+    }
+    if (group) {
+      group.hidden = !canUseWarnings;
+      group.removeAttribute('aria-hidden');
+      group.style.removeProperty('display');
+    }
+    // Keep unrelated level-gated elements governed by their own minimum.
+    document.querySelectorAll('#screen-admin [data-min-level]').forEach(element => {
+      if (element.id === 'warn-issue' || element.id === 'warn-remove' || element.id === 'warn-tools-group') return;
       element.hidden = level < Number(element.dataset.minLevel || 1);
     });
   }
