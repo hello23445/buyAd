@@ -21,7 +21,6 @@ const ADMINS = [
       "changeOwnLevelLocally": true,
       "hideNameOnRejection": true,
       "hideNameOnBan": true,
-      "viewOwnIp": true
     }
   },
   {
@@ -43,7 +42,6 @@ const ADMINS = [
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
-      "viewOwnIp": false
     }
   },
   {
@@ -65,7 +63,6 @@ const ADMINS = [
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
-      "viewOwnIp": false
     }
   },
   {
@@ -87,7 +84,6 @@ const ADMINS = [
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
-      "viewOwnIp": false
     },
     "custom_permissions": true
   }
