@@ -4478,20 +4478,24 @@ $('admin-enable-edit-all').onclick = async () => {
 
 /* ========== INIT ========== */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Отключаем кнопку настроек при входе
-  $('btn-open-settings').disabled = true;
-  // Включаем через 7 секунд
-  setTimeout(() => {
-    $('btn-open-settings').disabled = false;
-  }, 7000);
-
+  // Start the watchdog before touching optional DOM controls so startup errors cannot
+  // leave the loading overlay visible forever.
   showPreloader();
   const startupPreloaderWatchdog = setTimeout(() => {
-    if ($('preloader') && !$('preloader').hidden) {
-      console.warn('Startup took too long; hiding preloader to avoid an infinite loading screen.');
-      hidePreloader();
-    }
-  }, 15000);
+    console.warn('Startup watchdog: releasing the loading screen.');
+    hidePreloader();
+  }, 9000);
+  const startupWait = (promise, timeoutMs, fallback) => Promise.race([
+    Promise.resolve().then(() => promise).catch(error => { console.warn('Startup task failed:', error); return fallback; }),
+    new Promise(resolve => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+  try {
+  const settingsOpenButton = $('btn-open-settings');
+  if (settingsOpenButton) settingsOpenButton.disabled = true;
+  setTimeout(() => {
+    const button = $('btn-open-settings');
+    if (button) button.disabled = false;
+  }, 7000);
 // Инициализация пользователя в таблице Users
 (async () => {
   if (isGasDisabled()) return; // Пропускаем GAS
@@ -4505,12 +4509,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
 
-  currentUserIpBlocked = await Promise.race([isIpBlocked(), new Promise(resolve => setTimeout(() => resolve(false), 5500))]);
-  await Promise.race([pollAdmin2Config(), new Promise(resolve => setTimeout(resolve, 5500))]);
+  currentUserIpBlocked = await startupWait(isIpBlocked(), 2500, false);
+  await startupWait(pollAdmin2Config(), 4000, undefined);
 
   // Не продолжаем запуск приложения, если пользователь заблокирован по IP или Telegram ID.
   // loadAdmin2Config() уже загрузил конфигурацию и применил блокировки.
-  if (await applyRuntimeBlockings()) {
+  if (await startupWait(applyRuntimeBlockings(), 2500, false)) {
     updateOnlineStatus();
     hidePreloader();
     return;
@@ -4528,11 +4532,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     applyLang(lang);
     const isAdmin = ADMIN_TOKENS.includes(localStorage.getItem(LS.token));
-    if (await checkUserStatus(isAdmin) && checkAppOpen(isAdmin)) {
-      // load crystals and ads count simultaneously on entry
-      await showMainMenu('both');
-      // Инициализируем сессию после загрузки главного меню
-      await initializeSession();
+    const userStatusOk = await startupWait(checkUserStatus(isAdmin), 3000, true);
+    if (userStatusOk && checkAppOpen(isAdmin)) {
+      // Do not let a slow remote request block the app from opening.
+      await startupWait(showMainMenu('both'), 5000, undefined);
+      await startupWait(initializeSession(), 3000, undefined);
       // Определяем, есть ли у пользователя реклама; при её отсутствии включаем сохранение IP раз в 5 минут.
       loadMyAds(true).catch(error => console.warn('Не удалось проверить рекламу для истории IP:', error));
     }
@@ -4573,8 +4577,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTokenDisplay();
   initTelegramIdDisplay();
 
-  clearTimeout(startupPreloaderWatchdog);
-  hidePreloader();
+  } catch (startupError) {
+    console.error('Application startup error:', startupError);
+  } finally {
+    clearTimeout(startupPreloaderWatchdog);
+    hidePreloader();
+  }
 });
 document.addEventListener('click', (e) => {
   if (!e.target.closest('input, textarea, select, button, [contenteditable]')) {
