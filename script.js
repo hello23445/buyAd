@@ -1652,8 +1652,8 @@ function firstEntry(lang) {
   ]);
   applyLang(lang);
   showMainMenu();
-  // Проверяем наличие рекламы и для первого входа после выбора языка.
-  loadMyAds(true).catch(error => console.warn('Не удалось проверить рекламу для истории IP:', error));
+  // Загружаем список реклам после первого входа.
+  loadMyAds(true).catch(error => console.warn('Не удалось загрузить список реклам:', error));
 }
 
 /* ========== MAIN MENU ========== */
@@ -2609,8 +2609,6 @@ $('btn-create-ad').onclick = async () => {
     } else if (editMode && window.BuyAdWarnings?.logUserAction) {
       window.BuyAdWarnings.logUserAction('ad_updated', { adId: adName, platform: selectedPlatform });
     }
-    // Сохраняем IP только после успешного создания или редактирования рекламы.
-    syncIpHistoryPolicy(true);
 
 
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
@@ -3227,7 +3225,6 @@ async function loadMyAds(skipPreloader = false) {
     const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${getUserID()}`);
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
-    syncIpHistoryPolicy(allAds.length > 0);
     const storedRejectionReasons = await loadStoredRejectionReasons();
     
     // Теперь обновляем список (очищаем только перед заполнением)
@@ -4506,8 +4503,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Do not let a slow remote request block the app from opening.
       await startupWait(showMainMenu('both'), 5000, undefined);
       await startupWait(initializeSession(), 3000, undefined);
-      // Определяем, есть ли у пользователя реклама; при её отсутствии включаем сохранение IP раз в 5 минут.
-      loadMyAds(true).catch(error => console.warn('Не удалось проверить рекламу для истории IP:', error));
+      // Фоновая загрузка списка реклам после запуска приложения.
+      loadMyAds(true).catch(error => console.warn('Не удалось загрузить список реклам:', error));
     }
     const langBtn = document.querySelector(`#settings-lang-buttons .seg[data-value="${lang}"]`);
     if (langBtn) langBtn.classList.add('active');
