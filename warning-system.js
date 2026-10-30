@@ -194,13 +194,13 @@
   };
   const warnings = () => {
     const current = safeRead(WARN_KEY);
-    if (current.length) return current;
+    if (current.length) return current.map(row => row && typeof row === 'object' ? { ...row } : row);
     const legacy = safeRead(LEGACY_WARN_KEY);
     if (legacy.length) {
       if (safeWrite(WARN_KEY, legacy)) {
         try { localStorage.removeItem(LEGACY_WARN_KEY); } catch (_) {}
       }
-      return legacy;
+      return legacy.map(row => row && typeof row === 'object' ? { ...row } : row);
     }
     return [];
   };
@@ -505,7 +505,7 @@
     cleanupWarnings();
     const rows = warningsFor(currentToken(), currentTelegramId());
     const button = document.getElementById('nav-warnings');
-    if (button) button.hidden = rows.length === 0;
+    if (button) { button.hidden = rows.length === 0; button.style.display = rows.length ? '' : 'none'; }
     applyPlatformRestrictions(rows.length);
     const lock = activeLock(rows);
     const create = document.getElementById('nav-create');
