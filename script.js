@@ -538,9 +538,7 @@ function updateAdminLevelBadge() {
     'admin-disable-create-all': 'globalCreateToggle',
     'admin-enable-create-all': 'globalCreateToggle',
     'admin-disable-edit-all': 'globalCreateToggle',
-    'admin-enable-edit-all': 'globalCreateToggle',
-    'warn-issue': 'reviewAds',
-    'warn-remove': 'manageAdmins'
+    'admin-enable-edit-all': 'globalCreateToggle'
   };
   Object.entries(permissionVisibility).forEach(([id, permission]) => {
     const element = $(id);
