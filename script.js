@@ -279,6 +279,47 @@ function showFeatureBlockedModal(type) {
   openModal(title, body, [{ text: okText, class: 'btn btn--primary', onClick: () => {} }]);
 }
 
+
+async function copyTextCompat(value) {
+  const text = String(value == null ? '' : value);
+  if (!text) throw new Error('Nothing to copy');
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch (_) {}
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  area.style.pointerEvents = 'none';
+  document.body.appendChild(area);
+  area.select();
+  area.setSelectionRange(0, area.value.length);
+  let copied = false;
+  try { copied = document.execCommand('copy'); } catch (_) {}
+  area.remove();
+  if (!copied) throw new Error('Clipboard copy failed');
+}
+
+function updateBlockedTelegramId(telegramId = String(tg?.initDataUnsafe?.user?.id || '')) {
+  const tokenEl = $('user-token-blocked');
+  if (!tokenEl) return;
+  const parent = tokenEl.parentElement;
+  if (!parent) return;
+  let idEl = $('blocked-telegram-id');
+  if (!idEl) {
+    idEl = document.createElement('div');
+    idEl.id = 'blocked-telegram-id';
+    idEl.style.cssText = 'overflow-wrap:anywhere;margin-top:6px;';
+    tokenEl.insertAdjacentElement('afterend', idEl);
+  }
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  idEl.textContent = (lang === 'ru' ? 'Telegram ID пользователя: ' : 'User Telegram ID: ') + (telegramId || '—');
+}
+
 /* ========== STORAGE ========== */
 const LS = {
   lang: 'lang',
@@ -1300,16 +1341,16 @@ async function applyRuntimeBlockings() {
     }
     let punishmentReason = '', punishmentAdminName = '';
     if (isTokenBan) {
-      updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—';
+      updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId();
       punishmentReason = getPunishmentReason('BanForever', token);
       punishmentAdminName = getPunishmentAdminName('BanForever', token);
     } else if (isTelegramBan) {
       const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
-      updateBlockedSubtitle('telegram', lang); $('user-token-blocked').textContent = telegramId || '—';
+      updateBlockedSubtitle('telegram', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId(telegramId);
       punishmentReason = getPunishmentReason('BlockedUsersTelegramID', telegramId);
       punishmentAdminName = getPunishmentAdminName('BlockedUsersTelegramID', telegramId);
     } else if (isIpBan) {
-      updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—';
+      updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId();
       const blockedIPs = runtimeArray('BlockedUsersIPadresses', []);
       const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
       punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
@@ -1337,7 +1378,7 @@ async function applyRuntimeBlockings() {
     }
     $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
     $('btn-copy-token-blocked').onclick = () => {
-      navigator.clipboard.writeText(token || '—').then(() => {
+      copyTextCompat(token || '—').then(() => {
         const span = $('btn-copy-token-blocked').querySelector('span');
         if (span) {
           span.textContent = i18n[lang].copied;
@@ -1604,10 +1645,11 @@ async function checkUserStatus(isAdmin) {
         blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + (lang === 'ru' ? 'Администратор' : 'Administrator');
         blockedByEl.hidden = false;
       }
-      $('user-token-blocked').textContent = token;
+      $('user-token-blocked').textContent = token || '—';
+      updateBlockedTelegramId();
       $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
       $('btn-copy-token-blocked').onclick = () => {
-        navigator.clipboard.writeText(token).then(() => {
+        copyTextCompat(token || '—').then(() => {
           const span = $('btn-copy-token-blocked').querySelector('span');
           span.textContent = i18n[lang].copied;
           setTimeout(() => { span.textContent = i18n[lang].copy; }, 3000);
@@ -2844,7 +2886,7 @@ $('btn-copy-token').onclick = () => {
     if (span) span.textContent = i18n[lang].copy || 'Скопировать';
   } else {
     // Copy token to clipboard
-    navigator.clipboard.writeText(token).then(() => {
+    copyTextCompat(token || '—').then(() => {
       if (span) {
         span.textContent = i18n[lang].copied || 'Скопировано';
         setTimeout(() => { 
