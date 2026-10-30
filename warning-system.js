@@ -70,7 +70,7 @@
       if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
       if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
       const serialized = JSON.stringify(rows);
-      const pattern = new RegExp('((?:export\\\\s+)?(?:let|const|var)\\\\s+' + exportName + '\\\\s*=\\\\s*)(\\\\[[\\\\s\\\\S]*?\\\\])(\\\\s*;)', 'm');
+      const pattern = new RegExp('((?:export\\s+)?(?:let|const|var)\\s+' + exportName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)', 'm');
       for (let attempt = 0; attempt < 3; attempt++) {
         const current = await githubGet('admin2.js');
         if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив ' + exportName);
