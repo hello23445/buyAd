@@ -22,6 +22,28 @@
     if (typeof openModal === 'function') openModal(title, '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto">' + escape(text) + '</pre>', [{text:'OK'}]);
     else alert(title + '\n\n' + text);
   }
+  function cleanupWarnings() {
+    const rows = read(WARN_KEY), now = Date.now(), groups = new Map();
+    rows.forEach(w => { const key = w.token || w.telegramId; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(w); });
+    const removeIds = new Set();
+    for (const group of groups.values()) {
+      group.sort((a,b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+      const lock = group.find(w => w.lockUntil);
+      if (lock && Date.parse(lock.lockUntil) <= now) {
+        group.forEach(w => removeIds.add(w.id));
+        log(USER_LOG_KEY, {token:lock.token||'',telegramId:lock.telegramId||'',event:'warnings_cleared_after_lock'});
+        log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'automatic_unlock_and_clear',target:{token:lock.token||'',telegramId:lock.telegramId||''},reason:'Истекла блокировка 5 дней'});
+        continue;
+      }
+      const oldest = group[0];
+      if (oldest && !oldest.lockUntil && now - Date.parse(oldest.issuedAt) >= 2*86400000) {
+        removeIds.add(oldest.id);
+        log(USER_LOG_KEY, {token:oldest.token||'',telegramId:oldest.telegramId||'',event:'warning_removed_automatically',warningId:oldest.id});
+        log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'warning_removed_automatically',target:{token:oldest.token||'',telegramId:oldest.telegramId||''}});
+      }
+    }
+    if (removeIds.size) write(WARN_KEY, rows.filter(w => !removeIds.has(w.id)));
+  }
   function refresh() {
     const t = token(), id = telegramId(), rows = warningsFor(t, id);
     const button = document.getElementById('nav-warnings');
@@ -97,6 +119,24 @@
     }
     refresh();
   }
+  document.addEventListener('click', e => {
+    const button = e.target.closest('button,[role="button"]');
+    if (!button) return;
+    const text = (button.innerText || button.textContent || '').toLowerCase();
+    const rows = warningsFor(token(), telegramId());
+    if (rows.length >= 1 && /(бот создать никнейм|канал создать никнейм|мини-приложение сгенерировать фото|создать никнейм|сгенерировать фото)/i.test(text)) {
+      e.preventDefault(); e.stopImmediatePropagation(); alert('Эта функция недоступна при наличии предупреждения.'); return;
+    }
+    const create = button.id === 'nav-create' || /создать рекламу/.test(text);
+    if (create && rows.some(w => w.lockUntil && Date.parse(w.lockUntil) > Date.now())) {
+      e.preventDefault(); e.stopImmediatePropagation(); alert('Аккаунт заблокирован на 5 дней из-за 3/3 предупреждений.'); return;
+    }
+    if (create && rows.length >= 2) {
+      const key = 'buyAd_adCreatedDate_' + (token() || telegramId()), today = new Date().toISOString().slice(0,10);
+      if (localStorage.getItem(key) === today) { e.preventDefault(); e.stopImmediatePropagation(); alert('При 2/3 предупреждениях рекламу можно создавать только один раз в день.'); return; }
+      localStorage.setItem(key, today);
+    }
+  }, true);
   window.BuyAdWarnings = { warningsFor, refresh, userLogs:()=>read(USER_LOG_KEY), adminLogs:()=>read(ADMIN_LOG_KEY) };
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', install); else install();
   setInterval(refresh, 60000);
