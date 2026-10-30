@@ -789,9 +789,6 @@
     refresh();
   }
 
-  // IP collection and IP history persistence are disabled.
-  function recordIp() {}
-  async function loadClientIp() { return null; }
 
   let warningScreen = null;
   let warningScreenList = null;
@@ -987,8 +984,6 @@
     recordPunishmentIssued,
     recordPunishmentRemoved,
     recordAdCreated,
-    recordIp,
-    saveUserIpHistory: loadClientIp,
     cleanupWarnings,
     applyLanguage,
     openWarningsScreen
