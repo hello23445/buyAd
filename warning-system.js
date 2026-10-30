@@ -97,15 +97,13 @@
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-      if (key === WARN_KEY) persistWarnings(value);
-      if (key === IP_HISTORY_KEY) persistIpHistory(value);
       return true;
     } catch (error) {
-      console.warn('BuyAd local audit storage failed:', error);
+      console.warn('BuyAd local storage failed:', error);
       return false;
     }
   };
-  async function loadCloudWarnings() {
+    async function loadCloudWarnings() {
     try {
       const current = await githubGet('admin2.js');
       const match = current.content.match(/(?:export\s+)?const\s+UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
@@ -187,12 +185,9 @@
   };
   const writeWarnings = rows => {
     if (!safeWrite(WARN_KEY, rows)) return Promise.reject(new Error('Не удалось обновить локальный кэш предупреждений.'));
-    return persistWarnings(rows).catch(error => {
-      console.error('Не удалось сохранить предупреждения в GitHub:', error);
-      throw error;
-    });
+    return persistWarnings(rows);
   };
-  const readLogRows = () => [];
+    const readLogRows = () => [];
   const logUser = () => {};
   const logAdmin = () => {};
   const warningsFor = (token, telegramId) =>
@@ -336,7 +331,7 @@
     if (removeIds.size) {
       writeWarnings(rows.filter(row => !removeIds.has(row.id)));
     } else if (changed) {
-      writeWarnings(rows);
+      try { await writeWarnings(rows); } catch (error) { return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
     }
   }
 
@@ -525,7 +520,7 @@
     const rows = warnings();
     const removed = rows.filter(row => targetMatches(row, target));
     if (!removed.length) return { error: 'У пользователя нет предупреждений.' };
-    writeWarnings(rows.filter(row => !removed.includes(row)));
+    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { return { error: 'Снятие варнов не сохранено в GitHub: ' + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
