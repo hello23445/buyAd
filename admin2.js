@@ -1,5 +1,5 @@
 //Пользователю
-export const BanForever = []; // { value, reason, adminName, expiresAt, durationDays }
+export const BanForever = [{"value":"Z21SL4V106TPQ5OQ","reason":"","adminName":"","expiresAt":"2026-10-31T21:14:44.001Z","durationDays":1,"adminNameHidden":true}]; // { value, reason, adminName, expiresAt, durationDays }
 export const BlockCreateAds = []; // { value, reason, adminName, expiresAt, durationDays }; без expiresAt = бессрочно
 export const BlockedUsersTelegramID = []; // { value, reason, adminName, expiresAt, durationDays }
 export const BlockedUsersIPadresses = []; // { value, reason, adminName, expiresAt, durationDays }
