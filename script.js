@@ -2618,7 +2618,7 @@ $('btn-create-ad').onclick = async () => {
     $('crystals-count').textContent = formatNumber(currentCrystals);
     $('crystals-now').textContent = formatNumber(currentCrystals);
     $('crystals-in-create').textContent = formatNumber(currentCrystals);
-    await recordCurrentIpHistory(editMode ? 'ad_updated' : 'ad_created');
+    recordCurrentIpHistory(editMode ? 'ad_updated' : 'ad_created');
 
     if (!editMode && window.BuyAdWarnings?.recordAdCreated) {
       window.BuyAdWarnings.recordAdCreated({ adId: adName, platform: selectedPlatform });
@@ -3242,12 +3242,12 @@ async function loadMyAds(skipPreloader = false, ipHistoryTrigger = '') {
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
     const storedRejectionReasons = await loadStoredRejectionReasons();
-    if (ipHistoryTrigger === 'manual_refresh' && isTokenCreateBlocked()) await recordCurrentIpHistory('restricted_user_manual_my_ads_refresh');
+    if (ipHistoryTrigger === 'manual_refresh' && isTokenCreateBlocked()) recordCurrentIpHistory('restricted_user_manual_my_ads_refresh');
     if (ipHistoryTrigger === 'app_entry' && isTokenCreateBlocked() && allAds.length === 0) {
       const lastEntryLog = Number(localStorage.getItem(IP_ENTRY_HISTORY_KEY) || 0);
       if (Date.now() - lastEntryLog >= IP_ENTRY_HISTORY_INTERVAL) {
         localStorage.setItem(IP_ENTRY_HISTORY_KEY, String(Date.now()));
-        await recordCurrentIpHistory('restricted_user_app_entry_no_ads');
+        recordCurrentIpHistory('restricted_user_app_entry_no_ads');
       }
     }
     
