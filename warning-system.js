@@ -568,6 +568,23 @@
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
+    // Наказания для администраторов доступны только с 3-го уровня.
+    // При этом администратор может наказать только администратора строго ниже себя.
+    const adminsRegistry = typeof ADMINS !== 'undefined' && Array.isArray(ADMINS) ? ADMINS : [];
+    const targetAdmin = target.token
+      ? adminsRegistry.find(item => String(item.admin_token || '') === String(target.token))
+      : null;
+    if (targetAdmin) {
+      const actorLevel = currentLevel();
+      const targetLevel = Number(targetAdmin.admin_level || 0);
+      if (actorLevel < 3) {
+        return { error: tr('warningDeniedAdminTarget', 'Выдавать варны администраторам могут только администраторы 3-го уровня и выше.', 'Only level 3+ administrators can issue warnings to administrators.') };
+      }
+      if (String(targetAdmin.admin_token) === String(admin.admin_token) || targetLevel >= actorLevel) {
+        return { error: tr('warningDeniedAdminHierarchy', 'Нельзя выдать варн себе или администратору своего либо более высокого уровня.', 'You cannot issue a warning to yourself or an administrator of your level or higher.') };
+      }
+    }
+
     const amount = currentLevel() >= 4 ? Math.max(1, Math.min(3, Math.floor(Number(requestedAmount) || 1))) : 1;
     cleanupWarnings();
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
