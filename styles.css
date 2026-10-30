@@ -589,31 +589,36 @@ body.theme-dark {
    TOKEN BOX
 ========================= */
 .tokenbox {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px 12px;
   background: rgba(255,255,255,0.05);
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px 14px;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .tokenbox code {
   display: block;
-  flex: 1 1 100%;
   min-width: 0;
   max-width: 100%;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.4;
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .tokenbox .btn {
-  flex: 0 0 auto;
-  margin-left: auto;
+  justify-self: end;
+  align-self: center;
+  max-width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 /* =========================
