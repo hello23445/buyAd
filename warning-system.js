@@ -6,7 +6,6 @@
   'use strict';
 
   const WARN_KEY = 'buyAdWarningsV2';
-  const IP_HISTORY_KEY = 'buyAdUserIpHistoryV1';
   const WARN_HIDE_NAME_KEY = 'buyAdHideWarningIssuerName';
   const LEGACY_WARN_KEY = 'buyAdWarningsV1';
   const USER_LOG_KEY = 'buyAdUserLogsV2';
@@ -62,15 +61,12 @@
     throw new Error('Не удалось сохранить ' + path + ': файл изменялся одновременно несколько раз.');
   };
   let cloudWarningsLoaded = false;
-  let cloudIpHistoryLoaded = false;
   let cloudUserLogsLoaded = false;
-  // All writes to admin2.js share one queue because warnings and IP history
-  // live in the same file. Re-read and rebuild the content on every retry.
+  // Warning writes are serialized to avoid conflicting GitHub updates.
   let cloudWriteQueue = Promise.resolve();
   const persistArray = (exportName, rows, message) => {
     const run = async () => {
       if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
-      if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
       if (exportName === 'UserLogs' && !cloudUserLogsLoaded) throw new Error('Журнал пользователей ещё не загружен из GitHub.');
       const serialized = JSON.stringify(rows);
       const pattern = new RegExp('((?:export\\s+)?(?:let|const|var)\\s+' + exportName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)', 'm');
@@ -96,7 +92,6 @@
     return cloudWriteQueue;
   };
   const persistWarnings = rows => persistArray('UserWarnings', rows, 'Save user warnings');
-  const persistIpHistory = rows => persistArray('UserIpHistory', rows, 'Save user IP history');
   const persistUserLogs = rows => persistArray('UserLogs', rows, 'Record IP in user log');
   const safeWrite = (key, value) => {
     try {
@@ -112,12 +107,8 @@
       const current = await githubGet('admin2.js');
       const match = current.content.match(/(?:export\s+)?const\s+UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
       const remoteWarnings = match ? JSON.parse(match[1]) : [];
-      const ipMatch = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\[[\s\S]*?\])\s*;/);
-      const remoteIpHistory = ipMatch ? JSON.parse(ipMatch[1]) : [];
       safeWriteCache(WARN_KEY, Array.isArray(remoteWarnings) ? remoteWarnings : []);
-      safeWriteCache(IP_HISTORY_KEY, Array.isArray(remoteIpHistory) ? remoteIpHistory : []);
       cloudWarningsLoaded = true;
-      cloudIpHistoryLoaded = true;
       refresh();
     } catch (error) { console.error('Не удалось загрузить предупреждения из GitHub:', error); }
   }
@@ -926,7 +917,6 @@
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
-    // IP history is saved only when the ad workflow explicitly requests it.
   }
 
   window.addEventListener('buyad:admin2-config-loaded', event => {
@@ -934,10 +924,6 @@
     if (Array.isArray(detail.UserWarnings)) {
       safeWriteCache(WARN_KEY, detail.UserWarnings);
       cloudWarningsLoaded = true;
-    }
-    if (Array.isArray(detail.UserIpHistory)) {
-      safeWriteCache(IP_HISTORY_KEY, detail.UserIpHistory);
-      cloudIpHistoryLoaded = true;
     }
     if (Array.isArray(detail.UserLogs)) {
       safeWriteCache(USER_LOG_KEY, detail.UserLogs);
