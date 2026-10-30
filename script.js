@@ -1041,13 +1041,15 @@ async function loadAdmin2Config() {
       disableCreateAds2: parseExportValue('disableCreateAds2', content),
       disableEditingAds: parseExportValue('disableEditingAds', content),
       UserWarnings: parseExportArray('UserWarnings', content),
-      UserIpHistory: parseExportArray('UserIpHistory', content)
+      UserIpHistory: parseExportArray('UserIpHistory', content),
+      UserLogs: parseExportArray('UserLogs', content)
     };
     runtimeAdmin2ConfigLoaded = true;
     window.dispatchEvent(new CustomEvent('buyad:admin2-config-loaded', {
       detail: {
         UserWarnings: runtimeAdmin2Config.UserWarnings,
-        UserIpHistory: runtimeAdmin2Config.UserIpHistory
+        UserIpHistory: runtimeAdmin2Config.UserIpHistory,
+        UserLogs: runtimeAdmin2Config.UserLogs
       }
     }));
     const lang = localStorage.getItem(LS.lang) || 'ru';
