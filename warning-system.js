@@ -709,6 +709,22 @@
         amountWrap.append(amountLabel, amountSelect);
         body.appendChild(amountWrap);
         controls.amount = amountSelect;
+        const syncAmountOptions = () => {
+          const target = targetFromInput(controls.target.value);
+          const used = target ? warnings().filter(row => targetMatches(row, target)).length : 0;
+          const remaining = Math.max(1, 3 - used);
+          const selected = Number(amountSelect.value) || 1;
+          amountSelect.replaceChildren();
+          for (let value = 1; value <= remaining; value++) {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = String(value);
+            amountSelect.appendChild(option);
+          }
+          amountSelect.value = String(Math.min(selected, remaining));
+        };
+        controls.target.addEventListener('input', syncAmountOptions);
+        controls.target.addEventListener('change', syncAmountOptions);
       }
       if (currentLevel() === 5) {
         const wrap = document.createElement('label');
