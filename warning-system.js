@@ -196,9 +196,14 @@
     const readLogRows = () => [];
   const logUser = () => {};
   const logAdmin = () => {};
-  const warningsFor = (token, telegramId) =>
-    warnings().filter(row => (token && row.token === token) || (telegramId && row.telegramId === telegramId))
-      .sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+  const warningsFor = (token, telegramId) => {
+    const normalizedToken = String(token || '');
+    const normalizedTelegramId = String(telegramId || '');
+    return warnings().filter(row =>
+      (normalizedToken && String(row.token || '') === normalizedToken) ||
+      (normalizedTelegramId && String(row.telegramId || '') === normalizedTelegramId)
+    ).sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+  };
 
   function showMessage(title, message) {
     const pre = document.createElement('pre');
@@ -334,10 +339,13 @@
       }
     }
 
+    // Автоматическая очистка не должна записывать admin2.js в GitHub при входе
+    // или в фоновом таймере. Синхронизация в GitHub выполняется только явными
+    // действиями управления предупреждениями.
     if (removeIds.size) {
-      writeWarnings(rows.filter(row => !removeIds.has(row.id))).catch(error => console.error('Не удалось сохранить автоматическое снятие варнов в GitHub:', error));
+      safeWriteCache(WARN_KEY, rows.filter(row => !removeIds.has(row.id)));
     } else if (changed) {
-      writeWarnings(rows).catch(error => console.error('Не удалось сохранить обновление варнов в GitHub:', error));
+      safeWriteCache(WARN_KEY, rows);
     }
   }
 
@@ -1023,7 +1031,7 @@
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
     const lock = activeLock(rows);
-    if (lock && !['btn-support', 'btn-copy-token-blocked'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
+    if (lock && !['btn-support', 'btn-copy-token-blocked', 'nav-warnings', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
