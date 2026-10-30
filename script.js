@@ -1660,6 +1660,8 @@ function firstEntry(lang) {
   ]);
   applyLang(lang);
   showMainMenu();
+  // Проверяем наличие рекламы и для первого входа после выбора языка.
+  loadMyAds(true).catch(error => console.warn('Не удалось проверить рекламу для истории IP:', error));
 }
 
 /* ========== MAIN MENU ========== */
