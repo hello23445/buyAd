@@ -1060,9 +1060,9 @@ function isGasDisabled() {
   if (isRuntimeValue('GASESES', 'no', GASES)) return true;
 
   const token = localStorage.getItem(LS.token);
-  const isTokenBan = runtimeArray('BanForever', []).includes(token);
+  const isTokenBan = !!findPunishmentEntry('BanForever', token);
   const telegramId = String(tg?.initDataUnsafe?.user?.id || '');
-  const isTelegramBan = telegramId && runtimeArray('BlockedUsersTelegramID', []).includes(telegramId);
+  const isTelegramBan = telegramId && !!findPunishmentEntry('BlockedUsersTelegramID', telegramId);
 
   return isTokenBan || isTelegramBan || currentUserIpBlocked;
 }
@@ -3270,7 +3270,7 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
         
         card.querySelector('.edit-btn').onclick = () => {
           const token = localStorage.getItem(LS.token);
-          const isBannedFromAds = banForeverAds.includes(token) || runtimeArray('BlockCreateAds', []).includes(token);
+          const isBannedFromAds = banForeverAds.includes(token) || isTokenCreateBlocked();
           if (isEditingDisabledGlobally()) {
             showFeatureBlockedModal('edit');
             return;
