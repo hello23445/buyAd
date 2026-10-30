@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "description": "Append-only user activity and moderation log schema. Runtime writes must be performed by a trusted backend, not by the browser.",
+  "entries": [
+    {
+      "id": "uuid",
+      "timestamp": "ISO-8601 UTC",
+      "userToken": "opaque token",
+      "telegramId": "string|null",
+      "event": "punishment_issued|punishment_removed|warning_issued|warning_removed|warning_auto_removed|account_locked|account_unlocked|menu_opened|ad_created|ad_updated|ad_submitted|other",
+      "details": {
+        "reason": "string|null",
+        "durationDays": "number|null",
+        "expiresAt": "ISO-8601|null",
+        "adminId": "string|null",
+        "adminName": "string|null",
+        "adminNameHidden": "boolean|null",
+        "warningCount": "number|null",
+        "menu": "string|null",
+        "adId": "string|null",
+        "metadata": "object"
+      }
+    }
+  ]
+}
