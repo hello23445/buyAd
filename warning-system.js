@@ -71,7 +71,7 @@
       if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
       if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
       const serialized = JSON.stringify(rows);
-      const pattern = new RegExp('((?:export\s+)?(?:let|const|var)\s+' + exportName + '\s*=\s*)(\\[[\s\\S]*?\\])(\s*;)', 'm');
+      const pattern = new RegExp('((?:export\\s+)?(?:let|const|var)\\s+' + exportName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)', 'm');
       for (let attempt = 0; attempt < 3; attempt++) {
         const current = await githubGet('admin2.js');
         if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив ' + exportName);
@@ -645,23 +645,9 @@
     }), async controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
-      // Refresh shared history only when an administrator explicitly searches.
-      // Do not make an IP-history request/write just because the app was opened.
-      let history = safeRead(IP_HISTORY_KEY);
-      try {
-        const current = await githubGet('admin2.js');
-        const match = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\[[\s\S]*?\])\s*;/);
-        if (match) {
-          const remote = JSON.parse(match[1]);
-          if (Array.isArray(remote)) {
-            history = remote;
-            safeWriteCache(IP_HISTORY_KEY, remote);
-            cloudIpHistoryLoaded = true;
-          }
-        }
-      } catch (error) {
-        console.warn('Не удалось обновить историю IP перед поиском:', error);
-      }
+      // admin2.js is already refreshed by script.js at startup and periodically.
+      // Search the synchronized local cache instead of making another GitHub request.
+      const history = safeRead(IP_HISTORY_KEY);
       const normalizeIp = value => String(value || '').trim().toLowerCase().replace(/^::ffff:/, '');
       const matches = history.filter(row => normalizeIp(row.ip) === normalizeIp(ip));
       const users = new Map();
@@ -914,7 +900,6 @@
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
-    loadCloudWarnings();
     // Capture the user's IP after their first interaction, not during app startup.
     const captureIpAfterInteraction = () => {
       document.removeEventListener('pointerdown', captureIpAfterInteraction);
@@ -924,6 +909,19 @@
     document.addEventListener('pointerdown', captureIpAfterInteraction, { once: true, passive: true });
     document.addEventListener('keydown', captureIpAfterInteraction, { once: true });
   }
+
+  window.addEventListener('buyad:admin2-config-loaded', event => {
+    const detail = event.detail || {};
+    if (Array.isArray(detail.UserWarnings)) {
+      safeWriteCache(WARN_KEY, detail.UserWarnings);
+      cloudWarningsLoaded = true;
+    }
+    if (Array.isArray(detail.UserIpHistory)) {
+      safeWriteCache(IP_HISTORY_KEY, detail.UserIpHistory);
+      cloudIpHistoryLoaded = true;
+    }
+    refresh();
+  });
 
   document.addEventListener('click', event => {
     const platformRow = event.target.closest('.platform-row');
