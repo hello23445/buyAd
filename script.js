@@ -1187,64 +1187,10 @@ function isTelegramIdBlocked() {
   return telegramId && !!findPunishmentEntry('BlockedUsersTelegramID', telegramId);
 }
 
-let cachedClientIp = null;
-function getSavedUserAPIs() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('userAPIs') || '[]');
-    return Array.isArray(saved)
-      ? [...new Set(saved.map(value => String(value || '').trim()).filter(Boolean))]
-      : [];
-  } catch (e) {
-    return [];
-  }
-}
-
-function saveUserAPI(ip) {
-  const normalizedIp = String(ip || '').trim();
-  if (!normalizedIp) return getSavedUserAPIs();
-
-  const userAPIs = getSavedUserAPIs();
-  if (!userAPIs.includes(normalizedIp)) {
-    userAPIs.push(normalizedIp);
-    try {
-      localStorage.setItem('userAPIs', JSON.stringify(userAPIs));
-    } catch (e) {
-      console.warn('Could not save user IP history');
-    }
-  }
-  return userAPIs;
-}
-
-async function getClientIp() {
-  if (cachedClientIp) {
-    saveUserAPI(cachedClientIp);
-    return cachedClientIp;
-  }
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
-  try {
-    const response = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-    if (!response.ok) return null;
-    const data = await response.json();
-    if (!data.ip) return null;
-    cachedClientIp = String(data.ip).trim();
-    saveUserAPI(cachedClientIp);
-    return cachedClientIp;
-  } catch (e) {
-    console.warn('IP fetch failed', e);
-    return null;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function isIpBlocked() {
-  // Текущий IP добавляется в userAPIs, а блокировка проверяет всю историю IP.
-  await getClientIp();
-  const userAPIs = getSavedUserAPIs();
-  const blockedIPs = runtimeArray('BlockedUsersIPadresses', []).map(punishmentEntryValue).filter(Boolean);
-  return userAPIs.some(userIP => blockedIPs.includes(userIP));
-}
+// IP collection/history is disabled.
+async function getClientIp() { return null; }
+function getSavedUserAPIs() { return []; }
+function saveUserAPI() { return []; }
 
 function updateBlockedSubtitle(reason, lang) {
   const subtitle = $('screen-blocked')?.querySelector('.card__subtitle');
@@ -1965,32 +1911,11 @@ $('nav-create').onclick = () => {
 let myAdsLoadedOnce = false;
 let noAdsIpHistoryTimer = null;
 const NO_ADS_IP_HISTORY_INTERVAL = 5 * 60 * 1000;
-function isUserBlockedFromAdChanges() {
-  return isTokenCreateBlocked() || isCreateAdsDisabledGlobally() ||
-    isRuntimeValue('disableEditingAds', 'disabled', '') ||
-    isRuntimeValue('disableCreateAds2', 'disabled', '');
+function syncIpHistoryPolicy() {
+  if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
+  noAdsIpHistoryTimer = null;
 }
-function syncIpHistoryPolicy(hasAds) {
-  // Если запрещены создание/редактирование, IP пишется только вручную кнопкой «Обновить».
-  if (isUserBlockedFromAdChanges() || hasAds) {
-    if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
-    noAdsIpHistoryTimer = null;
-    return;
-  }
-  // Нет реклам и нет запрета: записывать при входе и далее раз в 5 минут.
-  if (noAdsIpHistoryTimer !== null) return;
-  const saveIp = () => {
-    if (isUserBlockedFromAdChanges()) {
-      clearInterval(noAdsIpHistoryTimer);
-      noAdsIpHistoryTimer = null;
-      return;
-    }
-    Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
-      .catch(error => console.warn('Не удалось сохранить историю IP:', error));
-  };
-  saveIp();
-  noAdsIpHistoryTimer = setInterval(saveIp, NO_ADS_IP_HISTORY_INTERVAL);
-}
+
 const MY_ADS_REFRESH_COOLDOWN = 120000;
 const MY_ADS_REFRESH_STORAGE_KEY = 'myAdsLastManualRefreshAt';
 function updateMyAdsRefreshButton() {
