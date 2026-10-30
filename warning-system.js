@@ -1023,7 +1023,7 @@
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
     const lock = activeLock(rows);
-    if (lock && !['btn-support', 'btn-copy-token-blocked'].includes(button.id)) {
+    if (lock && !['btn-support', 'btn-copy-token-blocked'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
