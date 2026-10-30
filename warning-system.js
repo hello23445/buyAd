@@ -373,6 +373,18 @@
   function showWarningLock(lock) {
     const screen = document.getElementById('screen-blocked');
     if (!screen) return;
+    let blockedWarningsButton = document.getElementById('blocked-warning-list');
+    if (!blockedWarningsButton) {
+      blockedWarningsButton = document.createElement('button');
+      blockedWarningsButton.id = 'blocked-warning-list';
+      blockedWarningsButton.type = 'button';
+      blockedWarningsButton.className = 'btn btn--secondary';
+      blockedWarningsButton.addEventListener('click', openWarningsScreen);
+      const target = screen.querySelector('.stack') || screen;
+      target.appendChild(blockedWarningsButton);
+    }
+    blockedWarningsButton.textContent = currentLang() === 'ru' ? 'Список предупреждений' : 'Warning list';
+    blockedWarningsButton.hidden = false;
     document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== screen; });
     screen.hidden = false;
     screen.dataset.warningLock = 'true';
@@ -962,7 +974,7 @@
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
     const lock = activeLock(rows);
-    if (lock && !['btn-support', 'btn-copy-token-blocked', 'nav-warnings', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
+    if (lock && !['btn-support', 'btn-copy-token-blocked', 'nav-warnings', 'blocked-warning-list', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
