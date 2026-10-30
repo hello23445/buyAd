@@ -3946,7 +3946,7 @@ async function updateVariable(action, value) {
 
             for (const item of valuesToAdd) {
                 if (isPunishmentArray) {
-                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim(), ...(item.expiresAt ? { expiresAt: String(item.expiresAt) } : {}), ...(item.durationDays != null ? { durationDays: item.durationDays } : {}) } : { value: String(item || "").trim(), reason: "", adminName: "" };
+                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim(), ...(item.expiresAt ? { expiresAt: String(item.expiresAt) } : {}), ...(item.durationDays != null ? { durationDays: item.durationDays } : {}), ...(item.adminNameHidden != null ? { adminNameHidden: Boolean(item.adminNameHidden) } : {}) } : { value: String(item || "").trim(), reason: "", adminName: "" };
                     if (!normalized.value) continue;
                     const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value);
                     if (idx >= 0) oldArray[idx] = normalized; else oldArray.push(normalized);
@@ -4140,7 +4140,7 @@ $('admin-block-user').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banToken', token)) return;
-      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
@@ -4178,7 +4178,7 @@ $('admin-ban-create-edit').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('restrictAds', token)) return;
-      await updateVariable('BlockCreateAds', { value: token, reason, adminName: getAdminDisplayName(), durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      await updateVariable('BlockCreateAds', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
@@ -4216,7 +4216,7 @@ $('admin-ban-ip').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banIp', ip)) return;
-      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
       recordAdminAction('banIp');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
@@ -4254,7 +4254,7 @@ $('admin-ban-telegram-id').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banTelegramId', telegramId)) return;
-      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === telegramId) ? 'banAdmin' : 'banTelegramId');
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
