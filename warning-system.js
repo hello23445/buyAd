@@ -6,6 +6,7 @@
   'use strict';
 
   const WARN_KEY = 'buyAdWarningsV2';
+  const IP_HISTORY_KEY = 'buyAdUserIpHistoryV1';
   const LEGACY_WARN_KEY = 'buyAdWarningsV1';
   const USER_LOG_KEY = 'buyAdUserLogsV2';
   const ADMIN_LOG_KEY = 'buyAdAdminLogsV2';
@@ -60,6 +61,7 @@
     throw new Error('Не удалось сохранить ' + path + ': файл изменялся одновременно несколько раз.');
   };
   let cloudWarningsLoaded = false;
+  let cloudIpHistoryLoaded = false;
   const persistWarnings = rows => {
     if (!cloudWarningsLoaded) return;
     const serialized = JSON.stringify(rows);
@@ -71,10 +73,22 @@
       await githubPut('admin2.js', updated, 'Update user warnings');
     }).catch(error => console.error('Не удалось сохранить предупреждения в GitHub:', error));
   };
+  const persistIpHistory = rows => {
+    if (!cloudIpHistoryLoaded) return;
+    const serialized = JSON.stringify(rows);
+    window.__buyAdIpHistoryWriteQueue = (window.__buyAdIpHistoryWriteQueue || Promise.resolve()).catch(() => {}).then(async () => {
+      const current = await githubGet('admin2.js');
+      const pattern = /((?:export\\s+)?(?:let|const|var)\\s+UserIpHistory\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)/m;
+      if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив UserIpHistory');
+      const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
+      await githubPut('admin2.js', updated, 'Update IP lookup records');
+    }).catch(error => console.error('Не удалось сохранить историю IP:', error));
+  };
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       if (key === WARN_KEY) persistWarnings(value);
+      if (key === IP_HISTORY_KEY) persistIpHistory(value);
       return true;
     } catch (error) {
       console.warn('BuyAd local audit storage failed:', error);
@@ -86,8 +100,12 @@
       const current = await githubGet('admin2.js');
       const match = current.content.match(/(?:export\s+)?const\s+UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
       const remoteWarnings = match ? JSON.parse(match[1]) : [];
+      const ipMatch = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\[[\s\S]*?\])\s*;/);
+      const remoteIpHistory = ipMatch ? JSON.parse(ipMatch[1]) : [];
       safeWriteCache(WARN_KEY, Array.isArray(remoteWarnings) ? remoteWarnings : []);
+      safeWriteCache(IP_HISTORY_KEY, Array.isArray(remoteIpHistory) ? remoteIpHistory : []);
       cloudWarningsLoaded = true;
+      cloudIpHistoryLoaded = true;
       refresh();
     } catch (error) { console.error('Не удалось загрузить предупреждения из GitHub:', error); }
   }
@@ -585,19 +603,19 @@
     }), controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: 'Введите корректный IPv4 или IPv6 адрес.' };
-      const matches = readLogRows(USER_LOG_KEY).filter(row => row.ip === ip || row.details?.ip === ip);
+      if (!cloudIpHistoryLoaded) return { error: 'История IP ещё загружается из GitHub. Попробуйте ещё раз через несколько секунд.' };
+      const matches = safeRead(IP_HISTORY_KEY).filter(row => row.ip === ip);
       const users = new Map();
       matches.forEach(row => {
         const key = (row.token || '') + '|' + (row.telegramId || '');
-        users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—' });
+        users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—', lastSeen: row.lastSeen || '' });
       });
-      logAdmin('ip_lookup', { targetIp: ip, matches: users.size });
       const result = Array.from(users.values());
       return { title: 'Результат поиска по IP', message: result.length
         ? 'Найдено пользователей: ' + result.length + '\n\n' + result.map((item, index) =>
           (index + 1) + '. Токен: ' + item.token + '\n   Telegram ID: ' + item.telegramId
         ).join('\n\n')
-        : 'В локальной истории этого браузера совпадений нет.' };
+        : 'Совпадений по этому IP не найдено в общей истории.' };
     }, 'Найти');
   }
 
@@ -683,7 +701,16 @@
     if (!normalized || normalized === lastLoggedIp) return;
     clientIp = normalized;
     lastLoggedIp = normalized;
-    logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ip_observed', { ip: normalized });
+    const token = currentToken();
+    const telegramId = currentTelegramId();
+    if (!token && !telegramId) return;
+    const rows = safeRead(IP_HISTORY_KEY);
+    const key = row => (row.token || '') + '|' + (row.telegramId || '') + '|' + row.ip;
+    const record = { ip: normalized, token, telegramId, lastSeen: new Date().toISOString() };
+    const existing = rows.findIndex(row => key(row) === key(record));
+    if (existing >= 0) rows[existing] = record;
+    else rows.push(record);
+    safeWrite(IP_HISTORY_KEY, rows.slice(-10000));
   }
   async function loadClientIp() {
     try {
@@ -725,6 +752,7 @@
     };
     makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
     makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
+    makeButton('warn-ip-search', 'Найти пользователя по IP', 'fa-magnifying-glass-location', openIpSearchModal, 4);
   }
 
   function updateAdminButtonVisibility() {
@@ -764,6 +792,7 @@
     cleanupWarnings();
     refresh();
     loadCloudWarnings();
+    loadClientIp();
   }
 
   document.addEventListener('click', event => {
