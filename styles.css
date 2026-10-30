@@ -1547,3 +1547,14 @@ code.admin-ip-history {
   line-height: 1.8;
   text-align: left;
 }
+
+
+/* Platforms restricted by active account warnings */
+.platform-row.platform-row--warning-blocked {
+  opacity: 0.42;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+.platform-row[aria-disabled="true"] {
+  outline: 1px dashed rgba(220, 70, 70, 0.55);
+}
