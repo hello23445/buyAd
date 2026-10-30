@@ -195,6 +195,27 @@
         "label": "Выдать warn",
         "screen": ""
       }
+    },
+    {
+      "id": "log_1793379075287_mq93o89",
+      "timestamp": "2026-10-30T16:51:15.287Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "",
+      "telegramId": "8085105056",
+      "event": "warning_issued",
+      "details": {
+        "reason": "Неадекват",
+        "issuedAt": "2026-10-30T16:51:15.286Z",
+        "removeAt": "2026-11-03T16:34:57.522Z",
+        "adminName": "",
+        "adminNameHidden": true,
+        "adminToken": "1Y6QLQHT0JZRS2GK",
+        "adminTelegramId": "6434781065",
+        "warningCount": 2,
+        "durationDays": 2,
+        "lockUntil": ""
+      }
     }
   ]
 }\n
