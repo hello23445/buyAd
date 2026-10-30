@@ -240,17 +240,34 @@ function closeModal() {
 }
 $('modal-close').onclick = closeModal;
 
+function formatPunishmentDuration(entry, lang) {
+  if (!entry || typeof entry !== 'object' || !entry.expiresAt) {
+    return lang === 'ru' ? 'навсегда' : 'permanently';
+  }
+  const expiresAt = Date.parse(entry.expiresAt);
+  if (!Number.isFinite(expiresAt)) return lang === 'ru' ? 'навсегда' : 'permanently';
+  const remaining = Math.max(0, expiresAt - Date.now());
+  const days = Math.ceil(remaining / 86400000);
+  return lang === 'ru' ? 'на ' + days + ' ' + (days === 1 ? 'день' : [2,3,4].includes(days) ? 'дня' : 'дней') : 'for ' + days + (days === 1 ? ' day' : ' days');
+}
 function showFeatureBlockedModal(type) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const i18nLang = i18n[lang] || i18n.ru;
   const title = i18nLang.attentionTitle || 'Внимание';
-  const body = type === 'edit'
+  let body = type === 'edit'
     ? (i18nLang.editDisabled || 'Возможность редактировать рекламу временно отключена.')
     : (i18nLang.createDisabled || 'Возможность создавать рекламу временно отключена.');
+  const token = localStorage.getItem(LS.token);
+  const entry = findPunishmentEntry('BlockCreateAds', token);
+  if (entry) {
+    const durationText = formatPunishmentDuration(entry, lang);
+    body += lang === 'ru' ? '\\n\\nОграничение действует: ' + durationText + '.' : '\\n\\nRestriction duration: ' + durationText + '.';
+    const adminName = entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
+    const nameHidden = entry && typeof entry === 'object' && entry.adminNameHidden === true;
+    if (adminName && !nameHidden) body += lang === 'ru' ? '\\nАдминистратор: ' + adminName : '\\nAdministrator: ' + adminName;
+  }
   const okText = i18nLang.ok || i18nLang.yes || 'ОК';
-  openModal(title, body, [
-    { text: okText, class: 'btn btn--primary', onClick: () => {} }
-  ]);
+  openModal(title, body, [{ text: okText, class: 'btn btn--primary', onClick: () => {} }]);
 }
 
 /* ========== STORAGE ========== */
@@ -1278,6 +1295,12 @@ async function applyRuntimeBlockings() {
       const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
       punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
       punishmentAdminName = matchedIP ? getPunishmentAdminName('BlockedUsersIPadresses', matchedIP) : '';
+    }
+    const punishmentEntry = isTokenBan ? findPunishmentEntry('BanForever', token) : isTelegramBan ? findPunishmentEntry('BlockedUsersTelegramID', String(tg?.initDataUnsafe?.user?.id || '')) : (() => { const ips=getSavedUserAPIs(); const hit=ips.find(ip=>runtimeArray('BlockedUsersIPadresses', []).some(entry=>punishmentEntryValue(entry)===ip)); return hit ? findPunishmentEntry('BlockedUsersIPadresses', hit) : null; })();
+    const durationEl = $('blocked-duration');
+    if (durationEl) {
+      durationEl.textContent = (lang === 'ru' ? 'Срок блокировки: ' : 'Ban duration: ') + formatPunishmentDuration(punishmentEntry, lang);
+      durationEl.hidden = false;
     }
     const reasonEl = $('blocked-reason');
     if (reasonEl) {
