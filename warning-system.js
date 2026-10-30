@@ -355,13 +355,17 @@
     const adminLabel = lock.adminNameHidden || !lock.adminName ? tr('adminNameHidden', 'Скрыто', 'Hidden') : lock.adminName;
     if (reason) {
       reason.hidden = false;
+      reason.style.whiteSpace = 'pre-line';
       reason.textContent = currentLang() === 'ru'
-        ? 'Причина блокировки: 3/3 предупреждений. Причина выдачи предупреждения: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '. Дата выдачи: ' + formatDate(lock.issuedAt) + '.'
-        : 'Reason for block: 3/3 warnings. Warning reason: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '. Issued: ' + formatDate(lock.issuedAt) + '.';
+        ? 'Причина блокировки: 3/3 предупреждений\\nПричина выдачи предупреждения: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\\nДата выдачи: ' + formatDate(lock.issuedAt)
+        : 'Reason for block: 3/3 warnings\\nWarning reason: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\\nIssued on: ' + formatDate(lock.issuedAt);
     }
     if (duration) {
       duration.hidden = false;
-      duration.textContent = currentLang() === 'ru' ? 'Блокировка на 5 дней. Разблокировка: ' + formatDateTime(lock.lockUntil) + '.' : 'Blocked for 5 days. Unlocks: ' + formatDateTime(lock.lockUntil) + '.';
+      duration.style.whiteSpace = 'pre-line';
+      duration.textContent = currentLang() === 'ru'
+        ? 'Разблокировка: ' + formatDateTime(lock.lockUntil) + '\\nБлокировка на 5 дней'
+        : 'Unlocks: ' + formatDateTime(lock.lockUntil) + '\\nBlocked for 5 days';
     }
     if (byAdmin) {
       byAdmin.hidden = false;
@@ -638,11 +642,29 @@
     if (currentLevel() < 4) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), lang === 'ru' ? 'Поиск пользователей по IP доступен администраторам 4-го уровня и выше.' : 'IP search is available to level 4 and above administrators.');
     openForm(tr('warningIpSearch', 'Найти пользователя по IP', 'Find user by IP'), body => ({
       ip: field(body, tr('warningIpLabel', 'IP-адрес', 'IP address'), { placeholder: tr('warningIpPlaceholder', 'Например, 192.0.2.1', 'For example, 192.0.2.1'), required: true })
-    }), controls => {
+    }), async controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
       if (!cloudIpHistoryLoaded) return { error: tr('warningIpLoading', 'История IP ещё загружается из GitHub. Попробуйте ещё раз через несколько секунд.', 'IP history is still loading from GitHub. Try again in a few seconds.') };
-      const matches = safeRead(IP_HISTORY_KEY).filter(row => row.ip === ip);
+      // Refresh shared history only when an administrator explicitly searches.
+      // Do not make an IP-history request/write just because the app was opened.
+      let history = safeRead(IP_HISTORY_KEY);
+      try {
+        const current = await githubGet('admin2.js');
+        const match = current.content.match(/(?:export\\s+)?const\\s+UserIpHistory\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
+        if (match) {
+          const remote = JSON.parse(match[1]);
+          if (Array.isArray(remote)) {
+            history = remote;
+            safeWriteCache(IP_HISTORY_KEY, remote);
+            cloudIpHistoryLoaded = true;
+          }
+        }
+      } catch (error) {
+        console.warn('Не удалось обновить историю IP перед поиском:', error);
+      }
+      const normalizeIp = value => String(value || '').trim().toLowerCase().replace(/^::ffff:/, '');
+      const matches = history.filter(row => normalizeIp(row.ip) === normalizeIp(ip));
       const users = new Map();
       matches.forEach(row => {
         const key = (row.token || '') + '|' + (row.telegramId || '');
@@ -894,7 +916,6 @@
     cleanupWarnings();
     refresh();
     loadCloudWarnings();
-    loadClientIp();
   }
 
   document.addEventListener('click', event => {
