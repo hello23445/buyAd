@@ -1,6 +1,6 @@
 //Пользователю
 export const BanForever = []; // { value, reason, adminName, expiresAt, durationDays }
-export const BlockCreateAds = [{"value":"GoYy3n2oRheOiByJ","reason":"2.1 правил","adminName":"Главный администратор","expiresAt":"2026-11-29T06:53:38.792Z","durationDays":30},{"value":"UYD7W9EONYMNENH5","reason":"2.1 правил.","adminName":"","expiresAt":"2026-11-29T06:54:43.509Z","durationDays":30}]; // { value, reason, adminName, expiresAt, durationDays }; без expiresAt = бессрочно
+export const BlockCreateAds = []; // { value, reason, adminName, expiresAt, durationDays }; без expiresAt = бессрочно
 export const BlockedUsersTelegramID = []; // { value, reason, adminName, expiresAt, durationDays }
 export const BlockedUsersIPadresses = []; // { value, reason, adminName, expiresAt, durationDays }
 //Общее
