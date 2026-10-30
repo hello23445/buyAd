@@ -278,6 +278,20 @@
         "adminNameHidden": true,
         "unlocked": false
       }
+    },
+    {
+      "id": "log_1793379228954_2y1ky15",
+      "timestamp": "2026-10-30T16:53:48.954Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "ui_action",
+      "details": {
+        "buttonId": "",
+        "label": "OK",
+        "screen": ""
+      }
     }
   ]
 }\n
