@@ -4,6 +4,7 @@ export const BlockCreateAds = []; // { value, reason, adminName, expiresAt, dura
 export const BlockedUsersTelegramID = []; // { value, reason, adminName, expiresAt, durationDays }
 export const BlockedUsersIPadresses = []; // { value, reason, adminName, expiresAt, durationDays }
 export const UserWarnings = []; // { id, token, telegramId, reason, issuedAt, removeAt, adminToken, adminTelegramId, adminName, adminNameHidden, count, lockUntil }
+export const UserIpHistory = []; // { ip, token, telegramId, lastSeen }
 //Общее
 export const CloseApp = "not_closed"; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
 export const GASESES = "true"; // '' или 'no' — если 'no' тогда блокируем обращения к GAS.
