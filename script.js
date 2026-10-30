@@ -104,6 +104,8 @@ if (tg) {
         document.getElementById('back-from-crystals').click();
       } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
         document.getElementById('back-from-admin').click();
+      } else if (currentScreen === 'screen-restricted-users' && document.getElementById('back-from-restricted-users')) {
+        document.getElementById('back-from-restricted-users').click();
       } else if (currentScreen === 'screen-review-ads' && document.getElementById('back-from-review-ads')) {
         document.getElementById('back-from-review-ads').click();
       } else if (currentScreen === 'screen-warnings' && document.getElementById('back-from-warnings')) {
@@ -127,6 +129,7 @@ function refreshBackButton() {
     'screen-ad-statistics',
     'screen-crystals',
     'screen-admin',
+    'screen-restricted-users',
     'screen-settings',
     'screen-review-ads',
     'screen-warnings'
@@ -574,6 +577,7 @@ function updateAdminLevelBadge() {
   }
   const ipCard = $('admin-ip-info-card');
   if (ipCard) ipCard.hidden = !adminHasPermission('viewOwnIp');
+  if (ipCard && !ipCard.hidden) loadAdminOwnIp();
 
   // warning-system.js создаёт эти пункты динамически, поэтому обновляем их
   // после каждого пересчёта уровня, а не только при первоначальной загрузке.
@@ -2069,6 +2073,12 @@ let previousEditScreen = null; // To track where edit was opened from
 });
 
 // Special handling for back-from-settings
+$('back-from-restricted-users')?.addEventListener('click', () => {
+  hideAllScreens();
+  show($('screen-admin'));
+  updateAdminLevelBadge();
+});
+
 $('back-from-settings').onclick = () => {
   hideAllScreens();
   if ($('btn-open-settings')) {
@@ -3720,13 +3730,15 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
 $('admin-restricted').onclick = async () => {
   if (!adminGuard('viewRestricted')) return;
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  hideAllScreens();
+  show($('screen-restricted-users'));
   if (isGasDisabled()) {
     const list = $('admin-restricted-list');
     list.innerHTML = '';
+    openModal(lang === 'ru' ? 'GAS отключён' : 'GAS disabled', '');
     return;
   }
   showPreloader();
-  show($('admin-panel-restricted'));
   const list = $('admin-restricted-list');
   list.innerHTML = '';
   try {
@@ -4338,21 +4350,45 @@ $('admin-ban-ip').onclick = () => {
   }, 'Введите IP-адрес пользователя');
 };
 
-$('admin-view-own-ip')?.addEventListener('click', async () => {
-  if (!adminGuard('viewOwnIp')) return;
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  const button = $('admin-view-own-ip');
-  if (button) button.disabled = true;
+async function loadAdminOwnIp() {
+  const value = $('admin-own-ip-value');
+  const copy = $('admin-own-ip-copy');
+  if (!value || !adminHasPermission('viewOwnIp')) return;
+  value.textContent = 'Определение IP…';
+  if (copy) copy.disabled = true;
   try {
     const ip = await getClientIp();
-    if (!ip) throw new Error(lang === 'ru' ? 'Не удалось определить IP-адрес.' : 'Could not determine your IP address.');
-    openModal(lang === 'ru' ? 'Мой IP-адрес' : 'My IP address', ip);
+    if (!ip) throw new Error('Не удалось определить IP-адрес.');
+    value.textContent = ip;
+    if (copy) {
+      copy.disabled = false;
+      copy.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(ip);
+        } catch (_) {
+          const temp = document.createElement('textarea');
+          temp.value = ip;
+          temp.style.position = 'fixed';
+          temp.style.opacity = '0';
+          document.body.appendChild(temp);
+          temp.select();
+          const copied = document.execCommand('copy');
+          temp.remove();
+          if (!copied) throw new Error('copy failed');
+        }
+        const span = copy.querySelector('span');
+        if (span) {
+          const oldText = span.textContent;
+          span.textContent = 'Скопировано';
+          setTimeout(() => { span.textContent = oldText; }, 1800);
+        }
+      };
+    }
   } catch (error) {
-    openModal(lang === 'ru' ? 'Ошибка' : 'Error', error.message || String(error));
-  } finally {
-    if (button) button.disabled = false;
+    value.textContent = error.message || 'Не удалось определить IP-адрес.';
   }
-});
+}
+$('admin-own-ip-refresh')?.addEventListener('click', loadAdminOwnIp);
 
 $('admin-unban-ip').onclick = () => {
   openAdminTokenModal('Разбанить пользователя по его IP-адресу', async ip => {
