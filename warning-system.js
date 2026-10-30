@@ -126,6 +126,7 @@
       };
     }
     refresh();
+    loadClientIp();
   }
   document.addEventListener('click', e => {
     const button = e.target.closest('button,[role="button"]');
