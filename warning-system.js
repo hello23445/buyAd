@@ -134,7 +134,7 @@
     try { return typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null; }
     catch (_) { return null; }
   };
-  const currentToken = () => String(localStorage.getItem('token') || localStorage.getItem('userToken') || '');
+  const currentToken = () => String(localStorage.getItem('get_UserToken') || localStorage.getItem('token') || localStorage.getItem('userToken') || '');
   const currentTelegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
   const currentLevel = () => Number(currentAdmin()?.admin_level || 0);
   const localDate = (date = new Date()) => {
@@ -847,6 +847,7 @@
     cleanupWarnings();
     refresh();
     loadClientIp();
+    loadCloudRecords();
   }
 
   document.addEventListener('click', event => {
