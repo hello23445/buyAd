@@ -245,12 +245,12 @@
         onClick: () => {
           Promise.resolve().then(() => submit(controls)).then(result => {
             if (result && result.error) {
-              showMessage('Не удалось выполнить действие', result.error);
+              showMessage(tr('warningActionFailedTitle', 'Не удалось выполнить действие', 'Action failed'), result.error);
             } else if (result && result.message) {
               showMessage(result.title || 'Готово', result.message);
             }
           }).catch(error => {
-            showMessage('Не удалось сохранить в GitHub', error && error.message ? error.message : String(error));
+            showMessage(tr('warningSaveFailedTitle', 'Не удалось сохранить в GitHub', 'Could not save to GitHub'), error && error.message ? error.message : String(error));
           });
         }
       },
@@ -444,7 +444,7 @@
   async function issueWarning(targetValue, reasonValue) {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
-    if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
+    if (!admin || currentLevel() < 2) return { error: tr('warningDeniedIssue', 'Выдавать предупреждения могут администраторы 2-го уровня и выше.', 'Only administrators level 2 and above can issue warnings.') };
     const reason = String(reasonValue || '').trim();
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
@@ -511,20 +511,21 @@
       lockUntil: warning.lockUntil || ''
     });
     refresh();
-    return { message: count === 3
-      ? 'Выдано предупреждение 3/3. Аккаунт заблокирован на 5 дней.'
-      : 'Предупреждение выдано: ' + count + '/3.' };
+    const successText = count === 3
+      ? tr('warningIssuedLock', 'Выдано предупреждение 3/3. Аккаунт заблокирован на 5 дней.', 'Warning 3/3 issued. Account locked for 5 days.')
+      : tr('warningIssuedSuccess', 'Предупреждение выдано: {count}/3.', 'Warning issued: {count}/3.').replace('{count}', String(count));
+    return { message: successText };
   }
 
   async function removeWarnings(targetValue) {
-    if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
-    if (currentLevel() !== 5) return { error: 'Снимать предупреждения может только администратор 5-го уровня.' };
+    if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
+    if (currentLevel() !== 5) return { error: tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.') };
     const target = targetFromInput(targetValue);
-    if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
+    if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
     const rows = warnings();
     const originalRows = rows.map(row => ({ ...row }));
     const removed = rows.filter(row => targetMatches(row, target));
-    if (!removed.length) return { error: 'У пользователя нет предупреждений.' };
+    if (!removed.length) return { error: tr('warningNoneForUser', 'У пользователя нет предупреждений.', 'The user has no warnings.') };
     try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждений не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
@@ -543,9 +544,10 @@
       unlocked: removed.some(row => row.lockUntil)
     });
     refresh();
-    return { message: removed.some(row => row.lockUntil)
-      ? 'Все предупреждения сняты. Блокировка 3/3 отменена.'
-      : 'Снято предупреждений: ' + removed.length + '.' };
+    const successText = removed.some(row => row.lockUntil)
+      ? tr('warningRemovedUnlock', 'Все предупреждения сняты. Блокировка 3/3 отменена.', 'All warnings removed. The 3/3 lock has been lifted.')
+      : tr('warningRemovedSuccess', 'Снято предупреждений: {count}.', 'Warnings removed: {count}.').replace('{count}', String(removed.length));
+    return { message: successText };
   }
 
   function openIssueWarningModal() {
