@@ -1,25 +1,5 @@
 {
   "schemaVersion": 2,
-  "storageMode": "github-api",
-  "repositoryNote": "Live entries are synchronized through the GitHub Contents API. Keep this repository private and restrict access to trusted maintainers. Runtime records are written to entries.",
-  "entrySchema": {
-    "id": "uuid",
-    "timestamp": "ISO-8601 UTC",
-    "adminToken": "string (private administrator token)",
-    "adminTelegramId": "string|null (private)",
-    "adminName": "string|null",
-    "adminNameHidden": "boolean",
-    "adminLevel": "number",
-    "action": "warning_issued|warnings_removed|warning_removed_automatically|automatic_unlock_and_clear|punishment_issued|punishment_removed|ip_banned|ip_unbanned|ad_reviewed|ad_approved|ad_rejected|user_log_viewed|admin_log_viewed|ip_lookup|menu_opened|ui_action|system_setting_changed|other",
-    "targetToken": "string|null (private)",
-    "targetTelegramId": "string|null (private)",
-    "targetIp": "string|null (private)",
-    "reason": "string|null",
-    "durationDays": "number|null",
-    "adId": "string|null",
-    "decision": "approved|rejected|null",
-    "details": "object"
-  },
   "entries": [
     {
       "id": "log_1793378056352_1t3ab34",
@@ -139,6 +119,34 @@
       "details": {
         "menu": "Выдать предупреждение (warn)",
         "buttonId": "warn-issue"
+      }
+    },
+    {
+      "id": "log_1793379075287_qydmhkg",
+      "timestamp": "2026-10-30T16:51:15.287Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "warning_issued",
+      "targetToken": "",
+      "targetTelegramId": "8085105056",
+      "targetIp": "",
+      "reason": "Неадекват",
+      "durationDays": 2,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "targetToken": "",
+        "targetTelegramId": "8085105056",
+        "reason": "Неадекват",
+        "durationDays": 2,
+        "warningCount": 2,
+        "warningId": "warn_1793379075286_ygxgm",
+        "adminNameHidden": true
       }
     }
   ]
