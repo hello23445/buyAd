@@ -724,7 +724,9 @@
     const existing = rows.findIndex(row => key(row) === key(record));
     if (existing >= 0) rows[existing] = record;
     else rows.push(record);
-    const limitedRows = rows.slice(-10000);\n    safeWrite(IP_HISTORY_KEY, limitedRows);\n    persistIpHistory(limitedRows).catch(error => console.error('Не удалось сохранить историю IP в GitHub:', error));
+    const limitedRows = rows.slice(-10000);
+    safeWrite(IP_HISTORY_KEY, limitedRows);
+    persistIpHistory(limitedRows).catch(error => console.error('Не удалось сохранить историю IP в GitHub:', error));
   }
   async function loadClientIp() {
     try {
