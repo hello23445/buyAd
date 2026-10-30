@@ -334,6 +334,12 @@
         if (button.title === 'Недоступно при наличии предупреждения') button.removeAttribute('title');
       }
     });
+    document.querySelectorAll('.platform-row').forEach(row => {
+      const shouldBlock = blocked && denied(row.dataset.value || row.textContent);
+      row.setAttribute('aria-disabled', shouldBlock ? 'true' : 'false');
+      row.classList.toggle('platform-row--warning-blocked', shouldBlock);
+      row.title = shouldBlock ? 'Недоступно при наличии предупреждения' : '';
+    });
   }
 
   const dailyAdKey = () => 'buyAd_warningAdCreated_' + (currentToken() || currentTelegramId());
