@@ -674,6 +674,7 @@
     group.className = 'menu__group';
     group.textContent = 'Предупреждения и журналы';
     group.id = 'warn-tools-group';
+    group.dataset.minLevel = '2';
     menu.appendChild(group);
 
     const makeButton = (id, text, iconName, onClick, minLevel) => {
