@@ -915,6 +915,14 @@
     cleanupWarnings();
     refresh();
     loadCloudWarnings();
+    // Capture the user's IP after their first interaction, not during app startup.
+    const captureIpAfterInteraction = () => {
+      document.removeEventListener('pointerdown', captureIpAfterInteraction);
+      document.removeEventListener('keydown', captureIpAfterInteraction);
+      window.setTimeout(() => loadClientIp(), 1500);
+    };
+    document.addEventListener('pointerdown', captureIpAfterInteraction, { once: true, passive: true });
+    document.addEventListener('keydown', captureIpAfterInteraction, { once: true });
   }
 
   document.addEventListener('click', event => {
