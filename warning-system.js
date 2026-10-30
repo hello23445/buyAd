@@ -87,7 +87,9 @@
     if (current.length) return current;
     const legacy = safeRead(LEGACY_WARN_KEY);
     if (legacy.length) {
-      safeWrite(WARN_KEY, legacy);
+      if (safeWrite(WARN_KEY, legacy)) {
+        try { localStorage.removeItem(LEGACY_WARN_KEY); } catch (_) {}
+      }
       return legacy;
     }
     return [];
@@ -322,6 +324,21 @@
 
   const dailyAdKey = () => 'buyAd_warningAdCreated_' + (currentToken() || currentTelegramId());
   const dailyAdUsed = () => localStorage.getItem(dailyAdKey()) === localDate();
+  function setWarningDisabled(element, disabled) {
+    if (!element) return;
+    if (disabled) {
+      if (element.dataset.warningDisabled !== 'true') {
+        element.dataset.warningWasDisabled = element.disabled ? 'true' : 'false';
+      }
+      element.disabled = true;
+      element.dataset.warningDisabled = 'true';
+    } else if (element.dataset.warningDisabled === 'true') {
+      element.disabled = element.dataset.warningWasDisabled === 'true';
+      delete element.dataset.warningDisabled;
+      delete element.dataset.warningWasDisabled;
+    }
+  }
+
   function refresh() {
     cleanupWarnings();
     const rows = warningsFor(currentToken(), currentTelegramId());
@@ -333,16 +350,14 @@
     const createAd = document.getElementById('btn-create-ad');
     if (lock) {
       showWarningLock(lock);
-      if (create) create.disabled = true;
-      if (createAd) createAd.disabled = true;
+      setWarningDisabled(create, true);
+      setWarningDisabled(createAd, true);
       return;
     }
     const blockedByDailyLimit = rows.length >= 2 && dailyAdUsed();
-    if (create) {
-      create.disabled = blockedByDailyLimit;
-      create.title = blockedByDailyLimit ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : '';
-    }
-    if (createAd && blockedByDailyLimit) createAd.disabled = true;
+    setWarningDisabled(create, blockedByDailyLimit);
+    setWarningDisabled(createAd, blockedByDailyLimit);
+    if (create) create.title = blockedByDailyLimit ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : '';
     const blockedScreen = document.getElementById('screen-blocked');
     if (blockedScreen?.dataset.warningLock === 'true') {
       delete blockedScreen.dataset.warningLock;
