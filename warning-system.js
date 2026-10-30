@@ -560,7 +560,7 @@
     }
   }
 
-  async function issueWarning(targetValue, reasonValue) {
+  async function issueWarning(targetValue, reasonValue, requestedAmount = 1) {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
     if (!admin || currentLevel() < 2) return { error: tr('warningDeniedIssue', 'Выдавать предупреждения могут администраторы 2-го уровня и выше.', 'Only administrators level 2 and above can issue warnings.') };
@@ -568,6 +568,7 @@
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
+    const amount = currentLevel() >= 4 ? Math.max(1, Math.min(3, Math.floor(Number(requestedAmount) || 1))) : 1;
     cleanupWarnings();
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const originalRows = rows.map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
@@ -575,67 +576,81 @@
     if (current.length >= 3 || current.some(row => row.lockUntil)) {
       return { error: currentLang() === 'ru' ? 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' : 'The user already has 3/3 warnings. No more warnings can be issued.' };
     }
+    if (current.length + amount > 3) {
+      return { error: currentLang() === 'ru' ? 'Нельзя выдать столько предупреждений: у пользователя осталось ' + (3 - current.length) + ' до блокировки.' : 'Cannot issue that many warnings. The user has ' + (3 - current.length) + ' warning slots remaining.' };
+    }
+
     const limits = { 2: 2, 3: 4, 4: 7, 5: Infinity };
     const limit = limits[currentLevel()] || 0;
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
     const issuedToday = rows.filter(row => row.adminToken === adminId && warningTime(row) > 0 && localDate(new Date(warningTime(row))) === today).length;
-    if (issuedToday >= limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' : 'Daily warning limit reached: ' + limit + '.' };
+    if (issuedToday + amount > limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений. Осталось выдать сегодня: ' + Math.max(0, limit - issuedToday) + '.' : 'Daily warning limit reached. Remaining warnings today: ' + Math.max(0, limit - issuedToday) + '.' };
 
     const now = new Date();
-    const count = current.length + 1;
     const hidden = adminNameHidden();
-    const warning = {
-      id: 'warn_' + now.getTime() + '_' + Math.random().toString(36).slice(2, 7),
-      ...target,
-      reason,
-      issuedAt: now.toISOString(),
-      adminToken: adminId,
-      adminTelegramId: currentTelegramId(),
-      adminName: hidden ? '' : adminName(),
-      adminNameHidden: hidden,
-      count
-    };
-    scheduleNewWarning(rows, warning);
-    rows.push(warning);
-
-    if (count === 3) {
-      const lockUntil = new Date(now.getTime() + FIVE_DAYS).toISOString();
-      for (let index = 0; index < rows.length; index++) {
-        if (targetMatches(rows[index], target)) rows[index] = { ...rows[index], lockUntil, removeAt: lockUntil };
+    const created = [];
+    let lockUntil = '';
+    for (let index = 0; index < amount; index++) {
+      const count = current.length + index + 1;
+      const warning = {
+        id: 'warn_' + now.getTime() + '_' + index + '_' + Math.random().toString(36).slice(2, 7),
+        ...target,
+        reason,
+        issuedAt: new Date(now.getTime() + index).toISOString(),
+        adminToken: adminId,
+        adminTelegramId: currentTelegramId(),
+        adminName: hidden ? '' : adminName(),
+        adminNameHidden: hidden,
+        count
+      };
+      scheduleNewWarning(rows, warning);
+      rows.push(warning);
+      created.push(warning);
+      if (count === 3) {
+        lockUntil = new Date(now.getTime() + FIVE_DAYS).toISOString();
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          if (targetMatches(rows[rowIndex], target)) rows[rowIndex] = { ...rows[rowIndex], lockUntil, removeAt: lockUntil };
+        }
       }
     }
+
     try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Варн не сохранён в GitHub: ' : 'Warning was not saved to GitHub: ') + (error.message || error) }; }
+    const finalCount = current.length + amount;
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
       reason: reason || 'Не указана',
-      durationDays: count === 3 ? 5 : 2,
-      warningCount: count,
-      warningId: warning.id,
+      durationDays: finalCount === 3 ? 5 : 2,
+      warningCount: finalCount,
+      issuedAmount: amount,
+      warningIds: created.map(row => row.id),
       adminNameHidden: hidden
     };
     logAdmin('warning_issued', details);
     logUser(target, 'warning_issued', {
       reason: reason || 'Не указана',
-      issuedAt: warning.issuedAt,
-      removeAt: warning.removeAt,
-      adminName: warning.adminName,
+      issuedAt: now.toISOString(),
+      removeAt: created[created.length - 1]?.removeAt || '',
+      adminName: hidden ? '' : adminName(),
       adminNameHidden: hidden,
       adminToken: adminId,
       adminTelegramId: currentTelegramId(),
-      warningCount: count,
-      durationDays: count === 3 ? 5 : 2,
-      lockUntil: warning.lockUntil || ''
+      warningCount: finalCount,
+      issuedAmount: amount,
+      durationDays: finalCount === 3 ? 5 : 2,
+      lockUntil
     });
     refresh();
-    const successText = count === 3
+    const successText = finalCount === 3
       ? tr('warningIssuedLock', 'Выдано предупреждение 3/3. Аккаунт заблокирован на 5 дней.', 'Warning 3/3 issued. Account locked for 5 days.')
-      : tr('warningIssuedSuccess', 'Предупреждение выдано: {count}/3.', 'Warning issued: {count}/3.').replace('{count}', String(count));
+      : currentLang() === 'ru'
+        ? 'Выдано предупреждений: ' + amount + '. Текущий счёт: ' + finalCount + '/3.'
+        : 'Warnings issued: ' + amount + '. Current count: ' + finalCount + '/3.';
     return { message: successText };
   }
 
-  async function removeWarnings(targetValue) {
+    async function removeWarnings(targetValue) {
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
     if (currentLevel() !== 5) return { error: tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.') };
     const target = targetFromInput(targetValue);
@@ -676,6 +691,25 @@
         target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true }),
         reason: field(body, tr('warningReasonLabel', 'Причина (необязательно)', 'Reason (optional)'), { multiline: true, placeholder: tr('warningReasonPlaceholder', 'Укажите причину, если необходимо', 'Enter a reason if needed'), rows: 3 })
       };
+      if (currentLevel() >= 4) {
+        const amountWrap = document.createElement('label');
+        amountWrap.className = 'admin-create-field';
+        amountWrap.style.cssText = 'display:grid;gap:6px;margin-bottom:10px;';
+        const amountLabel = document.createElement('span');
+        amountLabel.textContent = lang === 'ru' ? 'Количество предупреждений' : 'Number of warnings';
+        amountLabel.style.fontWeight = '600';
+        const amountSelect = document.createElement('select');
+        amountSelect.style.cssText = 'width:100%;box-sizing:border-box;padding:0.75rem;border:1px solid rgba(128,128,128,.45);border-radius:10px;font:inherit;background:var(--card-bg, #111a2f);color:inherit;';
+        [1, 2, 3].forEach(value => {
+          const option = document.createElement('option');
+          option.value = String(value);
+          option.textContent = String(value);
+          amountSelect.appendChild(option);
+        });
+        amountWrap.append(amountLabel, amountSelect);
+        body.appendChild(amountWrap);
+        controls.amount = amountSelect;
+      }
       if (currentLevel() === 5) {
         const wrap = document.createElement('label');
         wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin:8px 0;';
@@ -692,7 +726,7 @@
       return controls;
     }, async controls => {
       if (controls.hideName) localStorage.setItem(WARN_HIDE_NAME_KEY, controls.hideName.checked ? 'true' : 'false');
-      return await issueWarning(controls.target.value, controls.reason.value);
+      return await issueWarning(controls.target.value, controls.reason.value, controls.amount ? Number(controls.amount.value) : 1);
     }, lang === 'ru' ? 'Выдать warn' : 'Issue warning');
   }
 
