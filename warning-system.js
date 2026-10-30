@@ -645,7 +645,6 @@
     }), async controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
-      if (!cloudIpHistoryLoaded) return { error: tr('warningIpLoading', 'История IP ещё загружается из GitHub. Попробуйте ещё раз через несколько секунд.', 'IP history is still loading from GitHub. Try again in a few seconds.') };
       // Refresh shared history only when an administrator explicitly searches.
       // Do not make an IP-history request/write just because the app was opened.
       let history = safeRead(IP_HISTORY_KEY);
