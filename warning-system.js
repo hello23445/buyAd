@@ -745,12 +745,82 @@
     } catch (_) {}
   }
 
+  let warningScreen = null;
+  let warningScreenList = null;
+
+  function renderWarningsScreen() {
+    if (!warningScreenList) return;
+    const lang = currentLang();
+    const rows = warningsFor(currentToken(), currentTelegramId());
+    if (!rows.length) {
+      warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(tr('warningEmpty', 'Предупреждений нет.', 'No warnings.')) + '</div></div>';
+      return;
+    }
+    warningScreenList.innerHTML = rows.map((row, index) => {
+      const name = row.adminNameHidden || !row.adminName ? tr('adminNameHidden', 'Скрыто', 'Hidden') : row.adminName;
+      return '<article class="card warning-entry">' +
+        '<div class="card__title">' + escapeHtml(tr('warningCountLabel', 'Предупреждение', 'Warning')) + ' ' + (index + 1) + '/3</div>' +
+        '<p>' + escapeHtml(tr('warningIssuedLabel', 'Выдано', 'Issued')) + ': ' + escapeHtml(formatDate(row.issuedAt)) + '</p>' +
+        '<p>' + escapeHtml(tr('warningRemoveAtLabel', 'Снятие', 'Removal')) + ': ' + escapeHtml(formatDate(row.removeAt)) + '</p>' +
+        '<p>' + escapeHtml(tr('warningReasonPrefix', 'Причина', 'Reason')) + ': ' + escapeHtml(row.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '</p>' +
+        '<p>' + escapeHtml(tr('warningByLabel', 'Выдал', 'Issued by')) + ': ' + escapeHtml(name) + '</p>' +
+      '</article>';
+    }).join('');
+  }
+
+  function createWarningScreen() {
+    if (warningScreen || !document.querySelector('main')) return;
+    warningScreen = document.createElement('section');
+    warningScreen.id = 'screen-warnings';
+    warningScreen.className = 'screen';
+    warningScreen.hidden = true;
+    warningScreen.innerHTML = '<div class="stack">' +
+      '<div class="screen__head">' +
+      '<button class="back-btn" id="back-from-warnings" type="button" aria-label="' + escapeHtml(tr('reviewBack', 'Назад', 'Back')) + '"><i class="fa-solid fa-arrow-left"></i></button>' +
+      '<div class="screen__title" id="warning-screen-title">' + escapeHtml(tr('warningTitle', 'Список предупреждений', 'Warning list')) + '</div>' +
+      '</div><div id="warning-list-content" class="stack-sm"></div></div>';
+    document.querySelector('main').appendChild(warningScreen);
+    warningScreenList = warningScreen.querySelector('#warning-list-content');
+    warningScreen.querySelector('#back-from-warnings').addEventListener('click', () => {
+      document.querySelectorAll('.screen').forEach(item => { item.hidden = item.id !== 'screen-main'; });
+      if (typeof refreshBackButton === 'function') refreshBackButton();
+    });
+  }
+
+  function openWarningsScreen() {
+    createWarningScreen();
+    if (!warningScreen) return;
+    document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== warningScreen; });
+    warningScreen.hidden = false;
+    renderWarningsScreen();
+    if (typeof refreshBackButton === 'function') refreshBackButton();
+  }
+
+  function applyLanguage(lang = currentLang()) {
+    const dict = typeof i18n !== 'undefined' ? i18n[lang] : null;
+    const setLabel = (id, key, ru, en) => {
+      const el = document.querySelector('#' + id + ' .menu__text');
+      if (el) el.textContent = (dict && dict[key]) || (lang === 'ru' ? ru : en);
+    };
+    const group = document.getElementById('warn-tools-group');
+    if (group) group.textContent = (dict && dict.warningSection) || (lang === 'ru' ? 'Предупреждения' : 'Warnings');
+    setLabel('warn-issue', 'warningIssueButton', 'Выдать предупреждение (warn)', 'Issue warning (warn)');
+    setLabel('warn-remove', 'warningRemoveButton', 'Снять предупреждения', 'Remove warnings');
+    setLabel('warn-ip-search', 'warningIpSearch', 'Найти пользователя по IP', 'Find user by IP');
+    const nav = document.querySelector('#nav-warnings .menu__text');
+    if (nav) nav.textContent = (dict && dict.warningTitle) || (lang === 'ru' ? 'Список предупреждений' : 'Warning list');
+    const back = document.getElementById('back-from-warnings');
+    if (back) back.setAttribute('aria-label', (dict && dict.reviewBack) || (lang === 'ru' ? 'Назад' : 'Back'));
+    const title = document.getElementById('warning-screen-title');
+    if (title) title.textContent = (dict && dict.warningTitle) || (lang === 'ru' ? 'Список предупреждений' : 'Warning list');
+    if (warningScreen && !warningScreen.hidden) renderWarningsScreen();
+  }
+
   function addAdminButtons() {
     const menu = document.querySelector('#screen-admin .menu');
     if (!menu || document.getElementById('warn-issue')) return;
     const group = document.createElement('div');
     group.className = 'menu__group';
-    group.textContent = 'Предупреждения';
     group.id = 'warn-tools-group';
     group.dataset.minLevel = '2';
     menu.appendChild(group);
@@ -771,6 +841,7 @@
     makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
     makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
     makeButton('warn-ip-search', 'Найти пользователя по IP', 'fa-magnifying-glass-location', openIpSearchModal, 4);
+    applyLanguage();
   }
 
   function updateAdminButtonVisibility() {
@@ -781,6 +852,7 @@
   }
 
   function install() {
+    createWarningScreen();
     const crystals = document.getElementById('nav-crystals');
     if (crystals && !document.getElementById('nav-warnings')) {
       const button = document.createElement('button');
@@ -789,23 +861,13 @@
       button.className = crystals.className;
       button.hidden = true;
       button.innerHTML = '<span class="menu__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>' +
-        '<span class="menu__text">Список предупреждений</span>' +
+        '<span class="menu__text"></span>' +
         '<span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
       crystals.insertAdjacentElement('afterend', button);
-      button.addEventListener('click', () => {
-        const rows = warningsFor(currentToken(), currentTelegramId());
-        const text = rows.map((row, index) => {
-          const name = row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName;
-          return 'Предупреждение ' + (index + 1) +
-            '\nВыдано: ' + formatDate(row.issuedAt) +
-            '\nСнятие в: ' + formatDate(row.removeAt) +
-            '\nПричина: ' + (row.reason || 'Не указана') +
-            '\nВыдано кем: ' + name;
-        }).join('\n\n');
-        showMessage('Список предупреждений', text || 'Предупреждений нет.');
-      });
+      button.addEventListener('click', openWarningsScreen);
     }
     addAdminButtons();
+    applyLanguage();
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
@@ -869,7 +931,9 @@
     recordPunishmentRemoved,
     recordAdCreated,
     recordIp,
-    cleanupWarnings
+    cleanupWarnings,
+    applyLanguage,
+    openWarningsScreen
   };
 
   if (document.readyState === 'loading') {
