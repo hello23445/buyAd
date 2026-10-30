@@ -71,7 +71,7 @@ if (tg) {
   // Обработчик клика на кнопку Settings
   if (tg.SettingsButton) {
     tg.SettingsButton.onClick(() => {
-      const previousScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-main';
+      previousScreen = document.querySelector('.screen:not([hidden])')?.id || 'screen-main';
       hideAllScreens();
       if ($('btn-open-settings')) {
         $('btn-open-settings').disabled = true;
@@ -101,6 +101,10 @@ if (tg) {
         document.getElementById('back-from-crystals').click();
       } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
         document.getElementById('back-from-admin').click();
+      } else if (currentScreen === 'screen-review-ads' && document.getElementById('back-from-review-ads')) {
+        document.getElementById('back-from-review-ads').click();
+      } else if (currentScreen === 'screen-warnings' && document.getElementById('back-from-warnings')) {
+        document.getElementById('back-from-warnings').click();
       } else if (currentScreen === 'screen-settings' && document.getElementById('back-from-settings')) {
         document.getElementById('back-from-settings').click();
       }
@@ -120,7 +124,9 @@ function refreshBackButton() {
     'screen-ad-statistics',
     'screen-crystals',
     'screen-admin',
-    'screen-settings'
+    'screen-settings',
+    'screen-review-ads',
+    'screen-warnings'
   ].includes(currentScreen);
 
   if (shouldShow) {
@@ -1358,6 +1364,7 @@ function applyLang(lang) {
     }
   });
   document.title = i18n[lang].appTitle;
+  if (window.BuyAdWarnings?.applyLanguage) window.BuyAdWarnings.applyLanguage(lang);
   if (! $('screen-main').hidden) showMainMenu();
   if (! $('screen-crystals').hidden) loadCrystals();
   if (! $('screen-myads').hidden) loadMyAds();
@@ -3536,15 +3543,17 @@ async function buyCrystals(amount, stars) {
 $('admin-check').onclick = async () => {
   if (!adminGuard('reviewAds')) return;
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (isGasDisabled()) {
-    const list = $('admin-check-list');
-    list.innerHTML = '';
-    return;
-  }
-  showPreloader();
+  hideAllScreens();
+  show($('screen-review-ads'));
   show($('admin-panel-check'));
   const list = $('admin-check-list');
   list.innerHTML = '';
+  if (isGasDisabled()) {
+    list.textContent = i18n[lang].gasDisabled || (lang === 'ru' ? 'Обращение к GAS отключено.' : 'GAS requests are disabled.');
+    refreshBackButton();
+    return;
+  }
+  showPreloader();
   try {
     const res = await fetch(`${GAS_SYS_URL}?action=getPendingAds`);
     const data = await res.json();
@@ -3557,10 +3566,10 @@ $('admin-check').onclick = async () => {
           <div class="pill pill--pending">${i18n[lang].pendingStatus}</div>
         </div>
         <p>${i18n[lang].adTextLabel}: ${ad.text}</p>
-        <p>${i18n[lang].videoLabel}: <a href="${ad.videoUrl}" target="_blank">View</a></p>
+        <p>${i18n[lang].videoLabel}: <a href="${ad.videoUrl}" target="_blank" rel="noopener">${i18n[lang].viewLinkLabel}</a></p>
         <p>${i18n[lang].platformLabel}: ${ad.platform}</p>
-        <p>Name: ${ad.name}</p>
-        <p>Comments: ${ad.comments ? i18n[lang].enabled : i18n[lang].disabled}</p>
+        <p>${i18n[lang].adNameLabel}: ${ad.name}</p>
+        <p>${i18n[lang].commentsLabelShort}: ${ad.comments ? i18n[lang].enabled : i18n[lang].disabled}</p>
         <p>${i18n[lang].telegramID}: ${ad.userID}</p>
         <p>${i18n[lang].tokenLabel}: ${ad.token}</p>
         <p>${i18n[lang].footerLabel}: ${ad.footer}</p>
@@ -3581,6 +3590,13 @@ $('admin-check').onclick = async () => {
   } finally {
     hidePreloader();
   }
+};
+
+const reviewBackButton = $('back-from-review-ads');
+if (reviewBackButton) reviewBackButton.onclick = () => {
+  hideAllScreens();
+  hide($('admin-panel-check'));
+  show($('screen-admin'));
 };
 
 async function handleAdAction(adName, action, userID = null, rejectionReason = '', confirmed = false, userToken = '') {
