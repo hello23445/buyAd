@@ -851,7 +851,9 @@
     document.querySelector('main').appendChild(warningScreen);
     warningScreenList = warningScreen.querySelector('#warning-list-content');
     warningScreen.querySelector('#back-from-warnings').addEventListener('click', () => {
-      document.querySelectorAll('.screen').forEach(item => { item.hidden = item.id !== 'screen-main'; });
+      const locked = !!activeLock(warningsFor(currentToken(), currentTelegramId()));
+      const returnScreen = locked ? 'screen-blocked' : 'screen-main';
+      document.querySelectorAll('.screen').forEach(item => { item.hidden = item.id !== returnScreen; });
       if (typeof refreshBackButton === 'function') refreshBackButton();
     });
   }
