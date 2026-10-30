@@ -1,17 +1,5 @@
 {
   "schemaVersion": 2,
-  "storageMode": "github-api",
-  "repositoryNote": "Live entries are synchronized through the GitHub Contents API. Keep this repository private and restrict access to trusted maintainers. Runtime records are written to entries.",
-  "entrySchema": {
-    "id": "uuid",
-    "timestamp": "ISO-8601 UTC",
-    "token": "string|null (private user token)",
-    "telegramId": "string|null (private)",
-    "ip": "string|null (private)",
-    "ipAddress": "string|null (private)",
-    "event": "punishment_issued|punishment_removed|warning_issued|warning_removed_automatically|warnings_cleared_after_lock|menu_opened|ui_action|ad_created|ad_updated|admin_action|ip_observed|other",
-    "details": "object containing reason, punishment, durationDays, expiresAt, adminName, adminNameHidden, adminToken, adminTelegramId, warningCount, remainingWarnings, menu, buttonId, screen, adId, decision and metadata"
-  },
   "entries": [
     {
       "id": "1793376923350_gbvnlfbxlso",
@@ -164,6 +152,20 @@
       "event": "ip_observed",
       "details": {
         "ip": "84.32.48.23"
+      }
+    },
+    {
+      "id": "log_1793379033453_ls2j57h",
+      "timestamp": "2026-10-30T16:50:33.454Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Меню админа",
+        "buttonId": "nav-admin",
+        "screen": "screen-main"
       }
     }
   ]
