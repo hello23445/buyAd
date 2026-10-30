@@ -704,14 +704,6 @@
             </button>
           </div>
         </div>
-
-<!-- ADMIN: RESTRICTED (панель) -->
-        <div id="admin-panel-restricted" class="card" hidden>
-          <div class="card__title" data-i18n="adminRestrictedTitle">Список ограниченных</div>
-          <div id="admin-restricted-list" class="stack-sm">
-            <!-- JS: {token} {id} кнопка снять -->
-          </div>
-        </div>
       </div>
     </section>
 
@@ -729,6 +721,36 @@
 
           <div id="admin-check-list" class="stack-sm">
             <!-- JS: список ожидающих -->
+          </div>
+        </div>
+
+        <div id="admin-ip-info-card" class="card" hidden>
+          <div class="card__title">Ваш IP-адрес</div>
+          <div class="hint">Текущий публичный IP-адрес этого устройства</div>
+          <div class="tokenbox" style="margin-top:0.75rem;align-items:center;">
+            <code id="admin-own-ip-value">Определение IP…</code>
+            <button id="admin-own-ip-copy" class="btn btn--ghost" type="button" disabled>
+              <i class="fa-solid fa-copy"></i>
+              <span>Копировать</span>
+            </button>
+          </div>
+          <button id="admin-own-ip-refresh" class="btn btn--ghost" type="button" style="margin-top:0.75rem;">Обновить IP</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESTRICTED USERS: отдельный экран -->
+    <section id="screen-restricted-users" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-restricted-users" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="adminRestrictedTitle">Список ограниченных</div>
+        </div>
+        <div id="admin-panel-restricted" class="card">
+          <div id="admin-restricted-list" class="stack-sm">
+            <!-- JS: {token} {id} кнопка снять -->
           </div>
         </div>
       </div>
