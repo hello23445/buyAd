@@ -200,6 +200,29 @@
         ],
         "reason": "Ручное снятие предупреждений"
       }
+    },
+    {
+      "id": "log_1793379229793_s1h27yl",
+      "timestamp": "2026-10-30T16:53:49.793Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "menu_opened",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "menu": "Снять предупреждение",
+        "buttonId": "warn-remove"
+      }
     }
   ]
 }\n
