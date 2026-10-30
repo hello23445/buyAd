@@ -681,6 +681,22 @@
     if (currentLevel() < 2) return { error: tr('warningDeniedRemove', 'Снимать предупреждения могут администраторы со 2-го уровня.', 'Only administrators at level 2 or higher can remove warnings.') };
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
+
+    // Снимать предупреждения с администраторов запрещено, в том числе с себя.
+    const admin = currentAdmin();
+    const adminsRegistry = typeof ADMINS !== 'undefined' && Array.isArray(ADMINS) ? ADMINS : [];
+    const targetAdmin = adminsRegistry.find(item => {
+      const tokens = [item.admin_token, item.adminToken, item.token].filter(Boolean).map(String);
+      const telegramIds = [item.telegram_id, item.telegramId, item.admin_telegram_id, item.adminTelegramId, item.user_id, item.userId].filter(Boolean).map(String);
+      return (target.token && tokens.includes(String(target.token))) ||
+        (target.telegramId && telegramIds.includes(String(target.telegramId)));
+    });
+    const isSelf = (target.token && String(target.token) === String(admin?.admin_token || '')) ||
+      (target.telegramId && String(target.telegramId) === currentTelegramId());
+    if (targetAdmin || isSelf) {
+      return { error: tr('warningDeniedRemoveAdminTarget', 'Нельзя снимать предупреждения с себя или других администраторов.', 'You cannot remove warnings from yourself or other administrators.') };
+    }
+
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const originalRows = rows.map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const removed = rows.filter(row => targetMatches(row, target));
