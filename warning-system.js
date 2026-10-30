@@ -651,7 +651,7 @@
       let history = safeRead(IP_HISTORY_KEY);
       try {
         const current = await githubGet('admin2.js');
-        const match = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\\[[\s\\S]*?\\])\s*;/);
+        const match = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\[[\s\S]*?\])\s*;/);
         if (match) {
           const remote = JSON.parse(match[1]);
           if (Array.isArray(remote)) {
