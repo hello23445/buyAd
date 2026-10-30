@@ -373,18 +373,8 @@
   function showWarningLock(lock) {
     const screen = document.getElementById('screen-blocked');
     if (!screen) return;
-    let blockedWarningsButton = document.getElementById('blocked-warning-list');
-    if (!blockedWarningsButton) {
-      blockedWarningsButton = document.createElement('button');
-      blockedWarningsButton.id = 'blocked-warning-list';
-      blockedWarningsButton.type = 'button';
-      blockedWarningsButton.className = 'btn btn--secondary';
-      blockedWarningsButton.addEventListener('click', openWarningsScreen);
-      const target = screen.querySelector('.stack') || screen;
-      target.appendChild(blockedWarningsButton);
-    }
-    blockedWarningsButton.textContent = currentLang() === 'ru' ? 'Список предупреждений' : 'Warning list';
-    blockedWarningsButton.hidden = false;
+    // Не показываем переход к списку предупреждений на экране блокировки.
+    document.getElementById('blocked-warning-list')?.remove();
     document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== screen; });
     screen.hidden = false;
     screen.dataset.warningLock = 'true';
