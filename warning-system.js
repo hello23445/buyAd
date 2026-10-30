@@ -571,16 +571,25 @@
     // Наказания для администраторов доступны только с 3-го уровня.
     // При этом администратор может наказать только администратора строго ниже себя.
     const adminsRegistry = typeof ADMINS !== 'undefined' && Array.isArray(ADMINS) ? ADMINS : [];
-    const targetAdmin = target.token
-      ? adminsRegistry.find(item => String(item.admin_token || '') === String(target.token))
-      : null;
+    // Проверяем администратора по токену И по Telegram ID, иначе можно обойти
+    // иерархию, указав Telegram ID вместо токена.
+    const targetAdmin = adminsRegistry.find(item => {
+      const tokens = [item.admin_token, item.adminToken, item.token].filter(Boolean).map(String);
+      const telegramIds = [item.telegram_id, item.telegramId, item.admin_telegram_id, item.adminTelegramId, item.user_id, item.userId].filter(Boolean).map(String);
+      return (target.token && tokens.includes(String(target.token))) ||
+        (target.telegramId && telegramIds.includes(String(target.telegramId)));
+    });
     if (targetAdmin) {
       const actorLevel = currentLevel();
-      const targetLevel = Number(targetAdmin.admin_level || 0);
+      const targetLevel = Number(targetAdmin.admin_level ?? targetAdmin.adminLevel ?? 0);
+      const targetAdminToken = String(targetAdmin.admin_token ?? targetAdmin.adminToken ?? targetAdmin.token ?? '');
+      const targetAdminTelegramId = String(targetAdmin.telegram_id ?? targetAdmin.telegramId ?? targetAdmin.admin_telegram_id ?? targetAdmin.adminTelegramId ?? targetAdmin.user_id ?? targetAdmin.userId ?? '');
+      const isSelf = (targetAdminToken && targetAdminToken === String(admin.admin_token || '')) ||
+        (targetAdminTelegramId && targetAdminTelegramId === currentTelegramId());
       if (actorLevel < 3) {
         return { error: tr('warningDeniedAdminTarget', 'Выдавать варны администраторам могут только администраторы 3-го уровня и выше.', 'Only level 3+ administrators can issue warnings to administrators.') };
       }
-      if (String(targetAdmin.admin_token) === String(admin.admin_token) || targetLevel >= actorLevel) {
+      if (isSelf || targetLevel >= actorLevel) {
         return { error: tr('warningDeniedAdminHierarchy', 'Нельзя выдать варн себе или администратору своего либо более высокого уровня.', 'You cannot issue a warning to yourself or an administrator of your level or higher.') };
       }
     }
