@@ -719,43 +719,7 @@
         : 'За выбранный период записей нет.' };
     }, 'Посмотреть логи');
   }
-  function openIpSearchModal() {
-    const lang = currentLang();
-    if (currentLevel() < 4) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), lang === 'ru' ? 'Поиск пользователей по IP доступен администраторам 4-го уровня и выше.' : 'IP search is available to level 4 and above administrators.');
-    openForm(tr('warningIpSearch', 'Найти пользователя по IP', 'Find user by IP'), body => ({
-      ip: field(body, tr('warningIpLabel', 'IP-адрес', 'IP address'), { placeholder: tr('warningIpPlaceholder', 'Например, 192.0.2.1', 'For example, 192.0.2.1'), required: true })
-    }), async controls => {
-      const ip = String(controls.ip.value || '').trim();
-      if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
-      // Restore lookup from IP addresses recorded in the user activity log.
-      // Data comes from admin2.js already loaded by the app; no extra GitHub request.
-      const normalizeIp = value => String(value || '').trim().toLowerCase().replace(/^::ffff:/, '');
-      const logRows = safeRead(USER_LOG_KEY);
-      const logMatches = logRows.filter(row => {
-        const loggedIp = row?.details?.ip || row?.ip || row?.details?.clientIp || '';
-        return row?.event === 'ip_seen' && normalizeIp(loggedIp) === normalizeIp(ip);
-      });
-      const historyMatches = safeRead(IP_HISTORY_KEY).filter(row => normalizeIp(row.ip) === normalizeIp(ip));
-      const users = new Map();
-      logMatches.forEach(row => {
-        const token = row.userToken || row.token || '';
-        const telegramId = row.telegramId || '';
-        const key = token + '|' + telegramId;
-        users.set(key, { token: token || '—', telegramId: telegramId || '—', lastSeen: row.timestamp || '' });
-      });
-      // Compatibility fallback for IP history recorded before user-log lookup was restored.
-      historyMatches.forEach(row => {
-        const key = (row.token || '') + '|' + (row.telegramId || '');
-        if (!users.has(key)) users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—', lastSeen: row.lastSeen || '' });
-      });
-      const result = Array.from(users.values());
-      return { title: tr('warningIpResultTitle', 'Результат поиска по IP', 'IP search results'), message: result.length
-        ? tr('warningIpResults', 'Найдено пользователей', 'Users found') + ': ' + result.length + '\n\n' + result.map((item, index) =>
-          (index + 1) + '. ' + tr('warningIpToken', 'Токен', 'Token') + ': ' + item.token + '\n   ' + tr('warningIpTelegramId', 'Telegram ID', 'Telegram ID') + ': ' + item.telegramId
-        ).join('\n\n')
-        : tr('warningIpNoMatch', 'Совпадений по этому IP не найдено в общей истории.', 'No matches for this IP were found in shared history.') };
-    }, lang === 'ru' ? 'Найти' : 'Search');
-  }
+  // IP-address search is disabled.
 
   function recordAdminAction(action, details = {}) {
     logAdmin(action, details);
@@ -834,52 +798,9 @@
     refresh();
   }
 
-  function recordIp(ip) {
-    const normalized = String(ip || '').trim();
-    if (!normalized) return;
-    clientIp = normalized;
-    lastLoggedIp = normalized;
-    const token = currentToken();
-    const telegramId = currentTelegramId();
-    if (!token && !telegramId) return;
-    const rows = safeRead(IP_HISTORY_KEY);
-    const key = row => (row.token || '') + '|' + (row.telegramId || '') + '|' + row.ip;
-    const record = { ip: normalized, token, telegramId, lastSeen: new Date().toISOString() };
-    const existing = rows.findIndex(row => key(row) === key(record));
-    if (existing >= 0) rows[existing] = record;
-    else rows.push(record);
-    const limitedRows = rows.slice(-10000);
-    safeWrite(IP_HISTORY_KEY, limitedRows);
-    persistIpHistory(limitedRows).catch(error => console.error('Не удалось сохранить историю IP в GitHub:', error));
-
-    // Keep an IP event in the shared user log for the original search behavior.
-    const userLogs = safeRead(USER_LOG_KEY);
-    userLogs.push({
-      id: 'ip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      timestamp: record.lastSeen,
-      userToken: token || '',
-      telegramId: telegramId || '',
-      event: 'ip_seen',
-      details: { ip: normalized }
-    });
-    const limitedLogs = userLogs.slice(-MAX_LOG_ROWS);
-    safeWrite(USER_LOG_KEY, limitedLogs);
-    persistUserLogs(limitedLogs).catch(error => console.error('Не удалось записать IP в журнал пользователей:', error));
-  }
-  async function loadClientIp() {
-    try {
-      if (typeof getClientIp === 'function') {
-        const ip = await getClientIp();
-        if (ip) recordIp(ip);
-        return;
-      }
-      const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
-      if (response.ok) {
-        const data = await response.json();
-        recordIp(data.ip || '');
-      }
-    } catch (_) {}
-  }
+  // IP collection and IP history persistence are disabled.
+  function recordIp() {}
+  async function loadClientIp() { return null; }
 
   let warningScreen = null;
   let warningScreenList = null;
@@ -976,7 +897,6 @@
     };
     makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
     makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
-    makeButton('warn-ip-search', 'Найти пользователя по IP', 'fa-magnifying-glass-location', openIpSearchModal, 4);
     applyLanguage();
   }
 
