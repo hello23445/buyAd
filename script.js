@@ -1377,7 +1377,7 @@ async function applyRuntimeBlockings() {
       blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayAdminName;
       blockedByEl.hidden = false;
     }
-    $('btn-support').onclick = openSupportChat;
+    
     $('btn-copy-token-blocked').onclick = () => {
       copyTextCompat(token || '—').then(() => {
         const span = $('btn-copy-token-blocked').querySelector('span');
@@ -1654,7 +1654,7 @@ async function checkUserStatus(isAdmin) {
       }
       $('user-token-blocked').textContent = token || '—';
       updateBlockedTelegramId();
-      $('btn-support').onclick = openSupportChat;
+      
       $('btn-copy-token-blocked').onclick = () => {
         copyTextCompat(token || '—').then(() => {
           const span = $('btn-copy-token-blocked').querySelector('span');
