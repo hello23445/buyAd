@@ -582,7 +582,7 @@ function updateAdminLevelBadge() {
     const remove = $('warn-remove');
     const group = $('warn-tools-group');
     if (issue) issue.hidden = level < 2;
-    if (remove) remove.hidden = level < 5;
+    if (remove) remove.hidden = level < 2;
     if (group) group.hidden = level < 2;
   }
 }
