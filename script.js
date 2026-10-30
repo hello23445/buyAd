@@ -280,6 +280,18 @@ function showFeatureBlockedModal(type) {
 }
 
 
+function openSupportChat() {
+  const url = SUPPORT_URL;
+  const webApp = window.Telegram?.WebApp;
+  if (webApp && typeof webApp.openTelegramLink === 'function' && /^https?:\/\/t\.me\//i.test(url)) {
+    webApp.openTelegramLink(url);
+  } else if (webApp && typeof webApp.openLink === 'function') {
+    webApp.openLink(url);
+  } else {
+    window.open(url, '_blank', 'noopener');
+  }
+}
+
 async function copyTextCompat(value) {
   const text = String(value == null ? '' : value);
   if (!text) throw new Error('Nothing to copy');
@@ -305,19 +317,24 @@ async function copyTextCompat(value) {
 }
 
 function updateBlockedTelegramId(telegramId = String(tg?.initDataUnsafe?.user?.id || '')) {
-  const tokenEl = $('user-token-blocked');
-  if (!tokenEl) return;
-  const parent = tokenEl.parentElement;
-  if (!parent) return;
-  let idEl = $('blocked-telegram-id');
-  if (!idEl) {
-    idEl = document.createElement('div');
-    idEl.id = 'blocked-telegram-id';
-    idEl.style.cssText = 'overflow-wrap:anywhere;margin-top:6px;';
-    tokenEl.insertAdjacentElement('afterend', idEl);
-  }
+  const idEl = $('blocked-telegram-id-value');
+  const label = $('blocked-telegram-id-label');
+  const copyButton = $('btn-copy-telegram-id-blocked');
+  if (!idEl) return;
+  const value = String(telegramId || '—');
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  idEl.textContent = (lang === 'ru' ? 'Telegram ID пользователя: ' : 'User Telegram ID: ') + (telegramId || '—');
+  idEl.textContent = value;
+  if (label) label.textContent = lang === 'ru' ? 'Telegram ID пользователя' : 'User Telegram ID';
+  if (copyButton) copyButton.onclick = () => {
+    copyTextCompat(value).then(() => {
+      const span = copyButton.querySelector('span');
+      if (span) {
+        const oldText = span.textContent;
+        span.textContent = i18n[lang]?.copied || (lang === 'ru' ? 'Скопировано' : 'Copied');
+        setTimeout(() => { span.textContent = oldText; }, 3000);
+      }
+    }).catch(() => openModal(i18n[lang]?.failedToCopy || (lang === 'ru' ? 'Не удалось скопировать.' : 'Could not copy.'), ''));
+  };
 }
 
 /* ========== STORAGE ========== */
@@ -1340,7 +1357,7 @@ async function applyRuntimeBlockings() {
       blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayAdminName;
       blockedByEl.hidden = false;
     }
-    $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
+    $('btn-support').onclick = openSupportChat;
     $('btn-copy-token-blocked').onclick = () => {
       copyTextCompat(token || '—').then(() => {
         const span = $('btn-copy-token-blocked').querySelector('span');
@@ -1617,7 +1634,7 @@ async function checkUserStatus(isAdmin) {
       }
       $('user-token-blocked').textContent = token || '—';
       updateBlockedTelegramId();
-      $('btn-support').onclick = () => window.open(SUPPORT_URL, '_blank');
+      $('btn-support').onclick = openSupportChat;
       $('btn-copy-token-blocked').onclick = () => {
         copyTextCompat(token || '—').then(() => {
           const span = $('btn-copy-token-blocked').querySelector('span');
