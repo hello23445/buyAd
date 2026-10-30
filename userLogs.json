@@ -102,6 +102,20 @@
       "details": {
         "ip": "88.216.36.107"
       }
+    },
+    {
+      "id": "log_1793379059457_t0j6fhh",
+      "timestamp": "2026-10-30T16:50:59.457Z",
+      "ip": "88.216.36.107",
+      "ipAddress": "88.216.36.107",
+      "token": "GoYy3n2oRheOiByJ",
+      "telegramId": "8085105056",
+      "event": "ui_action",
+      "details": {
+        "buttonId": "btn-open-settings",
+        "label": "",
+        "screen": ""
+      }
     }
   ]
 }\n
