@@ -78,6 +78,9 @@ if (tg) {
       }
       setTelegramSettingsButtonVisible(false);
       show($('screen-settings'));
+      initTokenDisplay();
+      initTelegramIdDisplay();
+      initSettingsScreen();
     });
   }
   
