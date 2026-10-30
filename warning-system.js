@@ -62,28 +62,38 @@
   };
   let cloudWarningsLoaded = false;
   let cloudIpHistoryLoaded = false;
-  const persistWarnings = rows => {
-    if (!cloudWarningsLoaded) return;
-    const serialized = JSON.stringify(rows);
-    window.__buyAdWarningWriteQueue = (window.__buyAdWarningWriteQueue || Promise.resolve()).catch(() => {}).then(async () => {
-      const current = await githubGet('admin2.js');
-      const pattern = /((?:export\s+)?(?:let|const|var)\s+UserWarnings\s*=\s*)(\[[\s\S]*?\])(\s*;)/m;
-      if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив UserWarnings');
-      const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
-      await githubPut('admin2.js', updated, 'Update user warnings');
-    }).catch(error => console.error('Не удалось сохранить предупреждения в GitHub:', error));
+  // All writes to admin2.js share one queue because warnings and IP history
+  // live in the same file. Re-read and rebuild the content on every retry.
+  let cloudWriteQueue = Promise.resolve();
+  const persistArray = (exportName, rows, message) => {
+    const run = async () => {
+      if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
+      if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
+      const serialized = JSON.stringify(rows);
+      const pattern = new RegExp('((?:export\\\\s+)?(?:let|const|var)\\\\s+' + exportName + '\\\\s*=\\\\s*)(\\\\[[\\\\s\\\\S]*?\\\\])(\\\\s*;)', 'm');
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const current = await githubGet('admin2.js');
+        if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив ' + exportName);
+        const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
+        const token = await getGitHubToken();
+        const response = await fetch('https://api.github.com/repos/hello23445/buyAd/contents/admin2.js', {
+          method: 'PUT',
+          headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(updated))), sha: current.sha })
+        });
+        if (response.ok) return response.json();
+        if (response.status !== 409 && response.status !== 422) {
+          const detail = await response.text().catch(() => '');
+          throw new Error('GitHub API вернул ' + response.status + (detail ? ': ' + detail.slice(0, 250) : ''));
+        }
+      }
+      throw new Error('Файл admin2.js постоянно меняется; не удалось сохранить данные после 3 попыток.');
+    };
+    cloudWriteQueue = cloudWriteQueue.catch(() => {}).then(run);
+    return cloudWriteQueue;
   };
-  const persistIpHistory = rows => {
-    if (!cloudIpHistoryLoaded) return;
-    const serialized = JSON.stringify(rows);
-    window.__buyAdIpHistoryWriteQueue = (window.__buyAdIpHistoryWriteQueue || Promise.resolve()).catch(() => {}).then(async () => {
-      const current = await githubGet('admin2.js');
-      const pattern = /((?:export\s+)?(?:let|const|var)\s+UserIpHistory\s*=\s*)(\[[\s\S]*?\])(\s*;)/m;
-      if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив UserIpHistory');
-      const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
-      await githubPut('admin2.js', updated, 'Update IP lookup records');
-    }).catch(error => console.error('Не удалось сохранить историю IP:', error));
-  };
+  const persistWarnings = rows => persistArray('UserWarnings', rows, 'Save user warnings');
+  const persistIpHistory = rows => persistArray('UserIpHistory', rows, 'Save user IP history');
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -175,7 +185,13 @@
     }
     return [];
   };
-  const writeWarnings = rows => safeWrite(WARN_KEY, rows);
+  const writeWarnings = rows => {
+    if (!safeWrite(WARN_KEY, rows)) return Promise.reject(new Error('Не удалось обновить локальный кэш предупреждений.'));
+    return persistWarnings(rows).catch(error => {
+      console.error('Не удалось сохранить предупреждения в GitHub:', error);
+      throw error;
+    });
+  };
   const readLogRows = () => [];
   const logUser = () => {};
   const logAdmin = () => {};
@@ -229,12 +245,15 @@
       {
         text: submitText,
         onClick: () => {
-          const result = submit(controls);
-          if (result && result.error) {
-            setTimeout(() => showMessage('Не удалось выполнить действие', result.error), 0);
-          } else if (result && result.message) {
-            setTimeout(() => showMessage(result.title || 'Готово', result.message), 0);
-          }
+          Promise.resolve().then(() => submit(controls)).then(result => {
+            if (result && result.error) {
+              showMessage('Не удалось выполнить действие', result.error);
+            } else if (result && result.message) {
+              showMessage(result.title || 'Готово', result.message);
+            }
+          }).catch(error => {
+            showMessage('Не удалось сохранить в GitHub', error && error.message ? error.message : String(error));
+          });
         }
       },
       { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
@@ -423,7 +442,7 @@
     }
   }
 
-  function issueWarning() {
+  async function issueWarning() {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
     if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
@@ -498,7 +517,7 @@
       : 'Предупреждение выдано: ' + count + '/3.' };
   }
 
-  function removeWarnings(targetValue) {
+  async function removeWarnings(targetValue) {
     if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
     if (currentLevel() !== 5) return { error: 'Снимать предупреждения может только администратор 5-го уровня.' };
     const target = targetFromInput(targetValue);
@@ -710,7 +729,7 @@
     const existing = rows.findIndex(row => key(row) === key(record));
     if (existing >= 0) rows[existing] = record;
     else rows.push(record);
-    safeWrite(IP_HISTORY_KEY, rows.slice(-10000));
+    const limitedRows = rows.slice(-10000);\n    safeWrite(IP_HISTORY_KEY, limitedRows);\n    persistIpHistory(limitedRows).catch(error => console.error('Не удалось сохранить историю IP в GitHub:', error));
   }
   async function loadClientIp() {
     try {
