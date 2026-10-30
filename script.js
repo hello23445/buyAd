@@ -1271,6 +1271,36 @@ function updateBlockedSubtitle(reason, lang) {
 
 let specialModalType = null;
 let currentUserIpBlocked = false;
+let currentBlockedDetails = null;
+
+function renderBlockedScreenDetails(lang = localStorage.getItem(LS.lang) || 'ru') {
+  const details = currentBlockedDetails;
+  if (!details) return;
+  const durationEl = $('blocked-duration');
+  if (durationEl) {
+    durationEl.textContent = (lang === 'ru' ? 'Срок блокировки: ' : 'Ban duration: ') + formatPunishmentDuration(details.entry, lang);
+    durationEl.hidden = false;
+  }
+  const reasonEl = $('blocked-reason');
+  if (reasonEl) {
+    if (details.reason) {
+      reasonEl.textContent = (i18n[lang]?.blockedReasonPrefix || (lang === 'ru' ? 'Причина:' : 'Reason:')) + ' ' + details.reason;
+      reasonEl.hidden = false;
+    } else {
+      reasonEl.textContent = '';
+      reasonEl.hidden = true;
+    }
+  }
+  const blockedByEl = $('blocked-by-admin');
+  if (blockedByEl) {
+    const hiddenName = !!(details.entry && typeof details.entry === 'object' && details.entry.adminNameHidden === true);
+    const displayName = hiddenName
+      ? (i18n[lang]?.adminNameHidden || (lang === 'ru' ? 'Скрыто' : 'Hidden'))
+      : (details.adminName || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+    blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayName;
+    blockedByEl.hidden = false;
+  }
+}
 
 function showSpecialModal(title, body, type) {
   openModal(title, body, [], {
@@ -1364,25 +1394,8 @@ async function applyRuntimeBlockings() {
       punishmentAdminName = matchedIP ? getPunishmentAdminName('BlockedUsersIPadresses', matchedIP) : '';
     }
     const punishmentEntry = isTokenBan ? findPunishmentEntry('BanForever', token) : isTelegramBan ? findPunishmentEntry('BlockedUsersTelegramID', String(tg?.initDataUnsafe?.user?.id || '')) : (() => { const ips=getSavedUserAPIs(); const hit=ips.find(ip=>runtimeArray('BlockedUsersIPadresses', []).some(entry=>punishmentEntryValue(entry)===ip)); return hit ? findPunishmentEntry('BlockedUsersIPadresses', hit) : null; })();
-    const durationEl = $('blocked-duration');
-    if (durationEl) {
-      durationEl.textContent = (lang === 'ru' ? 'Срок блокировки: ' : 'Ban duration: ') + formatPunishmentDuration(punishmentEntry, lang);
-      durationEl.hidden = false;
-    }
-    const reasonEl = $('blocked-reason');
-    if (reasonEl) {
-      if (punishmentReason) { reasonEl.textContent = (i18n[lang].blockedReasonPrefix || (lang === 'ru' ? 'Причина:' : 'Reason:')) + ' ' + punishmentReason; reasonEl.hidden = false; }
-      else { reasonEl.textContent = ''; reasonEl.hidden = true; }
-    }
-    const blockedByEl = $('blocked-by-admin');
-    if (blockedByEl) {
-      const punishmentNameHidden = !!(punishmentEntry && typeof punishmentEntry === 'object' && punishmentEntry.adminNameHidden === true);
-      const displayAdminName = punishmentNameHidden
-        ? (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Скрыто' : 'Hidden'))
-        : (punishmentAdminName || (lang === 'ru' ? 'Администратор' : 'Administrator'));
-      blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayAdminName;
-      blockedByEl.hidden = false;
-    }
+    currentBlockedDetails = { reason: punishmentReason, adminName: punishmentAdminName, entry: punishmentEntry };
+    renderBlockedScreenDetails(lang);
     
     $('btn-copy-token-blocked').onclick = () => {
       copyTextCompat(token || '—').then(() => {
@@ -1444,6 +1457,7 @@ function applyLang(lang) {
     span.textContent = i18n[lang][editMode ? 'saveChanges' : 'createBtn'];
   }
   if (!$('screen-blocked').hidden) {
+    renderBlockedScreenDetails(lang);
     updateBlockedTelegramId(String(tg?.initDataUnsafe?.user?.id || ''));
     document.querySelectorAll('#blocked-lang-buttons .seg').forEach(button => {
       button.classList.toggle('active', button.dataset.value === lang);
@@ -4387,8 +4401,6 @@ async function loadAdminOwnIp() {
     value.textContent = error.message || 'Не удалось определить IP-адрес.';
   }
 }
-$('admin-own-ip-refresh')?.addEventListener('click', loadAdminOwnIp);
-
 $('admin-unban-ip').onclick = () => {
   openAdminTokenModal('Разбанить пользователя по его IP-адресу', async ip => {
     if (!ip) {
