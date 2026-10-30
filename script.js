@@ -1082,14 +1082,12 @@ async function loadAdmin2Config() {
       disableCreateAds2: parseExportValue('disableCreateAds2', content),
       disableEditingAds: parseExportValue('disableEditingAds', content),
       UserWarnings: parseExportArray('UserWarnings', content),
-      UserIpHistory: parseExportArray('UserIpHistory', content),
       UserLogs: parseExportArray('UserLogs', content)
     };
     runtimeAdmin2ConfigLoaded = true;
     window.dispatchEvent(new CustomEvent('buyad:admin2-config-loaded', {
       detail: {
         UserWarnings: runtimeAdmin2Config.UserWarnings,
-        UserIpHistory: runtimeAdmin2Config.UserIpHistory,
         UserLogs: runtimeAdmin2Config.UserLogs
       }
     }));
@@ -1823,25 +1821,6 @@ $('btn-open-settings').onclick = () => {
   show($('screen-settings'));
   initTokenDisplay(); // Initialize token display when opening settings
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings  initSettingsScreen(); // Initialize new settings
-};
-
-let adminCurrentIpValue = '';
-let adminCurrentIpVisible = false;
-async function initAdminIpPanel() {
-  if (!$('admin-current-ip')) return;
-  const card = $('admin-ip-info-card');
-  const allowed = !!getCurrentAdmin() && adminHasPermission('viewOwnIp');
-  if (card) card.hidden = !allowed;
-  if (!allowed) return;
-  adminCurrentIpValue = await getClientIp() || '';
-  $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
-}
-$('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? ((localStorage.getItem(LS.lang) || 'ru') === 'ru' ? 'Скрыть' : 'Hide') : ((localStorage.getItem(LS.lang) || 'ru') === 'ru' ? 'Показать' : 'Show'); await initAdminIpPanel(); };
-$('admin-current-ip-copy').onclick = async () => {
-  const ip = adminCurrentIpValue || await getClientIp();
-  if (!ip) return openModal('Не удалось определить IP-адрес', '');
-  try { await navigator.clipboard.writeText(ip); $('admin-current-ip-copy').textContent = 'Скопировано'; setTimeout(() => $('admin-current-ip-copy').textContent = 'Скопировать', 2000); }
-  catch (e) { openModal('Не удалось скопировать IP-адрес', ''); }
 };
 
 $('nav-admin').onclick = () => {
