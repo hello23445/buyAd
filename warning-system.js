@@ -1,152 +1,794 @@
-/* BuyAd warning UI. Runtime records are stored in this browser's localStorage. */
+/* BuyAd warnings and client-side audit UI.
+ * IMPORTANT: this browser-only store is a development fallback, not a shared audit backend.
+ * Do not copy runtime records into this public repository. See userLogs.json/adminLogs.json.
+ */
 (() => {
-  const WARN_KEY = 'buyAdWarningsV1';
-  const USER_LOG_KEY = 'buyAdUserLogsV1';
-  const ADMIN_LOG_KEY = 'buyAdAdminLogsV1';
-  const read = key => { try { const v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
-  const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
-  const token = () => localStorage.getItem('token') || localStorage.getItem('userToken') || '';
-  const telegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
-  const currentAdmin = () => { try { return typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null; } catch { return null; } };
-  const level = () => Number(currentAdmin()?.admin_level || 0);
+  'use strict';
+
+  const WARN_KEY = 'buyAdWarningsV2';
+  const LEGACY_WARN_KEY = 'buyAdWarningsV1';
+  const USER_LOG_KEY = 'buyAdUserLogsV2';
+  const ADMIN_LOG_KEY = 'buyAdAdminLogsV2';
+  const MAX_LOG_ROWS = 10000;
+  const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
+  const FIVE_DAYS = 5 * 24 * 60 * 60 * 1000;
   let clientIp = '';
-  const adminName = () => currentAdmin()?.admin_name || ('Администратор ' + level() + ' уровня');
-  const log = (key, item) => { const rows = read(key); rows.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2), timestamp: new Date().toISOString(), ip: clientIp, ...item }); write(key, rows.slice(-5000)); };
-  const warningsFor = (t, id) => read(WARN_KEY).filter(w => (t && w.token === t) || (id && w.telegramId === id));
-  const targetPrompt = () => {
-    const value = prompt('Введите токен пользователя или Telegram ID:');
-    if (!value) return null;
-    return /^\d{4,}$/.test(value.trim()) ? { telegramId: value.trim() } : { token: value.trim() };
+  let lastLoggedIp = '';
+
+  const safeRead = key => {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (_) {
+      return [];
+    }
   };
-  const escape = s => String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  function show(title, text) {
-    if (typeof openModal === 'function') openModal(title, '<pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto">' + escape(text) + '</pre>', [{text:'OK'}]);
-    else alert(title + '\n\n' + text);
+  const safeWrite = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      console.warn('BuyAd local audit storage failed:', error);
+      return false;
+    }
+  };
+  const currentAdmin = () => {
+    try { return typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null; }
+    catch (_) { return null; }
+  };
+  const currentToken = () => String(localStorage.getItem('token') || localStorage.getItem('userToken') || '');
+  const currentTelegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+  const currentLevel = () => Number(currentAdmin()?.admin_level || 0);
+  const localDate = (date = new Date()) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  };
+  const formatDate = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU');
+  };
+  const formatDateTime = value => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ru-RU');
+  };
+  const escapeHtml = value => String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+  const adminName = () => {
+    const admin = currentAdmin();
+    if (!admin) return '';
+    try {
+      if (typeof getAdminDisplayName === 'function') return String(getAdminDisplayName(admin, 'ban') || '');
+    } catch (_) {}
+    return String(admin.admin_name || ('Администратор ' + currentLevel() + ' уровня'));
+  };
+  const adminNameHidden = () => !!currentAdmin() && !adminName();
+  const actor = () => {
+    const admin = currentAdmin();
+    return {
+      adminToken: admin?.admin_token || '',
+      adminTelegramId: currentTelegramId(),
+      adminName: adminName(),
+      adminNameHidden: adminNameHidden(),
+      adminLevel: currentLevel()
+    };
+  };
+  const targetFromInput = value => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return null;
+    return /^\d{4,}$/.test(normalized) ? { telegramId: normalized } : { token: normalized };
+  };
+  const targetMatches = (row, target) =>
+    !!target && ((target.token && row.token === target.token) || (target.telegramId && row.telegramId === target.telegramId));
+  const warnings = () => {
+    const current = safeRead(WARN_KEY);
+    if (current.length) return current;
+    const legacy = safeRead(LEGACY_WARN_KEY);
+    if (legacy.length) {
+      safeWrite(WARN_KEY, legacy);
+      return legacy;
+    }
+    return [];
+  };
+  const writeWarnings = rows => safeWrite(WARN_KEY, rows);
+  const appendLog = (key, entry) => {
+    const rows = safeRead(key);
+    rows.push({
+      id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
+      timestamp: new Date().toISOString(),
+      ip: clientIp || '',
+      ...entry
+    });
+    safeWrite(key, rows.slice(-MAX_LOG_ROWS));
+  };
+  const logUser = (target, event, details = {}) => {
+    appendLog(USER_LOG_KEY, {
+      token: target?.token || '',
+      telegramId: target?.telegramId || '',
+      event,
+      details
+    });
+  };
+  const logAdmin = (action, details = {}) => {
+    const who = actor();
+    appendLog(ADMIN_LOG_KEY, {
+      ...who,
+      action,
+      targetToken: details.targetToken || '',
+      targetTelegramId: details.targetTelegramId || '',
+      targetIp: details.targetIp || '',
+      reason: details.reason || '',
+      durationDays: details.durationDays == null ? null : details.durationDays,
+      adId: details.adId || '',
+      decision: details.decision || '',
+      details
+    });
+  };
+  const warningsFor = (token, telegramId) =>
+    warnings().filter(row => (token && row.token === token) || (telegramId && row.telegramId === telegramId))
+      .sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+
+  function showMessage(title, message) {
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto;margin:0;font:inherit;';
+    pre.textContent = String(message || '');
+    if (typeof openModal === 'function') openModal(title, pre, [{ text: 'OK' }]);
+    else alert(title + '\n\n' + message);
   }
+
+  function field(parent, labelText, options = {}) {
+    const wrap = document.createElement('label');
+    wrap.className = 'admin-create-field';
+    wrap.style.display = 'grid';
+    wrap.style.gap = '6px';
+    wrap.style.marginBottom = '10px';
+    const label = document.createElement('span');
+    label.textContent = labelText;
+    label.style.fontWeight = '600';
+    wrap.appendChild(label);
+    const input = document.createElement(options.multiline ? 'textarea' : 'input');
+    if (!options.multiline) input.type = options.type || 'text';
+    if (options.multiline) input.rows = options.rows || 3;
+    input.placeholder = options.placeholder || '';
+    input.autocomplete = 'off';
+    input.style.cssText = 'width:100%;box-sizing:border-box;padding:0.75rem;border:1px solid rgba(128,128,128,.45);border-radius:10px;font:inherit;background:transparent;color:inherit;';
+    if (options.required) input.required = true;
+    if (options.value) input.value = options.value;
+    wrap.appendChild(input);
+    parent.appendChild(wrap);
+    return input;
+  }
+
+  function openForm(title, build, submit, submitText = 'Посмотреть логи') {
+    const body = document.createElement('div');
+    body.style.display = 'grid';
+    body.style.gap = '2px';
+    const controls = build(body);
+    const lang = localStorage.getItem('lang') || 'ru';
+    if (typeof openModal !== 'function') {
+      const value = prompt(title);
+      if (value) submit({ value });
+      return;
+    }
+    openModal(title, body, [
+      {
+        text: submitText,
+        onClick: () => {
+          const result = submit(controls);
+          if (result && result.error) {
+            setTimeout(() => showMessage('Не удалось выполнить действие', result.error), 0);
+          } else if (result && result.message) {
+            setTimeout(() => showMessage(result.title || 'Готово', result.message), 0);
+          }
+        }
+      },
+      { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
+    ]);
+  }
+
+  function scheduleNewWarning(rows, warning) {
+    const group = rows.filter(row => targetMatches(row, warning));
+    group.sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+    const last = group[group.length - 1];
+    const base = Date.now() + TWO_DAYS;
+    const next = last ? Math.max(base, Date.parse(last.removeAt || last.issuedAt) + TWO_DAYS) : base;
+    warning.removeAt = new Date(next).toISOString();
+  }
+
   function cleanupWarnings() {
-    const rows = read(WARN_KEY), now = Date.now(), groups = new Map();
-    const decayKey = 'buyAdWarningDecayV1';
-    let decay = {}; try { decay = JSON.parse(localStorage.getItem(decayKey) || '{}') || {}; } catch { decay = {}; }
-    rows.forEach(w => { const key = w.token || w.telegramId; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(w); });
+    const rows = warnings();
+    const now = Date.now();
+    const groups = new Map();
+    rows.forEach(row => {
+      const key = row.token ? 't:' + row.token : 'id:' + String(row.telegramId || '');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    });
     const removeIds = new Set();
-    for (const [key, group] of groups.entries()) {
-      group.sort((a,b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
-      const lock = group.find(w => w.lockUntil);
-      if (lock && Date.parse(lock.lockUntil) <= now) {
-        group.forEach(w => removeIds.add(w.id));
-        log(USER_LOG_KEY, {token:lock.token||'',telegramId:lock.telegramId||'',event:'warnings_cleared_after_lock'});
-        log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'automatic_unlock_and_clear',target:{token:lock.token||'',telegramId:lock.telegramId||''},reason:'Истекла блокировка 5 дней'});
-        delete decay[key];
+    let changed = false;
+
+    for (const group of groups.values()) {
+      group.sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+      const lock = group.find(row => row.lockUntil);
+      if (lock) {
+        const lockTime = Date.parse(lock.lockUntil);
+        if (Number.isFinite(lockTime) && lockTime <= now) {
+          group.forEach(row => removeIds.add(row.id));
+          const target = { token: lock.token || '', telegramId: lock.telegramId || '' };
+          logUser(target, 'warnings_cleared_after_lock', {
+            reason: 'Истекла блокировка за 3/3 предупреждений',
+            removedCount: group.length,
+            unlockedAt: new Date().toISOString()
+          });
+          logAdmin('automatic_unlock_and_clear', {
+            targetToken: target.token,
+            targetTelegramId: target.telegramId,
+            reason: 'Истекла блокировка за 3/3 предупреждений',
+            removedCount: group.length
+          });
+          changed = true;
+        }
         continue;
       }
-      const oldest = group[0];
-      const eligibleAt = Math.max(Date.parse(oldest?.issuedAt || now) + 2*86400000, Number(decay[key] || 0) + 2*86400000);
-      if (oldest && !oldest.lockUntil && now >= eligibleAt) {
-        removeIds.add(oldest.id);
-        decay[key] = now;
-        log(USER_LOG_KEY, {token:oldest.token||'',telegramId:oldest.telegramId||'',event:'warning_removed_automatically',warningId:oldest.id});
-        log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'warning_removed_automatically',target:{token:oldest.token||'',telegramId:oldest.telegramId||''}});
+
+      group.forEach(row => {
+        if (!row.removeAt) {
+          row.removeAt = new Date(Date.parse(row.issuedAt) + TWO_DAYS).toISOString();
+          changed = true;
+        }
+      });
+      for (const row of group) {
+        const removeAt = Date.parse(row.removeAt);
+        if (!Number.isFinite(removeAt) || removeAt > now) continue;
+        removeIds.add(row.id);
+        const target = { token: row.token || '', telegramId: row.telegramId || '' };
+        logUser(target, 'warning_removed_automatically', {
+          warningId: row.id,
+          reason: 'Системное снятие предупреждения через 2 дня',
+          remainingWarnings: Math.max(0, group.filter(item => !removeIds.has(item.id)).length - 1),
+          issuedAt: row.issuedAt,
+          scheduledRemovalAt: row.removeAt
+        });
+        logAdmin('warning_removed_automatically', {
+          targetToken: target.token,
+          targetTelegramId: target.telegramId,
+          reason: 'Системное снятие предупреждения через 2 дня',
+          warningId: row.id
+        });
+        changed = true;
       }
     }
-    if (removeIds.size) write(WARN_KEY, rows.filter(w => !removeIds.has(w.id)));
-    localStorage.setItem(decayKey, JSON.stringify(decay));
+
+    if (removeIds.size) {
+      writeWarnings(rows.filter(row => !removeIds.has(row.id)));
+    } else if (changed) {
+      writeWarnings(rows);
+    }
   }
+
+  function activeLock(rows) {
+    return rows.find(row => row.lockUntil && Date.parse(row.lockUntil) > Date.now()) || null;
+  }
+
+  function showWarningLock(lock) {
+    const screen = document.getElementById('screen-blocked');
+    if (!screen) return;
+    document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== screen; });
+    screen.hidden = false;
+    screen.dataset.warningLock = 'true';
+    const reason = document.getElementById('blocked-reason');
+    const duration = document.getElementById('blocked-duration');
+    const byAdmin = document.getElementById('blocked-by-admin');
+    const adminLabel = lock.adminNameHidden || !lock.adminName ? 'Скрыт' : lock.adminName;
+    if (reason) {
+      reason.hidden = false;
+      reason.textContent = 'Причина блокировки: 3/3 предупреждений. Причина выдачи предупреждения: ' +
+        (lock.reason || 'Не указана') + '. Дата выдачи: ' + formatDate(lock.issuedAt) + '.';
+    }
+    if (duration) {
+      duration.hidden = false;
+      duration.textContent = 'Блокировка на 5 дней. Разблокировка: ' + formatDateTime(lock.lockUntil) + '.';
+    }
+    if (byAdmin) {
+      byAdmin.hidden = false;
+      byAdmin.textContent = 'Выдал: ' + adminLabel;
+    }
+    const userToken = document.getElementById('user-token-blocked');
+    if (userToken) userToken.textContent = currentToken() || currentTelegramId() || '—';
+  }
+
+  function applyPlatformRestrictions(count) {
+    const blocked = count >= 1;
+    const denied = value => {
+      const text = String(value || '').toLowerCase();
+      return text.includes("канал 'создать никнейм'") ||
+        text.includes("бот 'создать никнейм'") ||
+        text.includes("мини-приложение 'сгенерировать фото'");
+    };
+    document.querySelectorAll('#platform-buttons .seg').forEach(button => {
+      const shouldBlock = blocked && denied(button.dataset.value || button.textContent);
+      button.disabled = shouldBlock;
+      if (shouldBlock) {
+        button.setAttribute('aria-disabled', 'true');
+        button.title = 'Недоступно при наличии предупреждения';
+      } else {
+        button.removeAttribute('aria-disabled');
+        if (button.title === 'Недоступно при наличии предупреждения') button.removeAttribute('title');
+      }
+    });
+  }
+
+  const dailyAdKey = () => 'buyAd_warningAdCreated_' + (currentToken() || currentTelegramId());
+  const dailyAdUsed = () => localStorage.getItem(dailyAdKey()) === localDate();
   function refresh() {
-    const t = token(), id = telegramId(), rows = warningsFor(t, id);
+    cleanupWarnings();
+    const rows = warningsFor(currentToken(), currentTelegramId());
     const button = document.getElementById('nav-warnings');
     if (button) button.hidden = rows.length === 0;
-    const locked = rows.some(w => w.lockUntil && Date.parse(w.lockUntil) > Date.now());
+    applyPlatformRestrictions(rows.length);
+    const lock = activeLock(rows);
     const create = document.getElementById('nav-create');
-    if (create && locked) { create.disabled = true; create.title = 'Блокировка до ' + new Date(rows.find(w => w.lockUntil).lockUntil).toLocaleString(); }
+    const createAd = document.getElementById('btn-create-ad');
+    if (lock) {
+      showWarningLock(lock);
+      if (create) create.disabled = true;
+      if (createAd) createAd.disabled = true;
+      return;
+    }
+    const blockedByDailyLimit = rows.length >= 2 && dailyAdUsed();
+    if (create) {
+      create.disabled = blockedByDailyLimit;
+      create.title = blockedByDailyLimit ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : '';
+    }
+    if (createAd && blockedByDailyLimit) createAd.disabled = true;
+    const blockedScreen = document.getElementById('screen-blocked');
+    if (blockedScreen?.dataset.warningLock === 'true') {
+      delete blockedScreen.dataset.warningLock;
+      if (typeof showMainMenu === 'function') showMainMenu();
+    }
   }
+
   function issueWarning() {
-    if (level() < 2) return alert('Предупреждения доступны администраторам уровня 2 и выше.');
-    const target = targetPrompt(); if (!target) return;
-    const reason = prompt('Причина предупреждения:'); if (!reason || !reason.trim()) return alert('Нужно указать причину.');
-    const rows = read(WARN_KEY);
-    const current = rows.filter(w => (target.token && w.token === target.token) || (target.telegramId && w.telegramId === target.telegramId));
-    if (current.length >= 3) return alert('У пользователя уже 3/3 предупреждения.');
-    const limits = {2:2,3:4,4:7,5:Infinity};
-    const today = new Date().toISOString().slice(0,10);
-    const issuedToday = read(ADMIN_LOG_KEY).filter(x => x.adminToken === token() && x.action === 'warning_issued' && x.timestamp.slice(0,10) === today).length;
-    if (issuedToday >= (limits[level()] || 0)) return alert('Достигнут дневной лимит.');
-    const issuedAt = new Date().toISOString(), count = current.length + 1;
-    const warning = { id:'w_' + Date.now(), ...target, reason:reason.trim(), issuedAt, adminName:adminName(), adminToken:token(), count,
-      removeAt:new Date(Date.now() + 2*86400000).toISOString() };
-    if (count === 3) { warning.lockUntil = new Date(Date.now() + 5*86400000).toISOString(); warning.removeAt = warning.lockUntil; }
-    if (count === 2) warning.adLimitUntil = new Date(Date.now() + 86400000).toISOString();
-    rows.push(warning); write(WARN_KEY, rows);
-    log(ADMIN_LOG_KEY, {adminToken:token(), adminName:adminName(), adminLevel:level(), action:'warning_issued', target, reason:reason.trim(), warningCount:count, durationDays:count===3?5:2});
-    log(USER_LOG_KEY, {token:target.token||'', telegramId:target.telegramId||'', event:'warning_issued', reason:reason.trim(), adminName:warning.adminName, warningCount:count});
-    refresh(); alert('Предупреждение выдано: ' + count + '/3');
+    const admin = currentAdmin();
+    if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
+    const targetValue = arguments[0];
+    const reason = String(arguments[1] || '').trim();
+    const target = targetFromInput(targetValue);
+    if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
+
+    cleanupWarnings();
+    const rows = warnings();
+    const current = rows.filter(row => targetMatches(row, target));
+    if (current.length >= 3 || current.some(row => row.lockUntil)) {
+      return { error: 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' };
+    }
+    const limits = { 2: 2, 3: 4, 4: 7, 5: Infinity };
+    const limit = limits[currentLevel()] || 0;
+    const adminId = admin.admin_token || currentToken();
+    const today = localDate();
+    const issuedToday = safeRead(ADMIN_LOG_KEY).filter(row =>
+      row.adminToken === adminId &&
+      row.action === 'warning_issued' &&
+      localDate(new Date(row.timestamp)) === today
+    ).length;
+    if (issuedToday >= limit) return { error: 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' };
+
+    const now = new Date();
+    const count = current.length + 1;
+    const hidden = adminNameHidden();
+    const warning = {
+      id: 'warn_' + now.getTime() + '_' + Math.random().toString(36).slice(2, 7),
+      ...target,
+      reason,
+      issuedAt: now.toISOString(),
+      adminToken: adminId,
+      adminTelegramId: currentTelegramId(),
+      adminName: hidden ? '' : adminName(),
+      adminNameHidden: hidden,
+      count
+    };
+    scheduleNewWarning(rows, warning);
+    rows.push(warning);
+
+    if (count === 3) {
+      const lockUntil = new Date(now.getTime() + FIVE_DAYS).toISOString();
+      rows.filter(row => targetMatches(row, target)).forEach(row => {
+        row.lockUntil = lockUntil;
+        row.removeAt = lockUntil;
+      });
+    }
+    writeWarnings(rows);
+    const details = {
+      targetToken: target.token || '',
+      targetTelegramId: target.telegramId || '',
+      reason: reason || 'Не указана',
+      durationDays: count === 3 ? 5 : 2,
+      warningCount: count,
+      warningId: warning.id,
+      adminNameHidden: hidden
+    };
+    logAdmin('warning_issued', details);
+    logUser(target, 'warning_issued', {
+      reason: reason || 'Не указана',
+      issuedAt: warning.issuedAt,
+      removeAt: warning.removeAt,
+      adminName: warning.adminName,
+      adminNameHidden: hidden,
+      warningCount: count,
+      durationDays: count === 3 ? 5 : 2,
+      lockUntil: warning.lockUntil || ''
+    });
+    refresh();
+    return { message: count === 3
+      ? 'Выдано предупреждение 3/3. Аккаунт заблокирован на 5 дней.'
+      : 'Предупреждение выдано: ' + count + '/3.' };
   }
-  function removeWarnings() {
-    if (level() !== 5) return alert('Снимать предупреждения может только администратор уровня 5.');
-    const target = targetPrompt(); if (!target) return;
-    const rows = read(WARN_KEY), removed = rows.filter(w => (target.token && w.token===target.token) || (target.telegramId && w.telegramId===target.telegramId));
-    if (!removed.length) return alert('Предупреждения не найдены.');
-    write(WARN_KEY, rows.filter(w => !removed.includes(w)));
-    log(ADMIN_LOG_KEY, {adminToken:token(),adminName:adminName(),adminLevel:level(),action:'warnings_removed',target,removedCount:removed.length});
-    refresh(); alert('Предупреждения сняты.');
+
+  function removeWarnings(targetValue) {
+    if (currentLevel() !== 5) return { error: 'Снимать предупреждения может только администратор 5-го уровня.' };
+    const target = targetFromInput(targetValue);
+    if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
+    const rows = warnings();
+    const removed = rows.filter(row => targetMatches(row, target));
+    if (!removed.length) return { error: 'У пользователя нет предупреждений.' };
+    writeWarnings(rows.filter(row => !removed.includes(row)));
+    const details = {
+      targetToken: target.token || '',
+      targetTelegramId: target.telegramId || '',
+      removedCount: removed.length,
+      removedWarningIds: removed.map(row => row.id),
+      reason: removed.some(row => row.lockUntil) ? 'Снятие варнов и разблокировка аккаунта 3/3' : 'Ручное снятие предупреждений'
+    };
+    logAdmin('warnings_removed', details);
+    logUser(target, 'warnings_removed', {
+      removedCount: removed.length,
+      removedWarningIds: details.removedWarningIds,
+      reason: details.reason,
+      adminName: adminName(),
+      adminNameHidden: adminNameHidden(),
+      unlocked: removed.some(row => row.lockUntil)
+    });
+    refresh();
+    return { message: removed.some(row => row.lockUntil)
+      ? 'Все предупреждения сняты. Блокировка 3/3 отменена.'
+      : 'Снято предупреждений: ' + removed.length + '.' };
   }
-  async function loadClientIp() { try { const r = await fetch('https://api.ipify.org?format=json', {cache:'no-store'}); if (r.ok) { const d = await r.json(); clientIp = String(d.ip || ''); log(USER_LOG_KEY, {token:token(),telegramId:telegramId(),event:'ip_observed',ip:clientIp}); } } catch (_) {} }
+
+  function openIssueWarningModal() {
+    if (currentLevel() < 2) return showMessage('Недостаточно прав', 'Действие доступно с 2-го уровня.');
+    openForm('Выдать предупреждение (warn)', body => ({
+      target: field(body, 'Telegram ID или токен пользователя', { placeholder: 'Введите Telegram ID или токен', required: true }),
+      reason: field(body, 'Причина (необязательно)', { multiline: true, placeholder: 'Укажите причину, если необходимо', rows: 3 })
+    }), controls => {
+      const result = issueWarning(controls.target.value, controls.reason.value);
+      if (!result.error) refresh();
+      return result;
+    }, 'Выдать warn');
+  }
+
+  function openRemoveWarningsModal() {
+    if (currentLevel() !== 5) return showMessage('Недостаточно прав', 'Снимать предупреждения может только администратор 5-го уровня.');
+    openForm('Снять предупреждения', body => ({
+      target: field(body, 'Telegram ID или токен пользователя', { placeholder: 'Введите Telegram ID или токен', required: true })
+    }), controls => removeWarnings(controls.target.value), 'Снять предупреждения');
+  }
+
+  function dateFields(body) {
+    const from = field(body, 'Дата начала', { type: 'date' });
+    const to = field(body, 'Дата окончания', { type: 'date' });
+    return { from, to };
+  }
+  const withinDates = (timestamp, from, to) => {
+    const day = localDate(new Date(timestamp));
+    return (!from || day >= from) && (!to || day <= to);
+  };
+  const formatLog = row => {
+    const timestamp = formatDateTime(row.timestamp);
+    return timestamp + '\n' + JSON.stringify(row, null, 2);
+  };
+  function openUserLogModal() {
+    if (currentLevel() < 5) return showMessage('Недостаточно прав', 'Просмотр журналов пользователей доступен только администраторам 5-го уровня.');
+    openForm('Смотреть лог пользователя', body => ({
+      target: field(body, 'Токен или Telegram ID пользователя', { placeholder: 'Введите токен или Telegram ID', required: true }),
+      ...dateFields(body)
+    }), controls => {
+      const target = targetFromInput(controls.target.value);
+      if (!target) return { error: 'Введите токен или Telegram ID.' };
+      logAdmin('user_log_viewed', { targetToken: target.token || '', targetTelegramId: target.telegramId || '' });
+      const rows = safeRead(USER_LOG_KEY).filter(row =>
+        targetMatches(row, target) && withinDates(row.timestamp, controls.from.value, controls.to.value)
+      );
+      return { title: 'Лог пользователя', message: rows.length
+        ? rows.map(formatLog).join('\n\n────────────────────\n\n')
+        : 'За выбранный период записей нет.' };
+    }, 'Посмотреть логи');
+  }
+  function openAdminLogModal() {
+    if (currentLevel() < 5) return showMessage('Недостаточно прав', 'Просмотр журнала администраторов доступен только администраторам 5-го уровня.');
+    openForm('Смотреть лог администратора', body => ({
+      target: field(body, 'Токен или Telegram ID администратора', { placeholder: 'Введите токен или Telegram ID', required: true }),
+      ...dateFields(body)
+    }), controls => {
+      const value = String(controls.target.value || '').trim();
+      if (!value) return { error: 'Введите токен или Telegram ID администратора.' };
+      logAdmin('admin_log_viewed', { details: { searchedAdmin: value } });
+      const rows = safeRead(ADMIN_LOG_KEY).filter(row =>
+        (row.adminToken === value || row.adminTelegramId === value) &&
+        withinDates(row.timestamp, controls.from.value, controls.to.value)
+      );
+      return { title: 'Лог администратора', message: rows.length
+        ? rows.map(formatLog).join('\n\n────────────────────\n\n')
+        : 'За выбранный период записей нет.' };
+    }, 'Посмотреть логи');
+  }
+  function openIpSearchModal() {
+    if (currentLevel() < 4) return showMessage('Недостаточно прав', 'Поиск пользователей по IP доступен администраторам 4-го уровня и выше.');
+    openForm('Найти пользователя по IP', body => ({
+      ip: field(body, 'IP-адрес', { placeholder: 'Например, 192.0.2.1', required: true })
+    }), controls => {
+      const ip = String(controls.ip.value || '').trim();
+      if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: 'Введите корректный IPv4 или IPv6 адрес.' };
+      const matches = safeRead(USER_LOG_KEY).filter(row => row.ip === ip || row.details?.ip === ip);
+      const users = new Map();
+      matches.forEach(row => {
+        const key = (row.token || '') + '|' + (row.telegramId || '');
+        users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—' });
+      });
+      logAdmin('ip_lookup', { targetIp: ip, matches: users.size });
+      const result = Array.from(users.values());
+      return { title: 'Результат поиска по IP', message: result.length
+        ? 'Найдено пользователей: ' + result.length + '\n\n' + result.map((item, index) =>
+          (index + 1) + '. Токен: ' + item.token + '\n   Telegram ID: ' + item.telegramId
+        ).join('\n\n')
+        : 'В локальной истории этого браузера совпадений нет.' };
+    }, 'Найти');
+  }
+
+  function recordAdminAction(action, details = {}) {
+    logAdmin(action, details);
+    const target = {
+      token: details.targetToken || '',
+      telegramId: details.targetTelegramId || ''
+    };
+    if (target.token || target.telegramId) {
+      logUser(target, 'admin_action', {
+        action,
+        reason: details.reason || '',
+        durationDays: details.durationDays == null ? null : details.durationDays,
+        adId: details.adId || '',
+        decision: details.decision || '',
+        adminName: adminName(),
+        adminNameHidden: adminNameHidden(),
+        details
+      });
+    }
+  }
+
+  function recordPunishmentIssued(kind, targetValue, reason, durationDays, expiresAt) {
+    const target = targetFromInput(targetValue) || {};
+    const details = {
+      targetToken: target.token || '',
+      targetTelegramId: target.telegramId || '',
+      targetIp: kind === 'ip_ban' ? String(targetValue || '') : '',
+      reason: reason || 'Не указана',
+      durationDays: durationDays == null ? null : durationDays,
+      expiresAt: expiresAt || '',
+      punishment: kind
+    };
+    recordAdminAction('punishment_issued', details);
+    if (target.token || target.telegramId) {
+      logUser(target, 'punishment_issued', {
+        punishment: kind,
+        reason: reason || 'Не указана',
+        durationDays: durationDays == null ? null : durationDays,
+        expiresAt: expiresAt || '',
+        adminName: adminName(),
+        adminNameHidden: adminNameHidden()
+      });
+    }
+  }
+  function recordPunishmentRemoved(kind, targetValue) {
+    const target = targetFromInput(targetValue) || {};
+    const details = {
+      targetToken: target.token || '',
+      targetTelegramId: target.telegramId || '',
+      targetIp: kind === 'ip_ban' ? String(targetValue || '') : '',
+      punishment: kind
+    };
+    recordAdminAction('punishment_removed', details);
+    if (target.token || target.telegramId) {
+      logUser(target, 'punishment_removed', {
+        punishment: kind,
+        adminName: adminName(),
+        adminNameHidden: adminNameHidden()
+      });
+    }
+  }
+
+  function recordAdCreated(info = {}) {
+    localStorage.setItem(dailyAdKey(), localDate());
+    logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ad_created', {
+      adId: info.adId || '',
+      platform: info.platform || '',
+      createdAt: new Date().toISOString()
+    });
+    refresh();
+  }
+
+  function recordIp(ip) {
+    const normalized = String(ip || '').trim();
+    if (!normalized || normalized === lastLoggedIp) return;
+    clientIp = normalized;
+    lastLoggedIp = normalized;
+    logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ip_observed', { ip: normalized });
+  }
+  async function loadClientIp() {
+    try {
+      if (typeof getClientIp === 'function') {
+        const ip = await getClientIp();
+        if (ip) recordIp(ip);
+        return;
+      }
+      const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+      if (response.ok) {
+        const data = await response.json();
+        recordIp(data.ip || '');
+      }
+    } catch (_) {}
+  }
+
+  function addAdminButtons() {
+    const menu = document.querySelector('#screen-admin .menu');
+    if (!menu || document.getElementById('warn-issue')) return;
+    const group = document.createElement('div');
+    group.className = 'menu__group';
+    group.textContent = 'Предупреждения и журналы';
+    group.id = 'warn-tools-group';
+    menu.appendChild(group);
+
+    const makeButton = (id, text, iconName, onClick, minLevel) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = id;
+      button.className = 'menu__item';
+      button.innerHTML = '<span class="menu__icon"><i class="fa-solid ' + iconName + '"></i></span>' +
+        '<span class="menu__text">' + escapeHtml(text) + '</span>' +
+        '<span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
+      button.addEventListener('click', onClick);
+      button.dataset.minLevel = String(minLevel);
+      menu.appendChild(button);
+      return button;
+    };
+    makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
+    makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
+    makeButton('warn-user-log', 'Смотреть лог пользователя', 'fa-user-clock', openUserLogModal, 5);
+    makeButton('warn-admin-log', 'Смотреть лог администратора', 'fa-clipboard-list', openAdminLogModal, 5);
+    makeButton('warn-ip-search', 'Найти пользователя по IP', 'fa-magnifying-glass-location', openIpSearchModal, 4);
+  }
+
+  function updateAdminButtonVisibility() {
+    const level = currentLevel();
+    document.querySelectorAll('#warn-tools-group, #screen-admin [data-min-level]').forEach(element => {
+      element.hidden = level < Number(element.dataset.minLevel || 1);
+    });
+  }
+
   function install() {
     const crystals = document.getElementById('nav-crystals');
     if (crystals && !document.getElementById('nav-warnings')) {
-      const b = document.createElement('button'); b.id='nav-warnings'; b.type='button'; b.className=crystals.className; b.hidden=true;
-      b.innerHTML='<span class="menu__icon"><i class="fa-solid fa-triangle-exclamation"></i></span><span class="menu__text">Список предупреждений</span><span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
-      crystals.insertAdjacentElement('afterend', b);
-      b.addEventListener('click', () => {
-        const rows=warningsFor(token(),telegramId());
-        show('Список предупреждений', rows.map((w,i)=>(i+1)+'. Дата: '+new Date(w.issuedAt).toLocaleString()+'\nСнять после: '+new Date(w.removeAt).toLocaleString()+'\nПричина: '+w.reason+'\nАдминистратор: '+(w.adminName||'Скрыт')).join('\n\n') || 'Предупреждений нет.');
+      const button = document.createElement('button');
+      button.id = 'nav-warnings';
+      button.type = 'button';
+      button.className = crystals.className;
+      button.hidden = true;
+      button.innerHTML = '<span class="menu__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>' +
+        '<span class="menu__text">Список предупреждений</span>' +
+        '<span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
+      crystals.insertAdjacentElement('afterend', button);
+      button.addEventListener('click', () => {
+        const rows = warningsFor(currentToken(), currentTelegramId());
+        const text = rows.map((row, index) => {
+          const name = row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName;
+          return 'Предупреждение ' + (index + 1) +
+            '\nВыдано: ' + formatDate(row.issuedAt) +
+            '\nСнятие в: ' + formatDate(row.removeAt) +
+            '\nПричина: ' + (row.reason || 'Не указана') +
+            '\nВыдано кем: ' + name;
+        }).join('\n\n');
+        showMessage('Список предупреждений', text || 'Предупреждений нет.');
       });
     }
-    const adminMenu=document.querySelector('#screen-admin .menu');
-    if (adminMenu && !document.getElementById('warn-issue')) {
-      const box=document.createElement('div'); box.className='stack-sm'; box.style.marginTop='12px';
-      box.innerHTML='<button id="warn-issue" class="btn btn--primary">Выдать предупреждение (ур. 2+)</button><button id="warn-remove" class="btn btn--ghost">Снять предупреждения (ур. 5)</button><button id="warn-user-log" class="btn btn--ghost">Журнал пользователя (ур. 5)</button><button id="warn-admin-log" class="btn btn--ghost">Журнал администраторов (ур. 5)</button><button id="warn-ip-search" class="btn btn--ghost">Поиск по IP (ур. 4+)</button>';
-      adminMenu.parentElement.appendChild(box);
-      document.getElementById('warn-issue').onclick=issueWarning;
-      document.getElementById('warn-remove').onclick=removeWarnings;
-      document.getElementById('warn-user-log').onclick=()=>{
-        if(level()<5)return alert('Только уровень 5.');
-        const q=prompt('Токен или Telegram ID пользователя:'); if(!q)return;
-        show('Журнал пользователя',read(USER_LOG_KEY).filter(x=>x.token===q||x.telegramId===q).map(x=>JSON.stringify(x)).join('\n\n')||'Записей нет.');
-      };
-      document.getElementById('warn-admin-log').onclick=()=>{
-        if(level()<5)return alert('Только уровень 5.');
-        const from=prompt('Дата начала YYYY-MM-DD (необязательно):')||'', to=prompt('Дата окончания YYYY-MM-DD (необязательно):')||'';
-        show('Журнал администраторов',read(ADMIN_LOG_KEY).filter(x=>(!from||x.timestamp.slice(0,10)>=from)&&(!to||x.timestamp.slice(0,10)<=to)).map(x=>JSON.stringify(x)).join('\n\n')||'Записей нет.');
-      };
-      document.getElementById('warn-ip-search').onclick=()=>{
-        if(level()<4)return alert('Доступно с уровня 4.');
-        const ip=prompt('IP-адрес:'); if(!ip)return;
-        show('Поиск по IP',read(USER_LOG_KEY).filter(x=>x.ip===ip||x.clientIp===ip).map(x=>JSON.stringify(x)).join('\n\n')||'В локальных журналах совпадений нет.');
-        log(ADMIN_LOG_KEY,{adminToken:token(),adminName:adminName(),adminLevel:level(),action:'ip_lookup',ip});
-      };
-    }
+    addAdminButtons();
+    updateAdminButtonVisibility();
+    cleanupWarnings();
     refresh();
     loadClientIp();
   }
-  document.addEventListener('click', e => {
-    const button = e.target.closest('button,[role="button"]');
+
+  document.addEventListener('click', event => {
+    const button = event.target.closest('button,[role="button"]');
     if (!button) return;
-    const text = (button.innerText || button.textContent || '').toLowerCase();
-    const rows = warningsFor(token(), telegramId());
-    if (rows.length >= 1 && /(бот создать никнейм|канал создать никнейм|мини-приложение сгенерировать фото|создать никнейм|сгенерировать фото)/i.test(text)) {
-      e.preventDefault(); e.stopImmediatePropagation(); alert('Эта функция недоступна при наличии предупреждения.'); return;
+    const rows = warningsFor(currentToken(), currentTelegramId());
+    const lock = activeLock(rows);
+    if (lock && !['btn-support', 'btn-copy-token-blocked'].includes(button.id)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
     }
-    const create = button.id === 'nav-create' || /создать рекламу/.test(text);
-    if (create && rows.some(w => w.lockUntil && Date.parse(w.lockUntil) > Date.now())) {
-      e.preventDefault(); e.stopImmediatePropagation(); alert('Аккаунт заблокирован на 5 дней из-за 3/3 предупреждений.'); return;
+
+    const platformValue = button.dataset?.value || button.textContent || '';
+    if (rows.length >= 1 && (
+      String(platformValue).toLowerCase().includes("бот 'создать никнейм'") ||
+      String(platformValue).toLowerCase().includes("канал 'создать никнейм'") ||
+      String(platformValue).toLowerCase().includes("мини-приложение 'сгенерировать фото'")
+    )) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showMessage('Функция недоступна', 'Эта площадка заблокирована при наличии предупреждения.');
+      return;
     }
-    if (create && rows.length >= 2) {
-      const key = 'buyAd_adCreatedDate_' + (token() || telegramId()), today = new Date().toISOString().slice(0,10);
-      if (localStorage.getItem(key) === today) { e.preventDefault(); e.stopImmediatePropagation(); alert('При 2/3 предупреждениях рекламу можно создавать только один раз в день.'); return; }
-      localStorage.setItem(key, today);
+    const createAction = button.id === 'nav-create' || button.id === 'btn-create-ad';
+    if (createAction && rows.length >= 2 && dailyAdUsed()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showMessage('Лимит создания рекламы', 'При 2/3 предупреждениях можно создать только одну рекламу в день.');
+      return;
+    }
+
+    if (button.classList.contains('menu__item') || button.id.startsWith('nav-')) {
+      const menu = String(button.querySelector('.menu__text')?.textContent || button.textContent || '').trim();
+      logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'menu_opened', {
+        menu,
+        buttonId: button.id || '',
+        screen: button.closest('.screen')?.id || 'screen-main'
+      });
+      if (button.closest('#screen-admin') && currentAdmin()) {
+        logAdmin('menu_opened', { menu, buttonId: button.id || '' });
+      }
+    } else if (button.closest('#screen-admin') && currentAdmin()) {
+      logAdmin('ui_action', {
+        buttonId: button.id || '',
+        label: String(button.textContent || '').trim().slice(0, 160)
+      });
+    } else {
+      logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ui_action', {
+        buttonId: button.id || '',
+        label: String(button.textContent || '').trim().slice(0, 160),
+        screen: button.closest('.screen')?.id || ''
+      });
     }
   }, true);
-  window.BuyAdWarnings = { warningsFor, refresh, userLogs:()=>read(USER_LOG_KEY), adminLogs:()=>read(ADMIN_LOG_KEY) };
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', install); else install();
-  setInterval(refresh, 60000);
+
+  window.BuyAdWarnings = {
+    warningsFor,
+    refresh,
+    userLogs: () => safeRead(USER_LOG_KEY),
+    adminLogs: () => safeRead(ADMIN_LOG_KEY),
+    logUserAction: (event, details = {}) => logUser({ token: currentToken(), telegramId: currentTelegramId() }, event, details),
+    recordAdminAction,
+    recordPunishmentIssued,
+    recordPunishmentRemoved,
+    recordAdCreated,
+    recordIp,
+    cleanupWarnings
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', install, { once: true });
+  } else {
+    install();
+  }
+  setInterval(() => {
+    cleanupWarnings();
+    refresh();
+    updateAdminButtonVisibility();
+  }, 60000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      cleanupWarnings();
+      refresh();
+    }
+  });
 })();
