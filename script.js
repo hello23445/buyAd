@@ -1965,21 +1965,22 @@ $('nav-create').onclick = () => {
 let myAdsLoadedOnce = false;
 let noAdsIpHistoryTimer = null;
 const NO_ADS_IP_HISTORY_INTERVAL = 5 * 60 * 1000;
+function isUserBlockedFromAdChanges() {
+  return isTokenCreateBlocked() || isCreateAdsDisabledGlobally() ||
+    isRuntimeValue('disableEditingAds', 'disabled', '') ||
+    isRuntimeValue('disableCreateAds2', 'disabled', '');
+}
 function syncIpHistoryPolicy(hasAds) {
-  // При персональном запрете создания/редактирования запись IP разрешена только кнопкой «Обновить».
-  if (isTokenCreateBlocked()) {
+  // Если запрещены создание/редактирование, IP пишется только вручную кнопкой «Обновить».
+  if (isUserBlockedFromAdChanges() || hasAds) {
     if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
     noAdsIpHistoryTimer = null;
     return;
   }
-  if (hasAds) {
-    if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
-    noAdsIpHistoryTimer = null;
-    return;
-  }
+  // Нет реклам и нет запрета: записывать при входе и далее раз в 5 минут.
   if (noAdsIpHistoryTimer !== null) return;
   const saveIp = () => {
-    if (isTokenCreateBlocked()) {
+    if (isUserBlockedFromAdChanges()) {
       clearInterval(noAdsIpHistoryTimer);
       noAdsIpHistoryTimer = null;
       return;
@@ -2713,8 +2714,10 @@ $('btn-create-ad').onclick = async () => {
     }
     // Сохраняем IP только после успешного создания или редактирования рекламы.
     syncIpHistoryPolicy(true);
-    Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
-      .catch(error => console.warn('Не удалось сохранить историю IP:', error));
+    if (!isUserBlockedFromAdChanges()) {
+      Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
+        .catch(error => console.warn('Не удалось сохранить историю IP:', error));
+    }
 
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
