@@ -329,9 +329,9 @@
     }
 
     if (removeIds.size) {
-      writeWarnings(rows.filter(row => !removeIds.has(row.id)));
+      writeWarnings(rows.filter(row => !removeIds.has(row.id))).catch(error => console.error('Не удалось сохранить автоматическое снятие варнов в GitHub:', error));
     } else if (changed) {
-      try { await writeWarnings(rows); } catch (error) { return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
+      writeWarnings(rows).catch(error => console.error('Не удалось сохранить обновление варнов в GitHub:', error));
     }
   }
 
@@ -483,7 +483,7 @@
         row.removeAt = lockUntil;
       });
     }
-    writeWarnings(rows);
+    try { await writeWarnings(rows); } catch (error) { return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
