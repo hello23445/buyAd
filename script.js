@@ -514,9 +514,8 @@ function updateAdminLevelBadge() {
   // Сначала скрываем ВСЕ действия меню. Затем явно открываем только разрешённые текущему уровню.
   const menu = document.querySelector('#screen-admin .menu');
   if (menu) {
-    // Полностью сбрасываем видимость всех пунктов и подписей меню перед каждым пересчётом уровня.
-    menu.querySelectorAll('.menu__item, .menu__group, button, a, label, .menu__label, .menu__description')
-      .forEach(item => { item.hidden = true; });
+    // Скрываем только элементы меню, не вложенные кнопки/подписи внутри них.
+    menu.querySelectorAll('.menu__item, .menu__group').forEach(item => { item.hidden = true; });
   }
 
   const permissionVisibility = {
@@ -539,7 +538,9 @@ function updateAdminLevelBadge() {
     'admin-disable-create-all': 'globalCreateToggle',
     'admin-enable-create-all': 'globalCreateToggle',
     'admin-disable-edit-all': 'globalCreateToggle',
-    'admin-enable-edit-all': 'globalCreateToggle'
+    'admin-enable-edit-all': 'globalCreateToggle',
+    'warn-issue': 'reviewAds',
+    'warn-remove': 'manageAdmins'
   };
   Object.entries(permissionVisibility).forEach(([id, permission]) => {
     const element = $(id);
@@ -572,6 +573,20 @@ function updateAdminLevelBadge() {
   }
   const ipCard = $('admin-ip-info-card');
   if (ipCard) ipCard.hidden = !adminHasPermission('viewOwnIp');
+
+  // warning-system.js создаёт эти пункты динамически, поэтому обновляем их
+  // после каждого пересчёта уровня, а не только при первоначальной загрузке.
+  if (window.BuyAdWarnings?.updateAdminButtonVisibility) {
+    window.BuyAdWarnings.updateAdminButtonVisibility();
+  } else {
+    const level = Number(admin?.admin_level || 0);
+    const issue = $('warn-issue');
+    const remove = $('warn-remove');
+    const group = $('warn-tools-group');
+    if (issue) issue.hidden = level < 2;
+    if (remove) remove.hidden = level < 5;
+    if (group) group.hidden = level < 2;
+  }
 }
 $('admin-level-save')?.addEventListener('click', () => {
   const input = $('admin-level-badge');
