@@ -1185,10 +1185,25 @@ function isTelegramIdBlocked() {
   return telegramId && !!findPunishmentEntry('BlockedUsersTelegramID', telegramId);
 }
 
-// IP collection/history is disabled.
-async function getClientIp() { return null; }
+// Resolve the public IP only when an explicit history event needs to be recorded.
+async function getClientIp() {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return typeof data.ip === 'string' ? data.ip.trim() : null;
+  } catch (_) { return null; }
+}
 function getSavedUserAPIs() { return []; }
 function saveUserAPI() { return []; }
+async function recordCurrentIpHistory(trigger) {
+  try {
+    const ip = await getClientIp();
+    if (ip && window.BuyAdWarnings?.recordIpHistory) await window.BuyAdWarnings.recordIpHistory(ip, trigger);
+  } catch (error) { console.warn('Не удалось записать историю IP:', error); }
+}
+const IP_ENTRY_HISTORY_KEY = 'buyAdIpEntryHistoryAt';
+const IP_ENTRY_HISTORY_INTERVAL = 5 * 60 * 1000;
 
 function updateBlockedSubtitle(reason, lang) {
   const subtitle = $('screen-blocked')?.querySelector('.card__subtitle');
@@ -1653,7 +1668,7 @@ function firstEntry(lang) {
   applyLang(lang);
   showMainMenu();
   // Загружаем список реклам после первого входа.
-  loadMyAds(true).catch(error => console.warn('Не удалось загрузить список реклам:', error));
+  loadMyAds(true, 'app_entry').catch(error => console.warn('Не удалось загрузить список реклам:', error));
 }
 
 /* ========== MAIN MENU ========== */
@@ -1908,7 +1923,7 @@ function updateMyAdsRefreshButton() {
    b.title = '';
  }
 }
-$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();};
+$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds(false, 'manual_refresh');};
 setInterval(updateMyAdsRefreshButton,1000);
 $('nav-myads').onclick=()=>{hideAllScreens();show($('screen-myads'));if(!myAdsLoadedOnce){myAdsLoadedOnce=true;loadMyAds();}updateMyAdsRefreshButton();};
 
@@ -2603,6 +2618,7 @@ $('btn-create-ad').onclick = async () => {
     $('crystals-count').textContent = formatNumber(currentCrystals);
     $('crystals-now').textContent = formatNumber(currentCrystals);
     $('crystals-in-create').textContent = formatNumber(currentCrystals);
+    await recordCurrentIpHistory(editMode ? 'ad_updated' : 'ad_created');
 
     if (!editMode && window.BuyAdWarnings?.recordAdCreated) {
       window.BuyAdWarnings.recordAdCreated({ adId: adName, platform: selectedPlatform });
@@ -3203,7 +3219,7 @@ async function saveRejectionReasonToGitHub(userID, adName, reason, adminName) {
   throw new Error('Файл причин отказа изменился одновременно. Повторите отклонение рекламы.');
 }
 
-async function loadMyAds(skipPreloader = false) {
+async function loadMyAds(skipPreloader = false, ipHistoryTrigger = '') {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (!skipPreloader) showPreloader();
   const list = $('myads-list');
@@ -3226,6 +3242,14 @@ async function loadMyAds(skipPreloader = false) {
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
     const storedRejectionReasons = await loadStoredRejectionReasons();
+    if (ipHistoryTrigger === 'manual_refresh' && isTokenCreateBlocked()) await recordCurrentIpHistory('restricted_user_manual_my_ads_refresh');
+    if (ipHistoryTrigger === 'app_entry' && isTokenCreateBlocked() && allAds.length === 0) {
+      const lastEntryLog = Number(localStorage.getItem(IP_ENTRY_HISTORY_KEY) || 0);
+      if (Date.now() - lastEntryLog >= IP_ENTRY_HISTORY_INTERVAL) {
+        localStorage.setItem(IP_ENTRY_HISTORY_KEY, String(Date.now()));
+        await recordCurrentIpHistory('restricted_user_app_entry_no_ads');
+      }
+    }
     
     // Теперь обновляем список (очищаем только перед заполнением)
     list.innerHTML = '';
