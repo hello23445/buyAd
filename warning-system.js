@@ -23,14 +23,112 @@
       return [];
     }
   };
+  // Local cache keeps the existing synchronous UI responsive. The canonical
+  // records are synchronized with the repository via the existing token broker.
+  const CLOUD_FILES = {
+    [USER_LOG_KEY]: 'userLogs.json',
+    [ADMIN_LOG_KEY]: 'adminLogs.json'
+  };
+  let cloudReady = false;
+  let cloudTokenPromise = null;
+  const cloudQueues = new Map();
+  const getGitHubToken = () => {
+    if (!cloudTokenPromise) cloudTokenPromise = fetch('https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec', { cache: 'no-store' })
+      .then(response => { if (!response.ok) throw new Error('Не удалось получить GitHub API token'); return response.json(); })
+      .then(data => { if (!data.token) throw new Error('GitHub API token отсутствует'); return data.token; });
+    return cloudTokenPromise;
+  };
+  const githubGet = async path => {
+    const token = await getGitHubToken();
+    const response = await fetch('https://api.github.com/repos/hello23445/buyAd/contents/' + path, {
+      headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token },
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('GitHub read failed for ' + path + ': ' + response.status);
+    const file = await response.json();
+    const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\\n/g, ''))));
+    return { token, sha: file.sha, content: decoded };
+  };
+  const githubPut = async (path, content, message) => {
+    const token = await getGitHubToken();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const current = await githubGet(path);
+      const response = await fetch('https://api.github.com/repos/hello23445/buyAd/contents/' + path, {
+        method: 'PUT',
+        headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(content))), sha: current.sha })
+      });
+      if (response.ok) return response.json();
+      if (response.status !== 409 && response.status !== 422) throw new Error('GitHub write failed for ' + path + ': ' + response.status);
+    }
+    throw new Error('Не удалось сохранить ' + path + ': файл изменялся одновременно несколько раз.');
+  };
+  const persistRows = (key, value) => {
+    const path = CLOUD_FILES[key];
+    if (!path) return;
+    const previous = cloudQueues.get(path) || Promise.resolve();
+    const next = previous.catch(() => {}).then(async () => {
+      const current = await githubGet(path);
+      let document;
+      try { document = JSON.parse(current.content); } catch (_) { document = { schemaVersion: 2, entries: [] }; }
+      const remoteRows = Array.isArray(document.entries) ? document.entries : [];
+      const merged = new Map(remoteRows.map(row => [row.id, row]));
+      value.forEach(row => merged.set(row.id, row));
+      document.entries = Array.from(merged.values()).sort((a, b) => Date.parse(a.timestamp || 0) - Date.parse(b.timestamp || 0)).slice(-MAX_LOG_ROWS);
+      await githubPut(path, JSON.stringify(document, null, 2) + '\\n', 'Update ' + path + ' audit log');
+    }).catch(error => console.warn('BuyAd cloud log sync failed:', path, error));
+    cloudQueues.set(path, next);
+  };
+  const persistWarnings = rows => {
+    const previous = cloudQueues.get('admin2.js') || Promise.resolve();
+    const next = previous.catch(() => {}).then(async () => {
+      const current = await githubGet('admin2.js');
+      const literal = JSON.stringify(rows);
+      const pattern = /(^\\s*(?:export\\s+)?(?:let|const|var)\\s+UserWarnings\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)/m;
+      let updated;
+      if (pattern.test(current.content)) updated = current.content.replace(pattern, (_, a, _old, z) => a + literal + z);
+      else updated = current.content.replace(/(export\\s+const\\s+BlockedUsersIPadresses\\s*=\\s*\\[[\\s\\S]*?\\];?)/, '$1\\nexport const UserWarnings = ' + literal + '; // { token, telegramId, reason, issuedAt, removeAt, adminName, adminNameHidden, lockUntil }');
+      if (updated === current.content) throw new Error('Не удалось обновить UserWarnings в admin2.js');
+      await githubPut('admin2.js', updated, 'Update user warnings');
+    }).catch(error => console.warn('BuyAd warning sync failed:', error));
+    cloudQueues.set('admin2.js', next);
+  };
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      if (key === WARN_KEY) persistWarnings(value);
+      if (CLOUD_FILES[key]) persistRows(key, value);
       return true;
     } catch (error) {
       console.warn('BuyAd local audit storage failed:', error);
       return false;
     }
+  };
+  async function loadCloudRecords() {
+    try {
+      const [userFile, adminFile, configFile] = await Promise.all([
+        githubGet('userLogs.json'), githubGet('adminLogs.json'), githubGet('admin2.js')
+      ]);
+      const userDoc = JSON.parse(userFile.content || '{}');
+      const adminDoc = JSON.parse(adminFile.content || '{}');
+      const userRows = Array.isArray(userDoc.entries) ? userDoc.entries : [];
+      const adminRows = Array.isArray(adminDoc.entries) ? adminDoc.entries : [];
+      const parseWarnings = configFile.content.match(/(?:export\\s+)?const\\s+UserWarnings\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
+      const remoteWarnings = parseWarnings ? JSON.parse(parseWarnings[1]) : [];
+      // Merge cloud records with any local records, preferring cloud for IDs already present.
+      const merge = (local, remote) => Array.from(new Map([...local, ...remote].map(row => [row.id, row])).values()).slice(-MAX_LOG_ROWS);
+      safeWriteCache(USER_LOG_KEY, merge(safeRead(USER_LOG_KEY), userRows));
+      safeWriteCache(ADMIN_LOG_KEY, merge(safeRead(ADMIN_LOG_KEY), adminRows));
+      safeWriteCache(WARN_KEY, merge(safeRead(WARN_KEY), remoteWarnings));
+      cloudReady = true;
+      refresh();
+    } catch (error) {
+      console.warn('BuyAd cloud records unavailable; local cache remains active:', error);
+    }
+  }
+  const safeWriteCache = (key, value) => {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch (_) { return false; }
   };
   const currentAdmin = () => {
     try { return typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null; }
