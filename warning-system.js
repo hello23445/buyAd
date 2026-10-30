@@ -1,6 +1,6 @@
 /* BuyAd warnings and client-side audit UI.
  * IMPORTANT: this browser-only store is a development fallback, not a shared audit backend.
- * Do not copy runtime records into this public repository. See audit logs.
+ * Warnings are stored centrally in admin2.js; audit logging is disabled.
  */
 (() => {
   'use strict';
@@ -42,7 +42,7 @@
     });
     if (!response.ok) throw new Error('GitHub read failed for ' + path + ': ' + response.status);
     const file = await response.json();
-    const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\\n/g, ''))));
+    const decoded = decodeURIComponent(escape(atob(String(file.content || '').replace(/\s/g, ''))));
     return { token, sha: file.sha, content: decoded };
   };
   const githubPut = async (path, content, message) => {
