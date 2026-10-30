@@ -201,7 +201,7 @@
     const pre = document.createElement('pre');
     pre.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto;margin:0;font:inherit;';
     pre.textContent = String(message || '');
-    if (typeof openModal === 'function') openModal(title, pre, [{ text: 'OK' }]);
+    if (typeof openModal === 'function') openModal(title, pre, [{ text: tr('ok', 'ОК', 'OK') }]);
     else alert(title + '\n\n' + message);
   }
 
@@ -443,25 +443,25 @@
 
   async function issueWarning(targetValue, reasonValue) {
     const admin = currentAdmin();
-    if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
+    if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
     if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
     const reason = String(reasonValue || '').trim();
     const target = targetFromInput(targetValue);
-    if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
+    if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
     cleanupWarnings();
     const rows = warnings();
     const originalRows = rows.map(row => ({ ...row }));
     const current = rows.filter(row => targetMatches(row, target));
     if (current.length >= 3 || current.some(row => row.lockUntil)) {
-      return { error: 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' };
+      return { error: currentLang() === 'ru' ? 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' : 'The user already has 3/3 warnings. No more warnings can be issued.' };
     }
     const limits = { 2: 2, 3: 4, 4: 7, 5: Infinity };
     const limit = limits[currentLevel()] || 0;
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
     const issuedToday = rows.filter(row => row.adminToken === adminId && localDate(new Date(row.issuedAt)) === today).length;
-    if (issuedToday >= limit) return { error: 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' };
+    if (issuedToday >= limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' : 'Daily warning limit reached: ' + limit + '.' };
 
     const now = new Date();
     const count = current.length + 1;
@@ -487,7 +487,7 @@
         row.removeAt = lockUntil;
       });
     }
-    try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
+    try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Варн не сохранён в GitHub: ' : 'Warning was not saved to GitHub: ') + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
@@ -525,7 +525,7 @@
     const originalRows = rows.map(row => ({ ...row }));
     const removed = rows.filter(row => targetMatches(row, target));
     if (!removed.length) return { error: 'У пользователя нет предупреждений.' };
-    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: 'Снятие варнов не сохранено в GitHub: ' + (error.message || error) }; }
+    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждений не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
@@ -632,13 +632,14 @@
     }, 'Посмотреть логи');
   }
   function openIpSearchModal() {
-    if (currentLevel() < 4) return showMessage('Недостаточно прав', 'Поиск пользователей по IP доступен администраторам 4-го уровня и выше.');
-    openForm('Найти пользователя по IP', body => ({
-      ip: field(body, 'IP-адрес', { placeholder: 'Например, 192.0.2.1', required: true })
+    const lang = currentLang();
+    if (currentLevel() < 4) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), lang === 'ru' ? 'Поиск пользователей по IP доступен администраторам 4-го уровня и выше.' : 'IP search is available to level 4 and above administrators.');
+    openForm(tr('warningIpSearch', 'Найти пользователя по IP', 'Find user by IP'), body => ({
+      ip: field(body, tr('warningIpLabel', 'IP-адрес', 'IP address'), { placeholder: tr('warningIpPlaceholder', 'Например, 192.0.2.1', 'For example, 192.0.2.1'), required: true })
     }), controls => {
       const ip = String(controls.ip.value || '').trim();
-      if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: 'Введите корректный IPv4 или IPv6 адрес.' };
-      if (!cloudIpHistoryLoaded) return { error: 'История IP ещё загружается из GitHub. Попробуйте ещё раз через несколько секунд.' };
+      if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
+      if (!cloudIpHistoryLoaded) return { error: tr('warningIpLoading', 'История IP ещё загружается из GitHub. Попробуйте ещё раз через несколько секунд.', 'IP history is still loading from GitHub. Try again in a few seconds.') };
       const matches = safeRead(IP_HISTORY_KEY).filter(row => row.ip === ip);
       const users = new Map();
       matches.forEach(row => {
@@ -646,12 +647,12 @@
         users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—', lastSeen: row.lastSeen || '' });
       });
       const result = Array.from(users.values());
-      return { title: 'Результат поиска по IP', message: result.length
-        ? 'Найдено пользователей: ' + result.length + '\n\n' + result.map((item, index) =>
-          (index + 1) + '. Токен: ' + item.token + '\n   Telegram ID: ' + item.telegramId
+      return { title: tr('warningIpResultTitle', 'Результат поиска по IP', 'IP search results'), message: result.length
+        ? tr('warningIpResults', 'Найдено пользователей', 'Users found') + ': ' + result.length + '\n\n' + result.map((item, index) =>
+          (index + 1) + '. ' + tr('warningIpToken', 'Токен', 'Token') + ': ' + item.token + '\n   ' + tr('warningIpTelegramId', 'Telegram ID', 'Telegram ID') + ': ' + item.telegramId
         ).join('\n\n')
-        : 'Совпадений по этому IP не найдено в общей истории.' };
-    }, 'Найти');
+        : tr('warningIpNoMatch', 'Совпадений по этому IP не найдено в общей истории.', 'No matches for this IP were found in shared history.') };
+    }, lang === 'ru' ? 'Найти' : 'Search');
   }
 
   function recordAdminAction(action, details = {}) {
