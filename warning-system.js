@@ -384,17 +384,17 @@
       button.disabled = shouldBlock;
       if (shouldBlock) {
         button.setAttribute('aria-disabled', 'true');
-        button.title = 'Недоступно при наличии предупреждения';
+        button.title = currentLang() === 'ru' ? 'Недоступно при наличии предупреждения' : 'Unavailable while a warning is active';
       } else {
         button.removeAttribute('aria-disabled');
-        if (button.title === 'Недоступно при наличии предупреждения') button.removeAttribute('title');
+        if (button.title === 'Недоступно при наличии предупреждения' || button.title === 'Unavailable while a warning is active') button.removeAttribute('title');
       }
     });
     document.querySelectorAll('.platform-row').forEach(row => {
       const shouldBlock = blocked && denied(row.dataset.value || row.textContent);
       row.setAttribute('aria-disabled', shouldBlock ? 'true' : 'false');
       row.classList.toggle('platform-row--warning-blocked', shouldBlock);
-      row.title = shouldBlock ? 'Недоступно при наличии предупреждения' : '';
+      row.title = shouldBlock ? (currentLang() === 'ru' ? 'Недоступно при наличии предупреждения' : 'Unavailable while a warning is active') : '';
     });
   }
 
@@ -433,7 +433,7 @@
     const blockedByDailyLimit = rows.length >= 2 && dailyAdUsed();
     setWarningDisabled(create, blockedByDailyLimit);
     setWarningDisabled(createAd, blockedByDailyLimit);
-    if (create) create.title = blockedByDailyLimit ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : '';
+    if (create) create.title = blockedByDailyLimit ? (currentLang() === 'ru' ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : 'With 2/3 warnings, only one ad can be created per day') : '';
     const blockedScreen = document.getElementById('screen-blocked');
     if (blockedScreen?.dataset.warningLock === 'true') {
       delete blockedScreen.dataset.warningLock;
@@ -910,7 +910,7 @@
       if (blockedPlatformNames.some(name => platform.includes(name))) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        showMessage('Функция недоступна', 'Эта площадка заблокирована при наличии предупреждения.');
+        showMessage(currentLang() === 'ru' ? 'Функция недоступна' : 'Feature unavailable', currentLang() === 'ru' ? 'Эта площадка заблокирована при наличии предупреждения.' : 'This platform is blocked while a warning is active.');
         return;
       }
     }
@@ -939,7 +939,7 @@
     if (createAction && rows.length >= 2 && dailyAdUsed()) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      showMessage('Лимит создания рекламы', 'При 2/3 предупреждениях можно создать только одну рекламу в день.');
+      showMessage(currentLang() === 'ru' ? 'Лимит создания рекламы' : 'Ad creation limit', currentLang() === 'ru' ? 'При 2/3 предупреждениях можно создать только одну рекламу в день.' : 'With 2/3 warnings, you can create only one ad per day.');
       return;
     }
 
