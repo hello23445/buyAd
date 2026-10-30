@@ -863,7 +863,6 @@
     if (group) group.textContent = (dict && dict.warningSection) || (lang === 'ru' ? 'Предупреждения' : 'Warnings');
     setLabel('warn-issue', 'warningIssueButton', 'Выдать предупреждение (warn)', 'Issue warning (warn)');
     setLabel('warn-remove', 'warningRemoveButton', 'Снять предупреждения', 'Remove warnings');
-    setLabel('warn-ip-search', 'warningIpSearch', 'Найти пользователя по IP', 'Find user by IP');
     const nav = document.querySelector('#nav-warnings .menu__text');
     if (nav) nav.textContent = (dict && dict.warningTitle) || (lang === 'ru' ? 'Список предупреждений' : 'Warning list');
     const back = document.getElementById('back-from-warnings');
