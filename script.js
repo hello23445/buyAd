@@ -1436,6 +1436,12 @@ function applyLang(lang) {
     span.dataset.i18n = editMode ? 'saveChanges' : 'createBtn';
     span.textContent = i18n[lang][editMode ? 'saveChanges' : 'createBtn'];
   }
+  if (!$('screen-blocked').hidden) {
+    updateBlockedTelegramId(String(tg?.initDataUnsafe?.user?.id || ''));
+    document.querySelectorAll('#blocked-lang-buttons .seg').forEach(button => {
+      button.classList.toggle('active', button.dataset.value === lang);
+    });
+  }
 }
 
 /* ========== USER TOKEN / ID (исправленный) ========== */
