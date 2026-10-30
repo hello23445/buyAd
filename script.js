@@ -3900,7 +3900,7 @@ async function updateVariable(action, value) {
         }
 
         oldArray = oldArray.filter(item => item !== "");
-        const isPunishmentArray = ["BanForever", "BlockedUsersTelegramID", "BlockedUsersIPadresses"].includes(variableName);
+        const isPunishmentArray = ["BanForever", "BlockCreateAds", "BlockedUsersTelegramID", "BlockedUsersIPadresses"].includes(variableName);
         const entryValue = item => item && typeof item === "object" ? String(item.value || item.token || item.ip || item.telegramId || "").trim() : String(item || "").trim();
         if (isPunishmentArray || variableName === "BlockCreateAds") oldArray = oldArray.map(item => typeof item === "string" ? { value: item, reason: "" } : item);
 
