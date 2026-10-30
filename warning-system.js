@@ -176,7 +176,22 @@
     return /^\d{4,}$/.test(normalized) ? { telegramId: normalized } : { token: normalized };
   };
   const targetMatches = (row, target) =>
-    !!target && ((target.token && row.token === target.token) || (target.telegramId && row.telegramId === target.telegramId));
+    !!target && (
+      (target.token && String(row.token || '') === String(target.token)) ||
+      (target.telegramId && String(row.telegramId || '') === String(target.telegramId))
+    );
+  const warningTime = row => {
+    const candidates = [row && row.issuedAt, row && row.timestamp, row && row.createdAt, row && row.date];
+    for (const value of candidates) {
+      const time = Date.parse(value || '');
+      if (Number.isFinite(time)) return time;
+    }
+    return 0;
+  };
+  const validIsoAfter = (value, offset, fallback = Date.now()) => {
+    const parsed = Date.parse(value || '');
+    return new Date((Number.isFinite(parsed) ? parsed : fallback) + offset).toISOString();
+  };
   const warnings = () => {
     const current = safeRead(WARN_KEY);
     if (current.length) return current;
@@ -202,7 +217,7 @@
     return warnings().filter(row =>
       (normalizedToken && String(row.token || '') === normalizedToken) ||
       (normalizedTelegramId && String(row.telegramId || '') === normalizedTelegramId)
-    ).sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+    ).sort((a, b) => warningTime(a) - warningTime(b));
   };
 
   function showMessage(title, message) {
@@ -268,10 +283,12 @@
 
   function scheduleNewWarning(rows, warning) {
     const group = rows.filter(row => targetMatches(row, warning));
-    group.sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
+    group.sort((a, b) => warningTime(a) - warningTime(b));
     const last = group[group.length - 1];
     const base = Date.now() + TWO_DAYS;
-    const next = last ? Math.max(base, Date.parse(last.removeAt || last.issuedAt) + TWO_DAYS) : base;
+    const lastRemoval = last ? Date.parse(last.removeAt || '') : NaN;
+    const nextFromLast = Number.isFinite(lastRemoval) ? lastRemoval + TWO_DAYS : (last ? warningTime(last) + TWO_DAYS : base);
+    const next = last ? Math.max(base, Number.isFinite(nextFromLast) ? nextFromLast : base) : base;
     warning.removeAt = new Date(next).toISOString();
   }
 
@@ -288,8 +305,8 @@
     let changed = false;
 
     for (const group of groups.values()) {
-      group.sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
-      const lock = group.filter(row => row.lockUntil).sort((a, b) => Date.parse(b.issuedAt) - Date.parse(a.issuedAt))[0];
+      group.sort((a, b) => warningTime(a) - warningTime(b));
+      const lock = group.filter(row => row.lockUntil).sort((a, b) => warningTime(b) - warningTime(a))[0];
       if (lock) {
         const lockTime = Date.parse(lock.lockUntil);
         if (Number.isFinite(lockTime) && lockTime <= now) {
@@ -313,7 +330,7 @@
 
       group.forEach(row => {
         if (!row.removeAt) {
-          row.removeAt = new Date(Date.parse(row.issuedAt) + TWO_DAYS).toISOString();
+          row.removeAt = validIsoAfter(row.issuedAt || row.timestamp || row.createdAt || row.date, TWO_DAYS);
           changed = true;
         }
       });
@@ -350,8 +367,8 @@
   }
 
   function activeLock(rows) {
-    return rows.filter(row => row.lockUntil && Date.parse(row.lockUntil) > Date.now())
-      .sort((a, b) => Date.parse(b.issuedAt) - Date.parse(a.issuedAt))[0] || null;
+    return rows.filter(row => row.lockUntil && Number.isFinite(Date.parse(row.lockUntil)) && Date.parse(row.lockUntil) > Date.now())
+      .sort((a, b) => warningTime(b) - warningTime(a))[0] || null;
   }
 
   function showWarningLock(lock) {
@@ -529,7 +546,7 @@
     const limit = limits[currentLevel()] || 0;
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
-    const issuedToday = rows.filter(row => row.adminToken === adminId && localDate(new Date(row.issuedAt)) === today).length;
+    const issuedToday = rows.filter(row => row.adminToken === adminId && warningTime(row) > 0 && localDate(new Date(warningTime(row))) === today).length;
     if (issuedToday >= limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' : 'Daily warning limit reached: ' + limit + '.' };
 
     const now = new Date();
