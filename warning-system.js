@@ -63,6 +63,7 @@
   };
   let cloudWarningsLoaded = false;
   let cloudIpHistoryLoaded = false;
+  let cloudUserLogsLoaded = false;
   // All writes to admin2.js share one queue because warnings and IP history
   // live in the same file. Re-read and rebuild the content on every retry.
   let cloudWriteQueue = Promise.resolve();
@@ -70,6 +71,7 @@
     const run = async () => {
       if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
       if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
+      if (exportName === 'UserLogs' && !cloudUserLogsLoaded) throw new Error('Журнал пользователей ещё не загружен из GitHub.');
       const serialized = JSON.stringify(rows);
       const pattern = new RegExp('((?:export\\s+)?(?:let|const|var)\\s+' + exportName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)', 'm');
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -95,6 +97,7 @@
   };
   const persistWarnings = rows => persistArray('UserWarnings', rows, 'Save user warnings');
   const persistIpHistory = rows => persistArray('UserIpHistory', rows, 'Save user IP history');
+  const persistUserLogs = rows => persistArray('UserLogs', rows, 'Record IP in user log');
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -645,15 +648,26 @@
     }), async controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: tr('warningIpInvalid', 'Введите корректный IPv4 или IPv6 адрес.', 'Enter a valid IPv4 or IPv6 address.') };
-      // admin2.js is already refreshed by script.js at startup and periodically.
-      // Search the synchronized local cache instead of making another GitHub request.
-      const history = safeRead(IP_HISTORY_KEY);
+      // Restore lookup from IP addresses recorded in the user activity log.
+      // Data comes from admin2.js already loaded by the app; no extra GitHub request.
       const normalizeIp = value => String(value || '').trim().toLowerCase().replace(/^::ffff:/, '');
-      const matches = history.filter(row => normalizeIp(row.ip) === normalizeIp(ip));
+      const logRows = safeRead(USER_LOG_KEY);
+      const logMatches = logRows.filter(row => {
+        const loggedIp = row?.details?.ip || row?.ip || row?.details?.clientIp || '';
+        return row?.event === 'ip_seen' && normalizeIp(loggedIp) === normalizeIp(ip);
+      });
+      const historyMatches = safeRead(IP_HISTORY_KEY).filter(row => normalizeIp(row.ip) === normalizeIp(ip));
       const users = new Map();
-      matches.forEach(row => {
+      logMatches.forEach(row => {
+        const token = row.userToken || row.token || '';
+        const telegramId = row.telegramId || '';
+        const key = token + '|' + telegramId;
+        users.set(key, { token: token || '—', telegramId: telegramId || '—', lastSeen: row.timestamp || '' });
+      });
+      // Compatibility fallback for IP history recorded before user-log lookup was restored.
+      historyMatches.forEach(row => {
         const key = (row.token || '') + '|' + (row.telegramId || '');
-        users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—', lastSeen: row.lastSeen || '' });
+        if (!users.has(key)) users.set(key, { token: row.token || '—', telegramId: row.telegramId || '—', lastSeen: row.lastSeen || '' });
       });
       const result = Array.from(users.values());
       return { title: tr('warningIpResultTitle', 'Результат поиска по IP', 'IP search results'), message: result.length
@@ -758,6 +772,20 @@
     const limitedRows = rows.slice(-10000);
     safeWrite(IP_HISTORY_KEY, limitedRows);
     persistIpHistory(limitedRows).catch(error => console.error('Не удалось сохранить историю IP в GitHub:', error));
+
+    // Keep an IP event in the shared user log for the original search behavior.
+    const userLogs = safeRead(USER_LOG_KEY);
+    userLogs.push({
+      id: 'ip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      timestamp: record.lastSeen,
+      userToken: token || '',
+      telegramId: telegramId || '',
+      event: 'ip_seen',
+      details: { ip: normalized }
+    });
+    const limitedLogs = userLogs.slice(-MAX_LOG_ROWS);
+    safeWrite(USER_LOG_KEY, limitedLogs);
+    persistUserLogs(limitedLogs).catch(error => console.error('Не удалось записать IP в журнал пользователей:', error));
   }
   async function loadClientIp() {
     try {
@@ -919,6 +947,10 @@
     if (Array.isArray(detail.UserIpHistory)) {
       safeWriteCache(IP_HISTORY_KEY, detail.UserIpHistory);
       cloudIpHistoryLoaded = true;
+    }
+    if (Array.isArray(detail.UserLogs)) {
+      safeWriteCache(USER_LOG_KEY, detail.UserLogs);
+      cloudUserLogsLoaded = true;
     }
     refresh();
   });
