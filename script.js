@@ -1194,6 +1194,11 @@ async function getClientIp() {
     return typeof data.ip === 'string' ? data.ip.trim() : null;
   } catch (_) { return null; }
 }
+async function isIpBlocked() {
+  const ip = await getClientIp();
+  if (!ip) return false;
+  return !!findPunishmentEntry('BlockedUsersIPadresses', ip);
+}
 function getSavedUserAPIs() { return []; }
 function saveUserAPI() { return []; }
 async function recordCurrentIpHistory(trigger) {
