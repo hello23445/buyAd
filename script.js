@@ -1315,7 +1315,10 @@ async function applyRuntimeBlockings() {
     }
     const blockedByEl = $('blocked-by-admin');
     if (blockedByEl) {
-      const displayAdminName = punishmentAdminName || i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator');
+      const punishmentNameHidden = !!(punishmentEntry && typeof punishmentEntry === 'object' && punishmentEntry.adminNameHidden === true);
+      const displayAdminName = punishmentNameHidden
+        ? (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Скрыто' : 'Hidden'))
+        : (punishmentAdminName || (lang === 'ru' ? 'Администратор' : 'Administrator'));
       blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + displayAdminName;
       blockedByEl.hidden = false;
     }
@@ -1583,7 +1586,7 @@ async function checkUserStatus(isAdmin) {
       show($('screen-blocked'));
       const blockedByEl = $('blocked-by-admin');
       if (blockedByEl) {
-        blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + (i18n[lang].adminNameHidden || (lang === 'ru' ? 'Администратор' : 'Administrator'));
+        blockedByEl.textContent = (lang === 'ru' ? 'Заблокировал админ: ' : 'Blocked by admin: ') + (lang === 'ru' ? 'Администратор' : 'Administrator');
         blockedByEl.hidden = false;
       }
       $('user-token-blocked').textContent = token;
