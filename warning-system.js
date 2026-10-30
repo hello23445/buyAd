@@ -95,8 +95,20 @@
     return [];
   };
   const writeWarnings = rows => safeWrite(WARN_KEY, rows);
+  const readLogRows = key => {
+    const current = safeRead(key);
+    if (current.length) return current;
+    const legacyKey = key === USER_LOG_KEY ? 'buyAdUserLogsV1' :
+      key === ADMIN_LOG_KEY ? 'buyAdAdminLogsV1' : '';
+    if (!legacyKey) return current;
+    const legacy = safeRead(legacyKey);
+    if (legacy.length && safeWrite(key, legacy)) {
+      try { localStorage.removeItem(legacyKey); } catch (_) {}
+    }
+    return legacy;
+  };
   const appendLog = (key, entry) => {
-    const rows = safeRead(key);
+    const rows = readLogRows(key);
     rows.push({
       id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
       timestamp: new Date().toISOString(),
@@ -213,7 +225,7 @@
 
     for (const group of groups.values()) {
       group.sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
-      const lock = group.find(row => row.lockUntil);
+      const lock = group.filter(row => row.lockUntil).sort((a, b) => Date.parse(b.issuedAt) - Date.parse(a.issuedAt))[0];
       if (lock) {
         const lockTime = Date.parse(lock.lockUntil);
         if (Number.isFinite(lockTime) && lockTime <= now) {
@@ -271,7 +283,8 @@
   }
 
   function activeLock(rows) {
-    return rows.find(row => row.lockUntil && Date.parse(row.lockUntil) > Date.now()) || null;
+    return rows.filter(row => row.lockUntil && Date.parse(row.lockUntil) > Date.now())
+      .sort((a, b) => Date.parse(b.issuedAt) - Date.parse(a.issuedAt))[0] || null;
   }
 
   function showWarningLock(lock) {
@@ -383,7 +396,7 @@
     const limit = limits[currentLevel()] || 0;
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
-    const issuedToday = safeRead(ADMIN_LOG_KEY).filter(row =>
+    const issuedToday = readLogRows(ADMIN_LOG_KEY).filter(row =>
       row.adminToken === adminId &&
       row.action === 'warning_issued' &&
       localDate(new Date(row.timestamp)) === today
@@ -512,7 +525,7 @@
       const target = targetFromInput(controls.target.value);
       if (!target) return { error: 'Введите токен или Telegram ID.' };
       logAdmin('user_log_viewed', { targetToken: target.token || '', targetTelegramId: target.telegramId || '' });
-      const rows = safeRead(USER_LOG_KEY).filter(row =>
+      const rows = readLogRows(USER_LOG_KEY).filter(row =>
         targetMatches(row, target) && withinDates(row.timestamp, controls.from.value, controls.to.value)
       );
       return { title: 'Лог пользователя', message: rows.length
@@ -529,7 +542,7 @@
       const value = String(controls.target.value || '').trim();
       if (!value) return { error: 'Введите токен или Telegram ID администратора.' };
       logAdmin('admin_log_viewed', { details: { searchedAdmin: value } });
-      const rows = safeRead(ADMIN_LOG_KEY).filter(row =>
+      const rows = readLogRows(ADMIN_LOG_KEY).filter(row =>
         (row.adminToken === value || row.adminTelegramId === value) &&
         withinDates(row.timestamp, controls.from.value, controls.to.value)
       );
@@ -545,7 +558,7 @@
     }), controls => {
       const ip = String(controls.ip.value || '').trim();
       if (!ip || !/^[0-9a-fA-F:.]{3,45}$/.test(ip)) return { error: 'Введите корректный IPv4 или IPv6 адрес.' };
-      const matches = safeRead(USER_LOG_KEY).filter(row => row.ip === ip || row.details?.ip === ip);
+      const matches = readLogRows(USER_LOG_KEY).filter(row => row.ip === ip || row.details?.ip === ip);
       const users = new Map();
       matches.forEach(row => {
         const key = (row.token || '') + '|' + (row.telegramId || '');
@@ -779,8 +792,8 @@
   window.BuyAdWarnings = {
     warningsFor,
     refresh,
-    userLogs: () => safeRead(USER_LOG_KEY),
-    adminLogs: () => safeRead(ADMIN_LOG_KEY),
+    userLogs: () => readLogRows(USER_LOG_KEY),
+    adminLogs: () => readLogRows(ADMIN_LOG_KEY),
     logUserAction: (event, details = {}) => logUser({ token: currentToken(), telegramId: currentTelegramId() }, event, details),
     recordAdminAction,
     recordPunishmentIssued,
