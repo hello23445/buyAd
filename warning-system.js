@@ -400,9 +400,12 @@
       byAdmin.hidden = false;
       byAdmin.textContent = (currentLang() === 'ru' ? 'Выдал: ' : 'Issued by: ') + adminLabel;
     }
+    // Remove the legacy Telegram ID node formerly injected into the token box.
+    document.getElementById('blocked-telegram-id')?.remove();
     const userToken = document.getElementById('user-token-blocked');
     if (userToken) userToken.textContent = currentToken() || '—';
-    const telegramId = String(currentTelegramId() || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '—');
+    // The warning record contains the user's ID even if Telegram WebApp init data is unavailable.
+    const telegramId = String(lock.telegramId || lock.telegram_id || currentTelegramId() || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '—');
     const telegramIdEl = document.getElementById('blocked-telegram-id-value');
     const telegramIdLabel = document.getElementById('blocked-telegram-id-label');
     if (telegramIdEl) telegramIdEl.textContent = telegramId;
