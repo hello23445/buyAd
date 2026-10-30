@@ -402,6 +402,8 @@ function getCurrentAdmin() {
 function adminHasPermission(permission) {
   const admin = getCurrentAdmin();
   if (!admin) return false;
+  // Просмотр собственного IP безусловно доступен администраторам 4-го и 5-го уровня.
+  if (permission === 'viewOwnIp') return Number(admin.admin_level) >= 4;
   const isExplicit = Object.prototype.hasOwnProperty.call(admin.permissions || {}, permission);
   if (isExplicit && admin.permissions[permission] === false) return false;
 
