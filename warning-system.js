@@ -71,7 +71,7 @@
       if (exportName === 'UserWarnings' && !cloudWarningsLoaded) throw new Error('Данные предупреждений ещё не загружены из GitHub.');
       if (exportName === 'UserIpHistory' && !cloudIpHistoryLoaded) throw new Error('История IP ещё не загружена из GitHub.');
       const serialized = JSON.stringify(rows);
-      const pattern = new RegExp('((?:export\\s+)?(?:let|const|var)\\s+' + exportName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)', 'm');
+      const pattern = new RegExp('((?:export\s+)?(?:let|const|var)\s+' + exportName + '\s*=\s*)(\\[[\s\\S]*?\\])(\s*;)', 'm');
       for (let attempt = 0; attempt < 3; attempt++) {
         const current = await githubGet('admin2.js');
         if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив ' + exportName);
@@ -357,15 +357,15 @@
       reason.hidden = false;
       reason.style.whiteSpace = 'pre-line';
       reason.textContent = currentLang() === 'ru'
-        ? 'Причина блокировки: 3/3 предупреждений\\nПричина выдачи предупреждения: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\\nДата выдачи: ' + formatDate(lock.issuedAt)
-        : 'Reason for block: 3/3 warnings\\nWarning reason: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\\nIssued on: ' + formatDate(lock.issuedAt);
+        ? 'Причина блокировки: 3/3 предупреждений\nПричина выдачи предупреждения: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\nДата выдачи: ' + formatDate(lock.issuedAt)
+        : 'Reason for block: 3/3 warnings\nWarning reason: ' + (lock.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '\nIssued on: ' + formatDate(lock.issuedAt);
     }
     if (duration) {
       duration.hidden = false;
       duration.style.whiteSpace = 'pre-line';
       duration.textContent = currentLang() === 'ru'
-        ? 'Разблокировка: ' + formatDateTime(lock.lockUntil) + '\\nБлокировка на 5 дней'
-        : 'Unlocks: ' + formatDateTime(lock.lockUntil) + '\\nBlocked for 5 days';
+        ? 'Разблокировка: ' + formatDateTime(lock.lockUntil) + '\nБлокировка на 5 дней'
+        : 'Unlocks: ' + formatDateTime(lock.lockUntil) + '\nBlocked for 5 days';
     }
     if (byAdmin) {
       byAdmin.hidden = false;
@@ -651,7 +651,7 @@
       let history = safeRead(IP_HISTORY_KEY);
       try {
         const current = await githubGet('admin2.js');
-        const match = current.content.match(/(?:export\\s+)?const\\s+UserIpHistory\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
+        const match = current.content.match(/(?:export\s+)?const\s+UserIpHistory\s*=\s*(\\[[\s\\S]*?\\])\s*;/);
         if (match) {
           const remote = JSON.parse(match[1]);
           if (Array.isArray(remote)) {
