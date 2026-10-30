@@ -261,10 +261,10 @@ function showFeatureBlockedModal(type) {
   const entry = findPunishmentEntry('BlockCreateAds', token);
   if (entry) {
     const durationText = formatPunishmentDuration(entry, lang);
-    body += lang === 'ru' ? '\\n\\nОграничение действует: ' + durationText + '.' : '\\n\\nRestriction duration: ' + durationText + '.';
+    body += lang === 'ru' ? '\n\nОграничение действует: ' + durationText + '.' : '\n\nRestriction duration: ' + durationText + '.';
     const adminName = entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
     const nameHidden = entry && typeof entry === 'object' && entry.adminNameHidden === true;
-    if (adminName && !nameHidden) body += lang === 'ru' ? '\\nАдминистратор: ' + adminName : '\\nAdministrator: ' + adminName;
+    if (adminName && !nameHidden) body += lang === 'ru' ? '\nАдминистратор: ' + adminName : '\nAdministrator: ' + adminName;
   }
   const okText = i18nLang.ok || i18nLang.yes || 'ОК';
   openModal(title, body, [{ text: okText, class: 'btn btn--primary', onClick: () => {} }]);
