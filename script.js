@@ -1887,13 +1887,7 @@ $('nav-create').onclick = () => {
 };
 
 let myAdsLoadedOnce = false;
-let noAdsIpHistoryTimer = null;
-const NO_ADS_IP_HISTORY_INTERVAL = 5 * 60 * 1000;
-function syncIpHistoryPolicy() {
-  if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
-  noAdsIpHistoryTimer = null;
-}
-
+// Автоматическое сохранение истории IP отключено.
 const MY_ADS_REFRESH_COOLDOWN = 120000;
 const MY_ADS_REFRESH_STORAGE_KEY = 'myAdsLastManualRefreshAt';
 function updateMyAdsRefreshButton() {
