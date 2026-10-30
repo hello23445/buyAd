@@ -78,7 +78,7 @@
     const serialized = JSON.stringify(rows);
     window.__buyAdIpHistoryWriteQueue = (window.__buyAdIpHistoryWriteQueue || Promise.resolve()).catch(() => {}).then(async () => {
       const current = await githubGet('admin2.js');
-      const pattern = /((?:export\\s+)?(?:let|const|var)\\s+UserIpHistory\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)/m;
+      const pattern = /((?:export\s+)?(?:let|const|var)\s+UserIpHistory\s*=\s*)(\[[\s\S]*?\])(\s*;)/m;
       if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив UserIpHistory');
       const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
       await githubPut('admin2.js', updated, 'Update IP lookup records');
