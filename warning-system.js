@@ -24,25 +24,31 @@
   }
   function cleanupWarnings() {
     const rows = read(WARN_KEY), now = Date.now(), groups = new Map();
+    const decayKey = 'buyAdWarningDecayV1';
+    let decay = {}; try { decay = JSON.parse(localStorage.getItem(decayKey) || '{}') || {}; } catch { decay = {}; }
     rows.forEach(w => { const key = w.token || w.telegramId; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(w); });
     const removeIds = new Set();
-    for (const group of groups.values()) {
+    for (const [key, group] of groups.entries()) {
       group.sort((a,b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
       const lock = group.find(w => w.lockUntil);
       if (lock && Date.parse(lock.lockUntil) <= now) {
         group.forEach(w => removeIds.add(w.id));
         log(USER_LOG_KEY, {token:lock.token||'',telegramId:lock.telegramId||'',event:'warnings_cleared_after_lock'});
         log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'automatic_unlock_and_clear',target:{token:lock.token||'',telegramId:lock.telegramId||''},reason:'Истекла блокировка 5 дней'});
+        delete decay[key];
         continue;
       }
       const oldest = group[0];
-      if (oldest && !oldest.lockUntil && now - Date.parse(oldest.issuedAt) >= 2*86400000) {
+      const eligibleAt = Math.max(Date.parse(oldest?.issuedAt || now) + 2*86400000, Number(decay[key] || 0) + 2*86400000);
+      if (oldest && !oldest.lockUntil && now >= eligibleAt) {
         removeIds.add(oldest.id);
+        decay[key] = now;
         log(USER_LOG_KEY, {token:oldest.token||'',telegramId:oldest.telegramId||'',event:'warning_removed_automatically',warningId:oldest.id});
         log(ADMIN_LOG_KEY, {adminName:'Система',adminLevel:0,action:'warning_removed_automatically',target:{token:oldest.token||'',telegramId:oldest.telegramId||''}});
       }
     }
     if (removeIds.size) write(WARN_KEY, rows.filter(w => !removeIds.has(w.id)));
+    localStorage.setItem(decayKey, JSON.stringify(decay));
   }
   function refresh() {
     const t = token(), id = telegramId(), rows = warningsFor(t, id);
