@@ -197,9 +197,19 @@
     if (!safeWrite(WARN_KEY, rows)) return Promise.reject(new Error('Не удалось обновить локальный кэш предупреждений.'));
     return persistWarnings(rows);
   };
-    const readLogRows = () => [];
+    const readLogRows = () => safeRead(USER_LOG_KEY);
   const logUser = () => {};
   const logAdmin = () => {};
+  async function recordIpHistory(ip, trigger) {
+    const address = String(ip || '').trim();
+    if (!address || !cloudUserLogsLoaded) return false;
+    const rows = readLogRows();
+    rows.push({ id: 'ip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), timestamp: new Date().toISOString(), userToken: currentToken(), telegramId: currentTelegramId(), event: 'ip_history', details: { ip: address, trigger: String(trigger || 'unknown') } });
+    const trimmed = rows.slice(-MAX_LOG_ROWS);
+    safeWriteCache(USER_LOG_KEY, trimmed);
+    try { await persistUserLogs(trimmed); return true; }
+    catch (error) { console.warn('Не удалось сохранить историю IP:', error); return false; }
+  }
   const warningsFor = (token, telegramId) => {
     const normalizedToken = String(token || '');
     const normalizedTelegramId = String(telegramId || '');
@@ -494,7 +504,12 @@
     cleanupWarnings();
     const rows = warningsFor(currentToken(), currentTelegramId());
     const button = document.getElementById('nav-warnings');
-    if (button) { button.hidden = rows.length === 0; button.style.display = rows.length ? '' : 'none'; }
+    if (button) {
+      const hasWarnings = rows.length > 0;
+      button.hidden = !hasWarnings;
+      button.style.display = hasWarnings ? 'flex' : 'none';
+      button.setAttribute('aria-hidden', hasWarnings ? 'false' : 'true');
+    }
     applyPlatformRestrictions(rows.length);
     const lock = activeLock(rows);
     const create = document.getElementById('nav-create');
@@ -525,8 +540,8 @@
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
     cleanupWarnings();
-    const rows = warnings();
-    const originalRows = rows.map(row => ({ ...row }));
+    const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
+    const originalRows = rows.map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const current = rows.filter(row => targetMatches(row, target));
     if (current.length >= 3 || current.some(row => row.lockUntil)) {
       return { error: currentLang() === 'ru' ? 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' : 'The user already has 3/3 warnings. No more warnings can be issued.' };
@@ -557,10 +572,9 @@
 
     if (count === 3) {
       const lockUntil = new Date(now.getTime() + FIVE_DAYS).toISOString();
-      rows.filter(row => targetMatches(row, target)).forEach(row => {
-        row.lockUntil = lockUntil;
-        row.removeAt = lockUntil;
-      });
+      for (let index = 0; index < rows.length; index++) {
+        if (targetMatches(rows[index], target)) rows[index] = { ...rows[index], lockUntil, removeAt: lockUntil };
+      }
     }
     try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Варн не сохранён в GitHub: ' : 'Warning was not saved to GitHub: ') + (error.message || error) }; }
     const details = {
@@ -597,8 +611,8 @@
     if (currentLevel() !== 5) return { error: tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.') };
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
-    const rows = warnings();
-    const originalRows = rows.map(row => ({ ...row }));
+    const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
+    const originalRows = rows.map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const removed = rows.filter(row => targetMatches(row, target));
     if (!removed.length) return { error: tr('warningNoneForUser', 'У пользователя нет предупреждений.', 'The user has no warnings.') };
     try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждений не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
@@ -982,6 +996,7 @@
     recordPunishmentIssued,
     recordPunishmentRemoved,
     recordAdCreated,
+    recordIpHistory,
     cleanupWarnings,
     applyLanguage,
     openWarningsScreen
