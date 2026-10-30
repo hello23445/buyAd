@@ -9,7 +9,8 @@
   const telegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
   const currentAdmin = () => { try { return typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null; } catch { return null; } };
   const level = () => Number(currentAdmin()?.admin_level || 0);
-  let clientIp = '';\n  const adminName = () => currentAdmin()?.admin_name || ('Администратор ' + level() + ' уровня');
+  let clientIp = '';
+  const adminName = () => currentAdmin()?.admin_name || ('Администратор ' + level() + ' уровня');
   const log = (key, item) => { const rows = read(key); rows.push({ id: Date.now() + '_' + Math.random().toString(36).slice(2), timestamp: new Date().toISOString(), ip: clientIp, ...item }); write(key, rows.slice(-5000)); };
   const warningsFor = (t, id) => read(WARN_KEY).filter(w => (t && w.token === t) || (id && w.telegramId === id));
   const targetPrompt = () => {
@@ -88,7 +89,8 @@
     log(ADMIN_LOG_KEY, {adminToken:token(),adminName:adminName(),adminLevel:level(),action:'warnings_removed',target,removedCount:removed.length});
     refresh(); alert('Предупреждения сняты.');
   }
-  async function loadClientIp() { try { const r = await fetch('https://api.ipify.org?format=json', {cache:'no-store'}); if (r.ok) { const d = await r.json(); clientIp = String(d.ip || ''); log(USER_LOG_KEY, {token:token(),telegramId:telegramId(),event:'ip_observed',ip:clientIp}); } } catch (_) {} }\n  function install() {
+  async function loadClientIp() { try { const r = await fetch('https://api.ipify.org?format=json', {cache:'no-store'}); if (r.ok) { const d = await r.json(); clientIp = String(d.ip || ''); log(USER_LOG_KEY, {token:token(),telegramId:telegramId(),event:'ip_observed',ip:clientIp}); } } catch (_) {} }
+  function install() {
     const crystals = document.getElementById('nav-crystals');
     if (crystals && !document.getElementById('nav-warnings')) {
       const b = document.createElement('button'); b.id='nav-warnings'; b.type='button'; b.className=crystals.className; b.hidden=true;
