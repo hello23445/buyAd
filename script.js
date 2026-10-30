@@ -1341,7 +1341,7 @@ async function applyRuntimeBlockings() {
     }
     let punishmentReason = '', punishmentAdminName = '';
     if (isTokenBan) {
-      updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId();
+      updateBlockedSubtitle('token', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId(); updateBlockedTelegramId();
       punishmentReason = getPunishmentReason('BanForever', token);
       punishmentAdminName = getPunishmentAdminName('BanForever', token);
     } else if (isTelegramBan) {
@@ -1350,7 +1350,7 @@ async function applyRuntimeBlockings() {
       punishmentReason = getPunishmentReason('BlockedUsersTelegramID', telegramId);
       punishmentAdminName = getPunishmentAdminName('BlockedUsersTelegramID', telegramId);
     } else if (isIpBan) {
-      updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId();
+      updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId(); updateBlockedTelegramId();
       const blockedIPs = runtimeArray('BlockedUsersIPadresses', []);
       const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
       punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
