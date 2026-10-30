@@ -590,17 +590,30 @@ body.theme-dark {
 ========================= */
 .tokenbox {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   background: rgba(255,255,255,0.05);
   border-radius: 12px;
   padding: 10px;
+  min-width: 0;
 }
 
 .tokenbox code {
-  flex: 1;
+  display: block;
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
   font-size: 12px;
-  word-break: break-all;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tokenbox .btn {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* =========================
