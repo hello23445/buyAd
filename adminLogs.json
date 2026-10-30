@@ -20,5 +20,126 @@
     "decision": "approved|rejected|null",
     "details": "object"
   },
-  "entries": []
-}
+  "entries": [
+    {
+      "id": "log_1793378056352_1t3ab34",
+      "timestamp": "2026-10-30T16:34:16.352Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "menu_opened",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "menu": "Смотреть лог пользователя",
+        "buttonId": "warn-user-log"
+      }
+    },
+    {
+      "id": "log_1793378090558_zx6rucc",
+      "timestamp": "2026-10-30T16:34:50.558Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "menu_opened",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "menu": "Выдать предупреждение (warn)",
+        "buttonId": "warn-issue"
+      }
+    },
+    {
+      "id": "log_1793378097522_xy8gbzn",
+      "timestamp": "2026-10-30T16:34:57.522Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "warning_issued",
+      "targetToken": "",
+      "targetTelegramId": "8085105056",
+      "targetIp": "",
+      "reason": "Не указана",
+      "durationDays": 2,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "targetToken": "",
+        "targetTelegramId": "8085105056",
+        "reason": "Не указана",
+        "durationDays": 2,
+        "warningCount": 1,
+        "warningId": "warn_1793378097522_avlpv",
+        "adminNameHidden": true
+      }
+    },
+    {
+      "id": "log_1793378831202_utn4az5",
+      "timestamp": "2026-10-30T16:47:11.202Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "ui_action",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "buttonId": "back-from-admin",
+        "label": ""
+      }
+    },
+    {
+      "id": "log_1793379036705_8bltgr1",
+      "timestamp": "2026-10-30T16:50:36.705Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "menu_opened",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "menu": "Выдать предупреждение (warn)",
+        "buttonId": "warn-issue"
+      }
+    }
+  ]
+}\n
