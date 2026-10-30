@@ -1073,6 +1073,7 @@
   window.BuyAdWarnings = {
     warningsFor,
     refresh,
+    updateAdminButtonVisibility,
     recordAdminAction,
     recordPunishmentIssued,
     recordPunishmentRemoved,
