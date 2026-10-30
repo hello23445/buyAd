@@ -171,6 +171,35 @@
         "menu": "Снять предупреждение",
         "buttonId": "warn-remove"
       }
+    },
+    {
+      "id": "log_1793379228220_ivb8nvn",
+      "timestamp": "2026-10-30T16:53:48.220Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "warnings_removed",
+      "targetToken": "",
+      "targetTelegramId": "8085105056",
+      "targetIp": "",
+      "reason": "Ручное снятие предупреждений",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "targetToken": "",
+        "targetTelegramId": "8085105056",
+        "removedCount": 2,
+        "removedWarningIds": [
+          "warn_1793378097522_avlpv",
+          "warn_1793379075286_ygxgm"
+        ],
+        "reason": "Ручное снятие предупреждений"
+      }
     }
   ]
 }\n
