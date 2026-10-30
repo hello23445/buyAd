@@ -1,25 +1,31 @@
 {
-  "schemaVersion": 1,
-  "description": "Append-only user activity and moderation log schema. Runtime writes must be performed by a trusted backend, not by the browser.",
-  "entries": [
-    {
-      "id": "uuid",
-      "timestamp": "ISO-8601 UTC",
-      "userToken": "opaque token",
-      "telegramId": "string|null",
-      "event": "punishment_issued|punishment_removed|warning_issued|warning_removed|warning_auto_removed|account_locked|account_unlocked|menu_opened|ad_created|ad_updated|ad_submitted|other",
-      "details": {
-        "reason": "string|null",
-        "durationDays": "number|null",
-        "expiresAt": "ISO-8601|null",
-        "adminId": "string|null",
-        "adminName": "string|null",
-        "adminNameHidden": "boolean|null",
-        "warningCount": "number|null",
-        "menu": "string|null",
-        "adId": "string|null",
-        "metadata": "object"
-      }
+  "schemaVersion": 2,
+  "storageMode": "private-server-required",
+  "repositoryNote": "This public file is a schema contract only. Never commit live user records here. User tokens, Telegram IDs, IP addresses, punishment reasons and activity history must be stored in a private backend.",
+  "entrySchema": {
+    "id": "uuid",
+    "timestamp": "ISO-8601 UTC",
+    "userToken": "opaque token (private)",
+    "telegramId": "string|null (private)",
+    "ipAddress": "string|null (private; may be present on any activity event)",
+    "event": "punishment_issued|punishment_removed|warning_issued|warning_removed|warning_removed_automatically|warnings_cleared_after_lock|account_locked|account_unlocked|menu_opened|ui_action|ad_created|ad_updated|ad_submitted|admin_action|ip_observed|other",
+    "details": {
+      "reason": "string|null",
+      "punishment": "string|null",
+      "durationDays": "number|null",
+      "expiresAt": "ISO-8601|null",
+      "adminId": "string|null (private)",
+      "adminName": "string|null",
+      "adminNameHidden": "boolean|null",
+      "warningCount": "number|null",
+      "remainingWarnings": "number|null",
+      "menu": "string|null",
+      "buttonId": "string|null",
+      "screen": "string|null",
+      "adId": "string|null",
+      "decision": "approved|rejected|null",
+      "metadata": "object"
     }
-  ]
+  },
+  "entries": []
 }
