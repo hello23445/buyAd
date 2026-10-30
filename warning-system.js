@@ -976,7 +976,7 @@
       return button;
     };
     makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
-    makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
+    makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 2);
     applyLanguage();
   }
 
