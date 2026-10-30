@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "description": "Append-only administrator audit log schema. Runtime writes must be performed by a trusted backend, not by the browser.",
+  "entries": [
+    {
+      "id": "uuid",
+      "timestamp": "ISO-8601 UTC",
+      "adminId": "string",
+      "adminName": "string|null",
+      "adminLevel": "number",
+      "action": "warning_issued|warning_removed|user_banned|user_unbanned|ad_reviewed|ad_approved|ad_rejected|user_log_viewed|admin_log_viewed|ip_lookup|other",
+      "targetToken": "string|null",
+      "targetTelegramId": "string|null",
+      "targetIp": "string|null",
+      "reason": "string|null",
+      "durationDays": "number|null",
+      "adId": "string|null",
+      "decision": "approved|rejected|null",
+      "metadata": "object"
+    }
+  ]
+}
