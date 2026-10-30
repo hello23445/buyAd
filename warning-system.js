@@ -507,7 +507,7 @@
     if (button) {
       const hasWarnings = rows.length > 0;
       button.hidden = !hasWarnings;
-      button.style.display = hasWarnings ? 'flex' : 'none';
+      button.style.display = hasWarnings ? '' : 'none';
       button.setAttribute('aria-hidden', hasWarnings ? 'false' : 'true');
     }
     applyPlatformRestrictions(rows.length);
