@@ -698,16 +698,6 @@
           </div></div>
         </div>
 
-        <!-- ADMIN: CHECK AD (панель) -->
-        <div id="admin-panel-check" class="card" hidden>
-          <div class="card__title" data-i18n="adminCheckTitle">Проверка рекламы</div>
-          <div class="hint" data-i18n="adminCheckHint">Выберите рекламу и решение.</div>
-
-          <div id="admin-check-list" class="stack-sm">
-            <!-- JS: список ожидающих -->
-          </div>
-        </div>
-
         <!-- ADMIN: RESTRICTED (панель) -->
         <div id="admin-panel-restricted" class="card" hidden>
           <div class="card__title" data-i18n="adminRestrictedTitle">Список ограниченных</div>
@@ -717,6 +707,26 @@
         </div>
       </div>
     </section>
+
+    <!-- Dedicated ad review screen -->
+    <section id="screen-review-ads" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-review-ads" type="button" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>
+          <div class="screen__title" data-i18n="adminCheckTitle">Проверка рекламы</div>
+        </div>
+        <!-- ADMIN: CHECK AD (панель) -->
+        <div id="admin-panel-check" class="card" hidden>
+          <div class="card__title" data-i18n="adminCheckTitle">Проверка рекламы</div>
+          <div class="hint" data-i18n="adminCheckHint">Выберите рекламу и решение.</div>
+
+          <div id="admin-check-list" class="stack-sm">
+            <!-- JS: список ожидающих -->
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL LAYER -->
