@@ -403,14 +403,38 @@
     const userToken = document.getElementById('user-token-blocked');
     if (userToken) userToken.textContent = currentToken() || '—';
     const telegramId = String(currentTelegramId() || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '—');
-    let telegramIdEl = document.getElementById('blocked-telegram-id');
-    if (!telegramIdEl && userToken) {
-      telegramIdEl = document.createElement('div');
-      telegramIdEl.id = 'blocked-telegram-id';
-      telegramIdEl.style.cssText = 'overflow-wrap:anywhere;margin-top:6px;';
-      userToken.insertAdjacentElement('afterend', telegramIdEl);
-    }
-    if (telegramIdEl) telegramIdEl.textContent = (currentLang() === 'ru' ? 'Telegram ID пользователя: ' : 'User Telegram ID: ') + telegramId;
+    const telegramIdEl = document.getElementById('blocked-telegram-id-value');
+    const telegramIdLabel = document.getElementById('blocked-telegram-id-label');
+    if (telegramIdEl) telegramIdEl.textContent = telegramId;
+    if (telegramIdLabel) telegramIdLabel.textContent = currentLang() === 'ru' ? 'Telegram ID пользователя' : 'User Telegram ID';
+    const copyTelegramButton = document.getElementById('btn-copy-telegram-id-blocked');
+    if (copyTelegramButton) copyTelegramButton.onclick = async () => {
+      const value = String(telegramId || '—');
+      try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
+        else throw new Error('Clipboard API unavailable');
+      } catch (_) {
+        const area = document.createElement('textarea');
+        area.value = value;
+        area.setAttribute('readonly', '');
+        area.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+        document.body.appendChild(area);
+        area.focus(); area.select(); area.setSelectionRange(0, area.value.length);
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (_) {}
+        area.remove();
+        if (!ok) {
+          if (typeof openModal === 'function') openModal(currentLang() === 'ru' ? 'Ошибка копирования' : 'Copy failed', currentLang() === 'ru' ? 'Не удалось скопировать Telegram ID.' : 'Could not copy Telegram ID.');
+          return;
+        }
+      }
+      const label = copyTelegramButton.querySelector('span');
+      if (label) {
+        const oldText = label.textContent;
+        label.textContent = currentLang() === 'ru' ? 'Скопировано' : 'Copied';
+        setTimeout(() => { label.textContent = oldText; }, 2500);
+      }
+    };
 
     const copyButton = document.getElementById('btn-copy-token-blocked');
     if (copyButton) copyButton.onclick = async () => {
@@ -966,7 +990,7 @@
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
     const lock = activeLock(rows);
-    if (lock && !['btn-support', 'btn-copy-token-blocked', 'nav-warnings', 'blocked-warning-list', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
+    if (lock && !['btn-support', 'btn-copy-token-blocked', 'btn-copy-telegram-id-blocked', 'nav-warnings', 'blocked-warning-list', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
