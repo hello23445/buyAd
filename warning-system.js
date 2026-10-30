@@ -448,6 +448,7 @@
 
     cleanupWarnings();
     const rows = warnings();
+    const originalRows = rows.map(row => ({ ...row }));
     const current = rows.filter(row => targetMatches(row, target));
     if (current.length >= 3 || current.some(row => row.lockUntil)) {
       return { error: 'У пользователя уже 3/3 предупреждения. Новое предупреждение выдать нельзя.' };
@@ -483,7 +484,7 @@
         row.removeAt = lockUntil;
       });
     }
-    try { await writeWarnings(rows); } catch (error) { return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
+    try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: 'Варн не сохранён в GitHub: ' + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
@@ -518,9 +519,10 @@
     const target = targetFromInput(targetValue);
     if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
     const rows = warnings();
+    const originalRows = rows.map(row => ({ ...row }));
     const removed = rows.filter(row => targetMatches(row, target));
     if (!removed.length) return { error: 'У пользователя нет предупреждений.' };
-    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { return { error: 'Снятие варнов не сохранено в GitHub: ' + (error.message || error) }; }
+    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: 'Снятие варнов не сохранено в GitHub: ' + (error.message || error) }; }
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
