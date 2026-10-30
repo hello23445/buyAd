@@ -1039,9 +1039,17 @@ async function loadAdmin2Config() {
       GASESES: parseExportValue('GASESES', content),
       Purchases2: parseExportValue('Purchases2', content),
       disableCreateAds2: parseExportValue('disableCreateAds2', content),
-      disableEditingAds: parseExportValue('disableEditingAds', content)
+      disableEditingAds: parseExportValue('disableEditingAds', content),
+      UserWarnings: parseExportArray('UserWarnings', content),
+      UserIpHistory: parseExportArray('UserIpHistory', content)
     };
     runtimeAdmin2ConfigLoaded = true;
+    window.dispatchEvent(new CustomEvent('buyad:admin2-config-loaded', {
+      detail: {
+        UserWarnings: runtimeAdmin2Config.UserWarnings,
+        UserIpHistory: runtimeAdmin2Config.UserIpHistory
+      }
+    }));
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const token = localStorage.getItem(LS.token);
     const isAdmin = ADMIN_TOKENS.includes(token);
