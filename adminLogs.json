@@ -148,6 +148,29 @@
         "warningId": "warn_1793379075286_ygxgm",
         "adminNameHidden": true
       }
+    },
+    {
+      "id": "log_1793379223429_krhecm2",
+      "timestamp": "2026-10-30T16:53:43.429Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "adminToken": "1Y6QLQHT0JZRS2GK",
+      "adminTelegramId": "6434781065",
+      "adminName": "",
+      "adminNameHidden": true,
+      "adminLevel": 5,
+      "action": "menu_opened",
+      "targetToken": "",
+      "targetTelegramId": "",
+      "targetIp": "",
+      "reason": "",
+      "durationDays": null,
+      "adId": "",
+      "decision": "",
+      "details": {
+        "menu": "Снять предупреждение",
+        "buttonId": "warn-remove"
+      }
     }
   ]
 }\n
