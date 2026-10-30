@@ -530,7 +530,6 @@ function updateAdminLevelBadge() {
     'admin-unblock-user': 'unban',
     'admin-ban-ip': 'banIp',
     'admin-unban-ip': 'unbanIp',
-    'admin-view-own-ip': 'viewOwnIp',
     'admin-ban-telegram-id': 'banTelegramId',
     'admin-unban-telegram-id': 'unbanTelegramId',
     'admin-ban-create-edit': 'restrictAds',
