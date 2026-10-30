@@ -1,8 +1,8 @@
 //Пользователю
-export const BanForever = []; // { value: токен, reason: причина }
-export const BlockCreateAds = [""]; //Токены пользователей, которым запрещено создавать и редактировать рекламу.
-export const BlockedUsersTelegramID = []; // { value: Telegram ID, reason: причина }
-export const BlockedUsersIPadresses = []; // { value: IP, reason: причина }
+export const BanForever = []; // { value, reason, adminName, expiresAt, durationDays }
+export const BlockCreateAds = [""]; // { value, reason, adminName, expiresAt, durationDays }; без expiresAt = бессрочно
+export const BlockedUsersTelegramID = []; // { value, reason, adminName, expiresAt, durationDays }
+export const BlockedUsersIPadresses = []; // { value, reason, adminName, expiresAt, durationDays }
 //Общее
 export const CloseApp = "not_closed"; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
 export const GASESES = "true"; // '' или 'no' — если 'no' тогда блокируем обращения к GAS.
