@@ -375,7 +375,8 @@
       byAdmin.textContent = (currentLang() === 'ru' ? 'Выдал: ' : 'Issued by: ') + adminLabel;
     }
     const userToken = document.getElementById('user-token-blocked');
-    if (userToken) userToken.textContent = currentToken() || currentTelegramId() || '—';
+    if (userToken) userToken.textContent = currentToken() || '—';
+    if (typeof updateBlockedTelegramId === 'function') updateBlockedTelegramId(currentTelegramId());
   }
 
   function applyPlatformRestrictions(count) {
