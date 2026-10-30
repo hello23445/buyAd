@@ -746,9 +746,25 @@
   }
 
   document.addEventListener('click', event => {
+    const platformRow = event.target.closest('.platform-row');
+    const rows = warningsFor(currentToken(), currentTelegramId());
+    const blockedPlatformNames = [
+      "канал 'создать никнейм'",
+      "бот 'создать никнейм'",
+      "мини-приложение 'сгенерировать фото'"
+    ];
+    if (platformRow && rows.length >= 1) {
+      const platform = String(platformRow.dataset.value || platformRow.textContent || '').toLowerCase();
+      if (blockedPlatformNames.some(name => platform.includes(name))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        showMessage('Функция недоступна', 'Эта площадка заблокирована при наличии предупреждения.');
+        return;
+      }
+    }
+
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
-    const rows = warningsFor(currentToken(), currentTelegramId());
     const lock = activeLock(rows);
     if (lock && !['btn-support', 'btn-copy-token-blocked'].includes(button.id)) {
       event.preventDefault();
