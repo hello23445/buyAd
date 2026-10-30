@@ -83,8 +83,12 @@
     const previous = cloudQueues.get('admin2.js') || Promise.resolve();
     const next = previous.catch(() => {}).then(async () => {
       const current = await githubGet('admin2.js');
-      const literal = JSON.stringify(rows);
       const pattern = /(^\\s*(?:export\\s+)?(?:let|const|var)\\s+UserWarnings\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)/m;
+      const match = current.content.match(pattern);
+      let remoteWarnings = [];
+      if (match) { try { remoteWarnings = JSON.parse(match[2]); } catch (_) {} }
+      const mergedWarnings = Array.from(new Map([...remoteWarnings, ...rows].map(row => [row.id, row])).values());
+      const literal = JSON.stringify(mergedWarnings);
       let updated;
       if (pattern.test(current.content)) updated = current.content.replace(pattern, (_, a, _old, z) => a + literal + z);
       else updated = current.content.replace(/(export\\s+const\\s+BlockedUsersIPadresses\\s*=\\s*\\[[\\s\\S]*?\\];?)/, '$1\\nexport const UserWarnings = ' + literal + '; // { token, telegramId, reason, issuedAt, removeAt, adminName, adminNameHidden, lockUntil }');
