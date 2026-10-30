@@ -130,6 +130,20 @@
         "label": "Показать",
         "screen": "screen-settings"
       }
+    },
+    {
+      "id": "log_1793379061606_9k4kirf",
+      "timestamp": "2026-10-30T16:51:01.606Z",
+      "ip": "88.216.36.107",
+      "ipAddress": "88.216.36.107",
+      "token": "GoYy3n2oRheOiByJ",
+      "telegramId": "8085105056",
+      "event": "ui_action",
+      "details": {
+        "buttonId": "btn-copy-telegram-id",
+        "label": "Показать",
+        "screen": "screen-settings"
+      }
     }
   ]
 }\n
