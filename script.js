@@ -1913,6 +1913,33 @@ $('nav-create').onclick = () => {
 };
 
 let myAdsLoadedOnce = false;
+let noAdsIpHistoryTimer = null;
+const NO_ADS_IP_HISTORY_INTERVAL = 5 * 60 * 1000;
+function syncIpHistoryPolicy(hasAds) {
+  // При персональном запрете создания/редактирования запись IP разрешена только кнопкой «Обновить».
+  if (isTokenCreateBlocked()) {
+    if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
+    noAdsIpHistoryTimer = null;
+    return;
+  }
+  if (hasAds) {
+    if (noAdsIpHistoryTimer !== null) clearInterval(noAdsIpHistoryTimer);
+    noAdsIpHistoryTimer = null;
+    return;
+  }
+  if (noAdsIpHistoryTimer !== null) return;
+  const saveIp = () => {
+    if (isTokenCreateBlocked()) {
+      clearInterval(noAdsIpHistoryTimer);
+      noAdsIpHistoryTimer = null;
+      return;
+    }
+    Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
+      .catch(error => console.warn('Не удалось сохранить историю IP:', error));
+  };
+  saveIp();
+  noAdsIpHistoryTimer = setInterval(saveIp, NO_ADS_IP_HISTORY_INTERVAL);
+}
 const MY_ADS_REFRESH_COOLDOWN = 120000;
 const MY_ADS_REFRESH_STORAGE_KEY = 'myAdsLastManualRefreshAt';
 function updateMyAdsRefreshButton() {
@@ -1933,7 +1960,7 @@ function updateMyAdsRefreshButton() {
    b.title = '';
  }
 }
-$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();};
+$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();if(isTokenCreateBlocked())await Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.()).catch(error=>console.warn('Не удалось сохранить историю IP:',error));};
 setInterval(updateMyAdsRefreshButton,1000);
 $('nav-myads').onclick=()=>{hideAllScreens();show($('screen-myads'));if(!myAdsLoadedOnce){myAdsLoadedOnce=true;loadMyAds();}updateMyAdsRefreshButton();};
 
@@ -2634,6 +2661,10 @@ $('btn-create-ad').onclick = async () => {
     } else if (editMode && window.BuyAdWarnings?.logUserAction) {
       window.BuyAdWarnings.logUserAction('ad_updated', { adId: adName, platform: selectedPlatform });
     }
+    // Сохраняем IP только после успешного создания или редактирования рекламы.
+    syncIpHistoryPolicy(true);
+    Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
+      .catch(error => console.warn('Не удалось сохранить историю IP:', error));
 
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
@@ -3249,6 +3280,7 @@ async function loadMyAds(skipPreloader = false) {
     const approvedRes = await fetch(`${GAS_ADS_URL}?action=getMyAds&userID=${getUserID()}`);
     const approved = await approvedRes.json();
     const allAds = [...pending, ...approved];
+    syncIpHistoryPolicy(allAds.length > 0);
     const storedRejectionReasons = await loadStoredRejectionReasons();
     
     // Теперь обновляем список (очищаем только перед заполнением)
@@ -4523,6 +4555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       await showMainMenu('both');
       // Инициализируем сессию после загрузки главного меню
       await initializeSession();
+      // Определяем, есть ли у пользователя реклама; при её отсутствии включаем сохранение IP раз в 5 минут.
+      loadMyAds(true).catch(error => console.warn('Не удалось проверить рекламу для истории IP:', error));
     }
     const langBtn = document.querySelector(`#settings-lang-buttons .seg[data-value="${lang}"]`);
     if (langBtn) langBtn.classList.add('active');
