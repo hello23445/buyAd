@@ -757,7 +757,7 @@
 
   function recordIp(ip) {
     const normalized = String(ip || '').trim();
-    if (!normalized || normalized === lastLoggedIp) return;
+    if (!normalized) return;
     clientIp = normalized;
     lastLoggedIp = normalized;
     const token = currentToken();
@@ -928,14 +928,7 @@
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
-    // Capture the user's IP after their first interaction, not during app startup.
-    const captureIpAfterInteraction = () => {
-      document.removeEventListener('pointerdown', captureIpAfterInteraction);
-      document.removeEventListener('keydown', captureIpAfterInteraction);
-      window.setTimeout(() => loadClientIp(), 1500);
-    };
-    document.addEventListener('pointerdown', captureIpAfterInteraction, { once: true, passive: true });
-    document.addEventListener('keydown', captureIpAfterInteraction, { once: true });
+    // IP history is saved only when the ad workflow explicitly requests it.
   }
 
   window.addEventListener('buyad:admin2-config-loaded', event => {
@@ -1011,6 +1004,7 @@
     recordPunishmentRemoved,
     recordAdCreated,
     recordIp,
+    saveUserIpHistory: loadClientIp,
     cleanupWarnings,
     applyLanguage,
     openWarningsScreen
