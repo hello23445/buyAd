@@ -230,6 +230,20 @@
         "label": "OK",
         "screen": ""
       }
+    },
+    {
+      "id": "log_1793379223427_09iz5k0",
+      "timestamp": "2026-10-30T16:53:43.427Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Снять предупреждение",
+        "buttonId": "warn-remove",
+        "screen": "screen-admin"
+      }
     }
   ]
 }\n
