@@ -1367,6 +1367,8 @@ function applyLang(lang) {
     }
   });
   document.title = i18n[lang].appTitle;
+  const reviewBack = $('back-from-review-ads');
+  if (reviewBack) reviewBack.setAttribute('aria-label', i18n[lang].reviewBack || (lang === 'ru' ? 'Назад' : 'Back'));
   if (window.BuyAdWarnings?.applyLanguage) window.BuyAdWarnings.applyLanguage(lang);
   if (! $('screen-main').hidden) showMainMenu();
   if (! $('screen-crystals').hidden) loadCrystals();
@@ -1825,7 +1827,7 @@ async function initAdminIpPanel() {
   adminCurrentIpValue = await getClientIp() || '';
   $('admin-current-ip').textContent = adminCurrentIpVisible ? (adminCurrentIpValue || 'Не определено') : (adminCurrentIpValue ? '••••••••' : 'Не определено');
 }
-$('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? 'Скрыть' : 'Показать'; await initAdminIpPanel(); };
+$('admin-current-ip-show').onclick = async () => { adminCurrentIpVisible = !adminCurrentIpVisible; $('admin-current-ip-show').textContent = adminCurrentIpVisible ? ((localStorage.getItem(LS.lang) || 'ru') === 'ru' ? 'Скрыть' : 'Hide') : ((localStorage.getItem(LS.lang) || 'ru') === 'ru' ? 'Показать' : 'Show'); await initAdminIpPanel(); };
 $('admin-current-ip-copy').onclick = async () => {
   const ip = adminCurrentIpValue || await getClientIp();
   if (!ip) return openModal('Не удалось определить IP-адрес', '');
