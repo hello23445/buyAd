@@ -1,31 +1,16 @@
 {
   "schemaVersion": 2,
   "storageMode": "private-server-required",
-  "repositoryNote": "This public file is a schema contract only. Never commit live user records here. User tokens, Telegram IDs, IP addresses, punishment reasons and activity history must be stored in a private backend.",
+  "repositoryNote": "Public schema contract only. Live entries must be stored by a private backend. Never commit real tokens, Telegram IDs, IP addresses, punishment reasons or user activity here.",
   "entrySchema": {
     "id": "uuid",
     "timestamp": "ISO-8601 UTC",
-    "userToken": "opaque token (private)",
+    "token": "string|null (private user token)",
     "telegramId": "string|null (private)",
-    "ipAddress": "string|null (private; may be present on any activity event)",
-    "event": "punishment_issued|punishment_removed|warning_issued|warning_removed|warning_removed_automatically|warnings_cleared_after_lock|account_locked|account_unlocked|menu_opened|ui_action|ad_created|ad_updated|ad_submitted|admin_action|ip_observed|other",
-    "details": {
-      "reason": "string|null",
-      "punishment": "string|null",
-      "durationDays": "number|null",
-      "expiresAt": "ISO-8601|null",
-      "adminId": "string|null (private)",
-      "adminName": "string|null",
-      "adminNameHidden": "boolean|null",
-      "warningCount": "number|null",
-      "remainingWarnings": "number|null",
-      "menu": "string|null",
-      "buttonId": "string|null",
-      "screen": "string|null",
-      "adId": "string|null",
-      "decision": "approved|rejected|null",
-      "metadata": "object"
-    }
+    "ip": "string|null (private)",
+    "ipAddress": "string|null (private)",
+    "event": "punishment_issued|punishment_removed|warning_issued|warning_removed_automatically|warnings_cleared_after_lock|menu_opened|ui_action|ad_created|ad_updated|admin_action|ip_observed|other",
+    "details": "object containing reason, punishment, durationDays, expiresAt, adminName, adminNameHidden, adminToken, adminTelegramId, warningCount, remainingWarnings, menu, buttonId, screen, adId, decision and metadata"
   },
   "entries": []
 }
