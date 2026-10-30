@@ -1,6 +1,6 @@
 /* BuyAd warnings and client-side audit UI.
  * IMPORTANT: this browser-only store is a development fallback, not a shared audit backend.
- * Do not copy runtime records into this public repository. See userLogs.json/adminLogs.json.
+ * Do not copy runtime records into this public repository. See audit logs.
  */
 (() => {
   'use strict';
@@ -25,10 +25,6 @@
   };
   // Local cache keeps the existing synchronous UI responsive. The canonical
   // records are synchronized with the repository via the existing token broker.
-  const CLOUD_FILES = {
-    [USER_LOG_KEY]: 'userLogs.json',
-    [ADMIN_LOG_KEY]: 'adminLogs.json'
-  };
   let cloudReady = false;
   let cloudTokenPromise = null;
   const cloudQueues = new Map();
@@ -63,72 +59,37 @@
     }
     throw new Error('Не удалось сохранить ' + path + ': файл изменялся одновременно несколько раз.');
   };
-  const persistRows = (key, value) => {
-    const path = CLOUD_FILES[key];
-    if (!path) return;
-    const previous = cloudQueues.get(path) || Promise.resolve();
-    const next = previous.catch(() => {}).then(async () => {
-      const current = await githubGet(path);
-      let document;
-      try { document = JSON.parse(current.content); } catch (_) { document = { schemaVersion: 2, entries: [] }; }
-      const remoteRows = Array.isArray(document.entries) ? document.entries : [];
-      const merged = new Map(remoteRows.map(row => [row.id, row]));
-      value.forEach(row => merged.set(row.id, row));
-      document.entries = Array.from(merged.values()).sort((a, b) => Date.parse(a.timestamp || 0) - Date.parse(b.timestamp || 0)).slice(-MAX_LOG_ROWS);
-      await githubPut(path, JSON.stringify(document, null, 2) + '\\n', 'Update ' + path + ' audit log');
-    }).catch(error => console.warn('BuyAd cloud log sync failed:', path, error));
-    cloudQueues.set(path, next);
-  };
+  let cloudWarningsLoaded = false;
   const persistWarnings = rows => {
-    const previous = cloudQueues.get('admin2.js') || Promise.resolve();
-    const next = previous.catch(() => {}).then(async () => {
+    if (!cloudWarningsLoaded) return;
+    const serialized = JSON.stringify(rows);
+    window.__buyAdWarningWriteQueue = (window.__buyAdWarningWriteQueue || Promise.resolve()).catch(() => {}).then(async () => {
       const current = await githubGet('admin2.js');
-      const pattern = /(^\\s*(?:export\\s+)?(?:let|const|var)\\s+UserWarnings\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)/m;
-      const match = current.content.match(pattern);
-      let remoteWarnings = [];
-      if (match) { try { remoteWarnings = JSON.parse(match[2]); } catch (_) {} }
-      const mergedWarnings = Array.from(new Map([...remoteWarnings, ...rows].map(row => [row.id, row])).values());
-      const literal = JSON.stringify(mergedWarnings);
-      let updated;
-      if (pattern.test(current.content)) updated = current.content.replace(pattern, (_, a, _old, z) => a + literal + z);
-      else updated = current.content.replace(/(export\\s+const\\s+BlockedUsersIPadresses\\s*=\\s*\\[[\\s\\S]*?\\];?)/, '$1\\nexport const UserWarnings = ' + literal + '; // { token, telegramId, reason, issuedAt, removeAt, adminName, adminNameHidden, lockUntil }');
-      if (updated === current.content) throw new Error('Не удалось обновить UserWarnings в admin2.js');
+      const pattern = /((?:export\s+)?(?:let|const|var)\s+UserWarnings\s*=\s*)(\[[\s\S]*?\])(\s*;)/m;
+      if (!pattern.test(current.content)) throw new Error('В admin2.js не найден массив UserWarnings');
+      const updated = current.content.replace(pattern, (_, before, _old, after) => before + serialized + after);
       await githubPut('admin2.js', updated, 'Update user warnings');
-    }).catch(error => console.warn('BuyAd warning sync failed:', error));
-    cloudQueues.set('admin2.js', next);
+    }).catch(error => console.error('Не удалось сохранить предупреждения в GitHub:', error));
   };
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       if (key === WARN_KEY) persistWarnings(value);
-      if (CLOUD_FILES[key]) persistRows(key, value);
       return true;
     } catch (error) {
       console.warn('BuyAd local audit storage failed:', error);
       return false;
     }
   };
-  async function loadCloudRecords() {
+  async function loadCloudWarnings() {
     try {
-      const [userFile, adminFile, configFile] = await Promise.all([
-        githubGet('userLogs.json'), githubGet('adminLogs.json'), githubGet('admin2.js')
-      ]);
-      const userDoc = JSON.parse(userFile.content || '{}');
-      const adminDoc = JSON.parse(adminFile.content || '{}');
-      const userRows = Array.isArray(userDoc.entries) ? userDoc.entries : [];
-      const adminRows = Array.isArray(adminDoc.entries) ? adminDoc.entries : [];
-      const parseWarnings = configFile.content.match(/(?:export\\s+)?const\\s+UserWarnings\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
-      const remoteWarnings = parseWarnings ? JSON.parse(parseWarnings[1]) : [];
-      // Merge cloud records with any local records, preferring cloud for IDs already present.
-      const merge = (local, remote) => Array.from(new Map([...local, ...remote].map(row => [row.id, row])).values()).slice(-MAX_LOG_ROWS);
-      safeWriteCache(USER_LOG_KEY, merge(safeRead(USER_LOG_KEY), userRows));
-      safeWriteCache(ADMIN_LOG_KEY, merge(safeRead(ADMIN_LOG_KEY), adminRows));
-      safeWriteCache(WARN_KEY, merge(safeRead(WARN_KEY), remoteWarnings));
-      cloudReady = true;
+      const current = await githubGet('admin2.js');
+      const match = current.content.match(/(?:export\s+)?const\s+UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
+      const remoteWarnings = match ? JSON.parse(match[1]) : [];
+      safeWriteCache(WARN_KEY, Array.isArray(remoteWarnings) ? remoteWarnings : []);
+      cloudWarningsLoaded = true;
       refresh();
-    } catch (error) {
-      console.warn('BuyAd cloud records unavailable; local cache remains active:', error);
-    }
+    } catch (error) { console.error('Не удалось загрузить предупреждения из GitHub:', error); }
   }
   const safeWriteCache = (key, value) => {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; }
@@ -197,52 +158,9 @@
     return [];
   };
   const writeWarnings = rows => safeWrite(WARN_KEY, rows);
-  const readLogRows = key => {
-    const current = safeRead(key);
-    if (current.length) return current;
-    const legacyKey = key === USER_LOG_KEY ? 'buyAdUserLogsV1' :
-      key === ADMIN_LOG_KEY ? 'buyAdAdminLogsV1' : '';
-    if (!legacyKey) return current;
-    const legacy = safeRead(legacyKey);
-    if (legacy.length && safeWrite(key, legacy)) {
-      try { localStorage.removeItem(legacyKey); } catch (_) {}
-    }
-    return legacy;
-  };
-  const appendLog = (key, entry) => {
-    const rows = readLogRows(key);
-    rows.push({
-      id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
-      timestamp: new Date().toISOString(),
-      ip: clientIp || '',
-      ipAddress: clientIp || '',
-      ...entry
-    });
-    safeWrite(key, rows.slice(-MAX_LOG_ROWS));
-  };
-  const logUser = (target, event, details = {}) => {
-    appendLog(USER_LOG_KEY, {
-      token: target?.token || '',
-      telegramId: target?.telegramId || '',
-      event,
-      details
-    });
-  };
-  const logAdmin = (action, details = {}) => {
-    const who = actor();
-    appendLog(ADMIN_LOG_KEY, {
-      ...who,
-      action,
-      targetToken: details.targetToken || '',
-      targetTelegramId: details.targetTelegramId || '',
-      targetIp: details.targetIp || '',
-      reason: details.reason || '',
-      durationDays: details.durationDays == null ? null : details.durationDays,
-      adId: details.adId || '',
-      decision: details.decision || '',
-      details
-    });
-  };
+  const readLogRows = () => [];
+  const logUser = () => {};
+  const logAdmin = () => {};
   const warningsFor = (token, telegramId) =>
     warnings().filter(row => (token && row.token === token) || (telegramId && row.telegramId === telegramId))
       .sort((a, b) => Date.parse(a.issuedAt) - Date.parse(b.issuedAt));
@@ -489,6 +407,7 @@
 
   function issueWarning() {
     const admin = currentAdmin();
+    if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
     if (!admin || currentLevel() < 2) return { error: 'Выдавать предупреждения могут только администраторы 2-го уровня и выше.' };
     const targetValue = arguments[0];
     const reason = String(arguments[1] || '').trim();
@@ -505,11 +424,7 @@
     const limit = limits[currentLevel()] || 0;
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
-    const issuedToday = readLogRows(ADMIN_LOG_KEY).filter(row =>
-      row.adminToken === adminId &&
-      row.action === 'warning_issued' &&
-      localDate(new Date(row.timestamp)) === today
-    ).length;
+    const issuedToday = rows.filter(row => row.adminToken === adminId && localDate(new Date(row.issuedAt)) === today).length;
     if (issuedToday >= limit) return { error: 'Достигнут дневной лимит выдачи предупреждений: ' + limit + '.' };
 
     const now = new Date();
@@ -566,6 +481,7 @@
   }
 
   function removeWarnings(targetValue) {
+    if (!cloudWarningsLoaded) return { error: 'Подождите, пока загрузятся данные предупреждений из GitHub.' };
     if (currentLevel() !== 5) return { error: 'Снимать предупреждения может только администратор 5-го уровня.' };
     const target = targetFromInput(targetValue);
     if (!target) return { error: 'Введите токен пользователя или Telegram ID.' };
@@ -789,7 +705,7 @@
     if (!menu || document.getElementById('warn-issue')) return;
     const group = document.createElement('div');
     group.className = 'menu__group';
-    group.textContent = 'Предупреждения и журналы';
+    group.textContent = 'Предупреждения';
     group.id = 'warn-tools-group';
     group.dataset.minLevel = '2';
     menu.appendChild(group);
@@ -809,9 +725,6 @@
     };
     makeButton('warn-issue', 'Выдать предупреждение (warn)', 'fa-triangle-exclamation', openIssueWarningModal, 2);
     makeButton('warn-remove', 'Снять предупреждение', 'fa-circle-check', openRemoveWarningsModal, 5);
-    makeButton('warn-user-log', 'Смотреть лог пользователя', 'fa-user-clock', openUserLogModal, 5);
-    makeButton('warn-admin-log', 'Смотреть лог администратора', 'fa-clipboard-list', openAdminLogModal, 5);
-    makeButton('warn-ip-search', 'Найти пользователя по IP', 'fa-magnifying-glass-location', openIpSearchModal, 4);
   }
 
   function updateAdminButtonVisibility() {
@@ -850,8 +763,7 @@
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
-    loadClientIp();
-    loadCloudRecords();
+    loadCloudWarnings();
   }
 
   document.addEventListener('click', event => {
@@ -900,36 +812,11 @@
       return;
     }
 
-    if (button.classList.contains('menu__item') || button.id.startsWith('nav-')) {
-      const menu = String(button.querySelector('.menu__text')?.textContent || button.textContent || '').trim();
-      logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'menu_opened', {
-        menu,
-        buttonId: button.id || '',
-        screen: button.closest('.screen')?.id || 'screen-main'
-      });
-      if (button.closest('#screen-admin') && currentAdmin()) {
-        logAdmin('menu_opened', { menu, buttonId: button.id || '' });
-      }
-    } else if (button.closest('#screen-admin') && currentAdmin()) {
-      logAdmin('ui_action', {
-        buttonId: button.id || '',
-        label: String(button.textContent || '').trim().slice(0, 160)
-      });
-    } else {
-      logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ui_action', {
-        buttonId: button.id || '',
-        label: String(button.textContent || '').trim().slice(0, 160),
-        screen: button.closest('.screen')?.id || ''
-      });
-    }
   }, true);
 
   window.BuyAdWarnings = {
     warningsFor,
     refresh,
-    userLogs: () => readLogRows(USER_LOG_KEY),
-    adminLogs: () => readLogRows(ADMIN_LOG_KEY),
-    logUserAction: (event, details = {}) => logUser({ token: currentToken(), telegramId: currentTelegramId() }, event, details),
     recordAdminAction,
     recordPunishmentIssued,
     recordPunishmentRemoved,
