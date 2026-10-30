@@ -13,8 +13,6 @@
   const MAX_LOG_ROWS = 10000;
   const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
   const FIVE_DAYS = 5 * 24 * 60 * 60 * 1000;
-  let clientIp = '';
-  let lastLoggedIp = '';
 
   const safeRead = key => {
     try {
