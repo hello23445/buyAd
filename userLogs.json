@@ -306,6 +306,20 @@
         "buttonId": "warn-remove",
         "screen": "screen-admin"
       }
+    },
+    {
+      "id": "log_1793379232831_em20m6p",
+      "timestamp": "2026-10-30T16:53:52.831Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "ui_action",
+      "details": {
+        "buttonId": "",
+        "label": "Снять предупреждения",
+        "screen": ""
+      }
     }
   ]
 }\n
