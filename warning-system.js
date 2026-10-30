@@ -113,6 +113,7 @@
       id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9),
       timestamp: new Date().toISOString(),
       ip: clientIp || '',
+      ipAddress: clientIp || '',
       ...entry
     });
     safeWrite(key, rows.slice(-MAX_LOG_ROWS));
@@ -444,6 +445,8 @@
       removeAt: warning.removeAt,
       adminName: warning.adminName,
       adminNameHidden: hidden,
+      adminToken: adminId,
+      adminTelegramId: currentTelegramId(),
       warningCount: count,
       durationDays: count === 3 ? 5 : 2,
       lockUntil: warning.lockUntil || ''
@@ -589,6 +592,8 @@
         decision: details.decision || '',
         adminName: adminName(),
         adminNameHidden: adminNameHidden(),
+        adminToken: actor().adminToken,
+        adminTelegramId: actor().adminTelegramId,
         details
       });
     }
@@ -613,7 +618,9 @@
         durationDays: durationDays == null ? null : durationDays,
         expiresAt: expiresAt || '',
         adminName: adminName(),
-        adminNameHidden: adminNameHidden()
+        adminNameHidden: adminNameHidden(),
+        adminToken: actor().adminToken,
+        adminTelegramId: actor().adminTelegramId
       });
     }
   }
@@ -630,7 +637,9 @@
       logUser(target, 'punishment_removed', {
         punishment: kind,
         adminName: adminName(),
-        adminNameHidden: adminNameHidden()
+        adminNameHidden: adminNameHidden(),
+        adminToken: actor().adminToken,
+        adminTelegramId: actor().adminTelegramId
       });
     }
   }
