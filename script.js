@@ -511,16 +511,12 @@ function updateAdminLevelBadge() {
     levelBadge.hidden = canLocallySet || !admin;
   }
 
-  const canManageAdmins = baseLevel === 5
-    && Number(admin?.admin_level) === 5
-    && base?.permissions?.manageAdmins === true
-    && adminHasPermission('manageAdmins');
-  ['admin-add-new', 'admin-edit-admin', 'admin-delete-admin'].forEach(id => {
-    const button = $(id);
-    if (button) button.hidden = !canManageAdmins;
-  });
-  const clear = $('admin-clear-localstorage');
-  if (clear) clear.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5);
+  // Сначала скрываем ВСЕ действия меню. Затем явно открываем только разрешённые текущему уровню.
+  const menu = document.querySelector('#screen-admin .menu');
+  if (menu) {
+    menu.querySelectorAll('.menu__item').forEach(item => { item.hidden = true; });
+    menu.querySelectorAll('.menu__group').forEach(heading => { heading.hidden = true; });
+  }
 
   const permissionVisibility = {
     'admin-check': 'reviewAds',
@@ -549,21 +545,27 @@ function updateAdminLevelBadge() {
     if (element) element.hidden = !adminHasPermission(permission);
   });
 
-  // Заголовки меню показываем только тогда, когда в соответствующем разделе есть видимые действия.
-  const menu = document.querySelector('#screen-admin .menu');
+  // Управление реестром администраторов — только если доступ действительно разрешён.
+  const canManageAdmins = typeof canManageAdminRegistry === 'function' && canManageAdminRegistry();
+  ['admin-add-new', 'admin-edit-admin', 'admin-delete-admin'].forEach(id => {
+    const button = $(id);
+    if (button) button.hidden = !canManageAdmins;
+  });
+  const clear = $('admin-clear-localstorage');
+  if (clear) clear.hidden = !(baseLevel === 5 && Number(admin?.admin_level) === 5);
+
+  // Не оставляем заголовки пустых разделов: показываем только группы с доступными действиями.
   if (menu) {
-    const headings = Array.from(menu.querySelectorAll('.menu__group'));
-    headings.forEach(heading => { heading.hidden = true; });
     Array.from(menu.querySelectorAll('.menu__item:not([hidden])')).forEach(item => {
-      let previous = item.previousElementSibling;
-      while (previous && !previous.classList.contains('menu__group')) previous = previous.previousElementSibling;
-      if (!previous) return;
-      previous.hidden = false;
-      // Заголовок мелким шрифтом — подраздел; при наличии действия показываем также его родительский раздел.
-      if (parseFloat(previous.style.fontSize || '0') <= 12) {
-        let parentHeading = previous.previousElementSibling;
-        while (parentHeading && !parentHeading.classList.contains('menu__group')) parentHeading = parentHeading.previousElementSibling;
-        if (parentHeading) parentHeading.hidden = false;
+      let heading = item.previousElementSibling;
+      while (heading && !heading.classList.contains('menu__group')) heading = heading.previousElementSibling;
+      if (!heading) return;
+      heading.hidden = false;
+      // Для подразделов (например, "По IP") показываем и родительский заголовок.
+      if (parseFloat(heading.style.fontSize || '0') <= 12) {
+        let parent = heading.previousElementSibling;
+        while (parent && !parent.classList.contains('menu__group')) parent = parent.previousElementSibling;
+        if (parent) parent.hidden = false;
       }
     });
   }
