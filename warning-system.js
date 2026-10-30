@@ -652,7 +652,7 @@
 
     async function removeWarnings(targetValue) {
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
-    if (currentLevel() !== 5) return { error: tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.') };
+    if (currentLevel() < 2) return { error: tr('warningDeniedRemove', 'Снимать предупреждения могут администраторы со 2-го уровня.', 'Only administrators at level 2 or higher can remove warnings.') };
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
@@ -747,7 +747,7 @@
   }
 
   function openRemoveWarningsModal() {
-    if (currentLevel() !== 5) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedRemove', 'Снимать предупреждения может только администратор 5-го уровня.', 'Only a level 5 administrator can remove warnings.'));
+    if (currentLevel() < 2) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedRemove', 'Снимать предупреждения могут администраторы со 2-го уровня.', 'Only administrators at level 2 or higher can remove warnings.'));
     openForm(tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'), body => ({
       target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true })
     }), controls => removeWarnings(controls.target.value), tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'));
