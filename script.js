@@ -975,7 +975,7 @@ $('admin-clear-localstorage')?.addEventListener('click',()=>{
   const preserved = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key === LS.token || /telegram.?id|user.?id|setting|theme|lang|appSize|confirmation|position|title|closing/i.test(key))) preserved[key] = localStorage.getItem(key);
+    if (key && (key === LS.token || /telegram.?id|user.?id|setting|theme|lang|appSize|confirmation|position|title|closing|buyAdWarnings|buyAdUserLogs|buyAdAdminLogs|buyAd_warningAdCreated/i.test(key))) preserved[key] = localStorage.getItem(key);
   }
   localStorage.clear();
   Object.entries(preserved).forEach(([key, value]) => localStorage.setItem(key, value));
