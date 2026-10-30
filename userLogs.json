@@ -2,147 +2,198 @@
   "schemaVersion": 2,
   "entries": [
     {
-      "id": "1793377208801_ll6knaguj5p",
-      "timestamp": "2026-10-30T16:20:08.801Z",
-      "ip": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
+      "id": "1793376923350_gbvnlfbxlso",
+      "timestamp": "2026-10-30T16:15:23.351Z",
+      "ip": "91.215.136.251",
+      "token": "",
+      "telegramId": "6434781065",
       "event": "ip_observed"
     },
     {
-      "id": "log_1793378069864_xwvqgx5",
-      "timestamp": "2026-10-30T16:34:29.864Z",
+      "id": "1793376985342_pmc9fwure5",
+      "timestamp": "2026-10-30T16:16:25.342Z",
+      "ip": "91.215.136.251",
+      "token": "",
+      "telegramId": "6434781065",
+      "event": "ip_observed"
+    },
+    {
+      "id": "1793377189123_6jekxw4hdei",
+      "timestamp": "2026-10-30T16:19:49.123Z",
+      "ip": "217.60.100.194",
+      "token": "",
+      "telegramId": "6434781065",
+      "event": "ip_observed"
+    },
+    {
+      "id": "log_1793378046492_vc9rxvn",
+      "timestamp": "2026-10-30T16:34:06.492Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
+      "token": "",
+      "telegramId": "6434781065",
       "event": "ip_observed",
       "details": {
         "ip": "46.166.162.144"
       }
     },
     {
-      "id": "log_1793378077391_8mjdz6x",
-      "timestamp": "2026-10-30T16:34:37.391Z",
+      "id": "log_1793378048978_2cwn1w8",
+      "timestamp": "2026-10-30T16:34:08.978Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
+      "token": "",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Меню админа",
+        "buttonId": "nav-admin",
+        "screen": "screen-main"
+      }
+    },
+    {
+      "id": "log_1793378056351_wf1vpo1",
+      "timestamp": "2026-10-30T16:34:16.351Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "token": "",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Смотреть лог пользователя",
+        "buttonId": "warn-user-log",
+        "screen": "screen-admin"
+      }
+    },
+    {
+      "id": "log_1793378087726_5gfwpla",
+      "timestamp": "2026-10-30T16:34:47.726Z",
+      "ip": "46.166.162.144",
+      "ipAddress": "46.166.162.144",
+      "token": "",
+      "telegramId": "6434781065",
       "event": "ui_action",
       "details": {
-        "buttonId": "btn-open-settings",
+        "buttonId": "modal-close",
         "label": "",
         "screen": ""
       }
     },
     {
-      "id": "log_1793378079144_xpg0kho",
-      "timestamp": "2026-10-30T16:34:39.144Z",
+      "id": "log_1793378090557_1ghw4az",
+      "timestamp": "2026-10-30T16:34:50.557Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
-      "event": "ui_action",
+      "token": "",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
       "details": {
-        "buttonId": "btn-copy-token",
-        "label": "Показать",
-        "screen": "screen-settings"
+        "menu": "Выдать предупреждение (warn)",
+        "buttonId": "warn-issue",
+        "screen": "screen-admin"
       }
     },
     {
-      "id": "log_1793378080313_x9o9kz6",
-      "timestamp": "2026-10-30T16:34:40.313Z",
+      "id": "log_1793378097520_2b9q24t",
+      "timestamp": "2026-10-30T16:34:57.520Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
+      "token": "",
+      "telegramId": "6434781065",
       "event": "ui_action",
       "details": {
-        "buttonId": "btn-copy-token",
-        "label": "Скопировать",
-        "screen": "screen-settings"
+        "buttonId": "",
+        "label": "Выдать warn",
+        "screen": ""
       }
     },
     {
-      "id": "log_1793378081462_717soy3",
-      "timestamp": "2026-10-30T16:34:41.462Z",
+      "id": "log_1793378097522_76xfobx",
+      "timestamp": "2026-10-30T16:34:57.522Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
+      "token": "",
       "telegramId": "8085105056",
-      "event": "ui_action",
+      "event": "warning_issued",
       "details": {
-        "buttonId": "btn-copy-telegram-id",
-        "label": "Показать",
-        "screen": "screen-settings"
+        "reason": "Не указана",
+        "issuedAt": "2026-10-30T16:34:57.522Z",
+        "removeAt": "2026-11-01T16:34:57.522Z",
+        "adminName": "",
+        "adminNameHidden": true,
+        "adminToken": "1Y6QLQHT0JZRS2GK",
+        "adminTelegramId": "6434781065",
+        "warningCount": 1,
+        "durationDays": 2,
+        "lockUntil": ""
       }
     },
     {
-      "id": "log_1793378081895_ql07bpk",
-      "timestamp": "2026-10-30T16:34:41.895Z",
+      "id": "log_1793378104311_yicbp7m",
+      "timestamp": "2026-10-30T16:35:04.311Z",
       "ip": "46.166.162.144",
       "ipAddress": "46.166.162.144",
-      "token": "mS8zVRnHciHMn4dF",
-      "telegramId": "8085105056",
+      "token": "",
+      "telegramId": "6434781065",
       "event": "ui_action",
       "details": {
-        "buttonId": "btn-copy-telegram-id",
-        "label": "Скопировать",
-        "screen": "screen-settings"
+        "buttonId": "",
+        "label": "OK",
+        "screen": ""
       }
     },
     {
-      "id": "log_1793379052417_s4pp12d",
-      "timestamp": "2026-10-30T16:50:52.417Z",
-      "ip": "88.216.36.107",
-      "ipAddress": "88.216.36.107",
-      "token": "GoYy3n2oRheOiByJ",
-      "telegramId": "8085105056",
+      "id": "log_1793379031683_mcok52m",
+      "timestamp": "2026-10-30T16:50:31.683Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
       "event": "ip_observed",
       "details": {
-        "ip": "88.216.36.107"
+        "ip": "84.32.48.23"
       }
     },
     {
-      "id": "log_1793379059457_t0j6fhh",
-      "timestamp": "2026-10-30T16:50:59.457Z",
-      "ip": "88.216.36.107",
-      "ipAddress": "88.216.36.107",
-      "token": "GoYy3n2oRheOiByJ",
-      "telegramId": "8085105056",
+      "id": "log_1793379033453_ls2j57h",
+      "timestamp": "2026-10-30T16:50:33.454Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Меню админа",
+        "buttonId": "nav-admin",
+        "screen": "screen-main"
+      }
+    },
+    {
+      "id": "log_1793379036704_p4ktjqa",
+      "timestamp": "2026-10-30T16:50:36.705Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
+      "event": "menu_opened",
+      "details": {
+        "menu": "Выдать предупреждение (warn)",
+        "buttonId": "warn-issue",
+        "screen": "screen-admin"
+      }
+    },
+    {
+      "id": "log_1793379075283_1ehsu54",
+      "timestamp": "2026-10-30T16:51:15.283Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "1Y6QLQHT0JZRS2GK",
+      "telegramId": "6434781065",
       "event": "ui_action",
       "details": {
-        "buttonId": "btn-open-settings",
-        "label": "",
+        "buttonId": "",
+        "label": "Выдать warn",
         "screen": ""
-      }
-    },
-    {
-      "id": "log_1793379060778_6f8ef6p",
-      "timestamp": "2026-10-30T16:51:00.778Z",
-      "ip": "88.216.36.107",
-      "ipAddress": "88.216.36.107",
-      "token": "GoYy3n2oRheOiByJ",
-      "telegramId": "8085105056",
-      "event": "ui_action",
-      "details": {
-        "buttonId": "btn-copy-token",
-        "label": "Показать",
-        "screen": "screen-settings"
-      }
-    },
-    {
-      "id": "log_1793379061606_9k4kirf",
-      "timestamp": "2026-10-30T16:51:01.606Z",
-      "ip": "88.216.36.107",
-      "ipAddress": "88.216.36.107",
-      "token": "GoYy3n2oRheOiByJ",
-      "telegramId": "8085105056",
-      "event": "ui_action",
-      "details": {
-        "buttonId": "btn-copy-telegram-id",
-        "label": "Показать",
-        "screen": "screen-settings"
       }
     }
   ]
