@@ -363,7 +363,7 @@ const ADMIN_PERMISSION_MIN_LEVEL = {
   changeOwnLevelLocally: 5,
   hideNameOnRejection: 5,
   hideNameOnBan: 5,
-  viewOwnIp: 5
+  viewOwnIp: 4
 };
 const ADMIN_PERMISSION_LABELS = {
   reviewAds: 'Проверка рекламы',
@@ -525,6 +525,7 @@ function updateAdminLevelBadge() {
     'admin-unblock-user': 'unban',
     'admin-ban-ip': 'banIp',
     'admin-unban-ip': 'unbanIp',
+    'admin-view-own-ip': 'viewOwnIp',
     'admin-ban-telegram-id': 'banTelegramId',
     'admin-unban-telegram-id': 'unbanTelegramId',
     'admin-ban-create-edit': 'restrictAds',
@@ -4334,6 +4335,22 @@ $('admin-ban-ip').onclick = () => {
     }
   }, 'Введите IP-адрес пользователя');
 };
+
+$('admin-view-own-ip')?.addEventListener('click', async () => {
+  if (!adminGuard('viewOwnIp')) return;
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const button = $('admin-view-own-ip');
+  if (button) button.disabled = true;
+  try {
+    const ip = await getClientIp();
+    if (!ip) throw new Error(lang === 'ru' ? 'Не удалось определить IP-адрес.' : 'Could not determine your IP address.');
+    openModal(lang === 'ru' ? 'Мой IP-адрес' : 'My IP address', ip);
+  } catch (error) {
+    openModal(lang === 'ru' ? 'Ошибка' : 'Error', error.message || String(error));
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
 
 $('admin-unban-ip').onclick = () => {
   openAdminTokenModal('Разбанить пользователя по его IP-адресу', async ip => {
