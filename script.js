@@ -1833,7 +1833,6 @@ $('nav-admin').onclick = () => {
   hideAllScreens();
   show($('screen-admin'));
   updateAdminLevelBadge();
-  initAdminIpPanel();
 };
 
 $('nav-create').onclick = () => {
@@ -1915,7 +1914,7 @@ function updateMyAdsRefreshButton() {
    b.title = '';
  }
 }
-$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();if(isTokenCreateBlocked())await Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.()).catch(error=>console.warn('Не удалось сохранить историю IP:',error));};
+$('myads-refresh').onclick=async()=>{const last=Number(localStorage.getItem(MY_ADS_REFRESH_STORAGE_KEY)||0);if(Date.now()-last<MY_ADS_REFRESH_COOLDOWN){updateMyAdsRefreshButton();return;}localStorage.setItem(MY_ADS_REFRESH_STORAGE_KEY,String(Date.now()));updateMyAdsRefreshButton();await loadMyAds();};
 setInterval(updateMyAdsRefreshButton,1000);
 $('nav-myads').onclick=()=>{hideAllScreens();show($('screen-myads'));if(!myAdsLoadedOnce){myAdsLoadedOnce=true;loadMyAds();}updateMyAdsRefreshButton();};
 
@@ -2618,10 +2617,7 @@ $('btn-create-ad').onclick = async () => {
     }
     // Сохраняем IP только после успешного создания или редактирования рекламы.
     syncIpHistoryPolicy(true);
-    if (!isUserBlockedFromAdChanges()) {
-      Promise.resolve(window.BuyAdWarnings?.saveUserIpHistory?.())
-        .catch(error => console.warn('Не удалось сохранить историю IP:', error));
-    }
+
 
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
