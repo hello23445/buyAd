@@ -3591,7 +3591,7 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
     const label = document.createElement('label'); label.textContent = lang === 'ru' ? 'Причина отказа' : 'Rejection reason'; body.appendChild(label);
     const input = document.createElement('textarea'); input.rows = 3; input.placeholder = lang === 'ru' ? 'Укажите причину отказа' : 'Enter rejection reason'; input.style.width = '100%'; body.appendChild(input);
     openModal(lang === 'ru' ? 'Отклонить рекламу' : 'Reject ad', body, [
-      { text: lang === 'ru' ? 'Отклонить' : 'Reject', onClick: () => { if (Number(admin?.admin_level) === 1 && !input.value.trim()) { openModal(lang === 'ru' ? 'Причина обязательна' : 'Reason required', i18n[lang].rejectionReasonRequired); return; } handleAdAction(adName, action, userID, input.value.trim(), true); } },
+      { text: lang === 'ru' ? 'Отклонить' : 'Reject', onClick: () => { if (Number(admin?.admin_level) === 1 && !input.value.trim()) { openModal(lang === 'ru' ? 'Причина обязательна' : 'Reason required', i18n[lang].rejectionReasonRequired); return; } handleAdAction(adName, action, userID, input.value.trim(), true, userToken); } },
       { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
     ]);
     return;
