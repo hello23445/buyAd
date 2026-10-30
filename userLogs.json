@@ -258,6 +258,26 @@
         "label": "Снять предупреждения",
         "screen": ""
       }
+    },
+    {
+      "id": "log_1793379228221_0maiyhx",
+      "timestamp": "2026-10-30T16:53:48.221Z",
+      "ip": "84.32.48.23",
+      "ipAddress": "84.32.48.23",
+      "token": "",
+      "telegramId": "8085105056",
+      "event": "warnings_removed",
+      "details": {
+        "removedCount": 2,
+        "removedWarningIds": [
+          "warn_1793378097522_avlpv",
+          "warn_1793379075286_ygxgm"
+        ],
+        "reason": "Ручное снятие предупреждений",
+        "adminName": "",
+        "adminNameHidden": true,
+        "unlocked": false
+      }
     }
   ]
 }\n
