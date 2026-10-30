@@ -2606,6 +2606,8 @@ $('btn-create-ad').onclick = async () => {
 
     if (!editMode && window.BuyAdWarnings?.recordAdCreated) {
       window.BuyAdWarnings.recordAdCreated({ adId: adName, platform: selectedPlatform });
+    } else if (editMode && window.BuyAdWarnings?.logUserAction) {
+      window.BuyAdWarnings.logUserAction('ad_updated', { adId: adName, platform: selectedPlatform });
     }
 
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
