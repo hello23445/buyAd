@@ -2604,6 +2604,10 @@ $('btn-create-ad').onclick = async () => {
     $('crystals-now').textContent = formatNumber(currentCrystals);
     $('crystals-in-create').textContent = formatNumber(currentCrystals);
 
+    if (!editMode && window.BuyAdWarnings?.recordAdCreated) {
+      window.BuyAdWarnings.recordAdCreated({ adId: adName, platform: selectedPlatform });
+    }
+
     // ✅ Правильный вызов: OK и закрытие модалки → вернуться на нужный экран
     const successMsg = editMode ? i18n[lang].adEdited : i18n[lang].adSentForReview;
     const returnCallback = () => {
@@ -3564,8 +3568,8 @@ $('admin-check').onclick = async () => {
           <button class="btn btn--ghost reject" data-i18n="rejectBtn" style="background:red;">Reject</button>
         </div>
       `;
-      card.querySelector('.approve').onclick = () => handleAdAction(ad.name, 'approve');
-      card.querySelector('.reject').onclick = () => handleAdAction(ad.name, 'reject', ad.userID);
+      card.querySelector('.approve').onclick = () => handleAdAction(ad.name, 'approve', ad.userID, '', false, ad.token);
+      card.querySelector('.reject').onclick = () => handleAdAction(ad.name, 'reject', ad.userID, '', false, ad.token);
       
       list.appendChild(card);
     });
@@ -3577,7 +3581,7 @@ $('admin-check').onclick = async () => {
   }
 };
 
-async function handleAdAction(adName, action, userID = null, rejectionReason = '', confirmed = false) {
+async function handleAdAction(adName, action, userID = null, rejectionReason = '', confirmed = false, userToken = '') {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   if (action === 'reject' && !confirmed) {
     const admin = getCurrentAdmin();
@@ -3604,6 +3608,16 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
     }
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to process ad');
+    if (window.BuyAdWarnings?.recordAdminAction) {
+      const auditAction = action === 'approve' ? 'ad_approved' : action === 'reject' ? 'ad_rejected' : 'ad_reviewed';
+      window.BuyAdWarnings.recordAdminAction(auditAction, {
+        targetToken: userToken || '',
+        targetTelegramId: userID || '',
+        adId: adName,
+        decision: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : action,
+        reason: action === 'reject' ? (rejectionReason || 'Не указана') : ''
+      });
+    }
     let rejectionSaveWarning = '';
     if (action === 'reject') {
       recordAdminAction('rejectAd');
@@ -3669,6 +3683,7 @@ async function handleUnban(userID, userToken = '') {
     const response = await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
     if (!response.ok) throw new Error('Failed to unban user');
     recordAdminAction((ADMINS || []).some(admin => admin.admin_token === userToken) ? 'banAdmin' : 'banToken');
+    window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', userToken || userID);
     openModal(i18n[lang].doneTitle, i18n[lang].banRemoved);
     $('admin-restricted').click();
   } catch (e) {
@@ -4062,6 +4077,14 @@ async function updateVariable(action, value) {
         );
     }
 
+    if (window.BuyAdWarnings && !['BanForever', 'UnBanForever', 'BlockCreateAds', 'UnBlockCreateAds', 'BlockedUsersTelegramID', 'UnBlockedUsersTelegramID', 'BlockedUsersIPadresses', 'UnBlockedUsersIPadresses'].includes(action)) {
+        window.BuyAdWarnings.recordAdminAction('system_setting_changed', {
+            setting: variableName,
+            operation: action,
+            value: String(newValue)
+        });
+    }
+
     alert(
         `${variableName} успешно изменена`
     );
@@ -4140,8 +4163,10 @@ $('admin-block-user').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banToken', token)) return;
-      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
+      window.BuyAdWarnings?.recordPunishmentIssued('account_ban', token, reason, durationDays, expiresAt);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4161,6 +4186,7 @@ $('admin-unblock-user').onclick = () => {
       if (!adminGuard('unbanToken', token)) return;
       await updateVariable('UnBanForever', token);
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
+      window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', token);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4178,8 +4204,10 @@ $('admin-ban-create-edit').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('restrictAds', token)) return;
-      await updateVariable('BlockCreateAds', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      await updateVariable('BlockCreateAds', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
+      window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', token, reason, durationDays, expiresAt);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4199,6 +4227,7 @@ $('admin-unban-create-edit').onclick = () => {
       if (!adminGuard('unrestrictAds', token)) return;
       await updateVariable('UnBlockCreateAds', token);
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
+      window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', token);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4216,8 +4245,10 @@ $('admin-ban-ip').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banIp', ip)) return;
-      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
       recordAdminAction('banIp');
+      window.BuyAdWarnings?.recordAdminAction('ip_banned', { targetIp: ip, reason: reason || 'Не указана', durationDays, expiresAt });
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4237,6 +4268,7 @@ $('admin-unban-ip').onclick = () => {
       if (!adminGuard('unbanIp', ip)) return;
       await updateVariable('UnBlockedUsersIPadresses', ip);
       recordAdminAction('banIp');
+      window.BuyAdWarnings?.recordAdminAction('ip_unbanned', { targetIp: ip });
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4254,8 +4286,10 @@ $('admin-ban-telegram-id').onclick = () => {
     try {
       showPreloader();
       if (!adminGuard('banTelegramId', telegramId)) return;
-      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: durationDays == null ? null : new Date(Date.now() + durationDays * 86400000).toISOString() });
+      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === telegramId) ? 'banAdmin' : 'banTelegramId');
+      window.BuyAdWarnings?.recordPunishmentIssued('account_ban', telegramId, reason, durationDays, expiresAt);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
@@ -4275,6 +4309,7 @@ $('admin-unban-telegram-id').onclick = () => {
       if (!adminGuard('unbanTelegramId', telegramId)) return;
       await updateVariable('UnBlockedUsersTelegramID', telegramId);
       recordAdminAction('banTelegramId');
+      window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', telegramId);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
     } finally {
