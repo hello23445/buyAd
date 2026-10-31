@@ -1576,3 +1576,22 @@ code.admin-ip-history {
 .platform-row[aria-disabled="true"] {
   outline: 1px dashed rgba(220, 70, 70, 0.55);
 }
+
+
+/* Prevent long ad text and URLs from overflowing cards in My Ads and Ad Review. */
+.ad-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.ad-card p {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ad-card .ad-text-formatted {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
