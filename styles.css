@@ -1576,3 +1576,26 @@ code.admin-ip-history {
 .platform-row[aria-disabled="true"] {
   outline: 1px dashed rgba(220, 70, 70, 0.55);
 }
+
+
+/* Keep ad text and long links inside their cards on both user and review screens. */
+.ad-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ad-card p {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ad-card a,
+.ad-card .ad-text-formatted,
+.ad-card__name {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
