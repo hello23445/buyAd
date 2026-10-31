@@ -568,6 +568,13 @@
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
+    // Self-target protection must work even when ADMINS has no Telegram ID field.
+    const isCurrentAdmin = (target.telegramId && target.telegramId === currentTelegramId()) ||
+      (target.token && target.token === String(admin.admin_token || ''));
+    if (isCurrentAdmin) {
+      return { error: tr('warningDeniedAdminHierarchy', 'Нельзя выдать варн самому себе.', 'You cannot issue a warning to yourself.') };
+    }
+
     // Наказания для администраторов доступны только с 3-го уровня.
     // При этом администратор может наказать только администратора строго ниже себя.
     const adminsRegistry = typeof ADMINS !== 'undefined' && Array.isArray(ADMINS) ? ADMINS : [];
