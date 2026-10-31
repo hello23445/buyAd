@@ -3416,51 +3416,65 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
           card.querySelector('.freeze-btn').onclick = () => toggleAdFreeze(ad, card.querySelector('.freeze-btn'));
         }
         card.querySelector('.delete-btn').onclick = async () => {
+          const deleteButton = card.querySelector('.delete-btn');
           const confirmed = await new Promise(resolve => {
             openModal(i18n[lang].confirmTitle, i18n[lang].delete + '?', [
               { text: i18n[lang].cancel, class: 'btn btn--ghost', onClick: () => resolve(false) },
               { text: i18n[lang].yes, class: 'btn btn--danger', onClick: () => resolve(true) }
             ]);
           });
-          if (!confirmed) return;
+          if (!confirmed || deleteButton.disabled) return;
+
+          deleteButton.disabled = true;
           showPreloader();
           try {
-            // Pass rejected status: true if rejected, false if accepted
             const isRejected = status === 'rejected';
             const payload = {
-              // GAS script expects elements to be an array
               elements: [ad.name],
               rejected: isRejected
             };
-            console.log('Deleting ad:', payload);
-            // choose correct GAS endpoint based on rejection status
             const deleteUrl = isRejected ? DELETE_REJECTED_ADS_GAS_URL : DELETE_ALL_MY_ADS_GAS_URL;
-            if (isRejected) {
-              console.log(`[REJECTED AD DELETION] Removing rejected ad: "${ad.name}" using special URL`);
-            }
-            
-            // send plain text JSON to avoid preflight
+
             const response = await fetch(deleteUrl, {
               method: 'POST',
               mode: 'cors',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify(payload)
             });
-            
-            const result = await response.json();
-            if (result.status === 'success') {
-              console.log(`[SUCCESS] Ad "${ad.name}" deleted successfully`);
-              await updateAdsCount();
-              loadMyAds();
-            } else {
-              throw new Error(result.message || 'Delete failed');
+
+            const responseText = await response.text();
+            let result;
+            try {
+              result = responseText ? JSON.parse(responseText) : {};
+            } catch (_) {
+              result = { message: responseText.trim() };
             }
+
+            const responseStatus = String(result.status || '').toLowerCase();
+            const deleted = response.ok && (
+              responseStatus === 'success' ||
+              responseStatus === 'ok' ||
+              result.success === true ||
+              result.ok === true ||
+              /^(success|ok|deleted|удалено)$/i.test(String(result.message || '').trim())
+            );
+
+            if (!deleted) {
+              const details = result.message || responseText || `HTTP ${response.status}`;
+              throw new Error(details);
+            }
+
+            console.log(`[SUCCESS] Ad "${ad.name}" deleted successfully`);
+            await updateAdsCount();
+            await loadMyAds();
           } catch (e) {
-            console.error('Failed to delete ad:', e);
-            if (status === 'rejected') {
-              console.error(`[ERROR] Failed to delete rejected ad "${ad.name}":`, e);
-            }
+            console.error(`Failed to delete ad "${ad.name}":`, e);
+            openModal(
+              i18n[lang].attentionTitle || (lang === 'ru' ? 'Внимание' : 'Attention'),
+              (lang === 'ru' ? 'Не удалось удалить рекламу: ' : 'Could not delete the ad: ') + (e.message || String(e))
+            );
           } finally {
+            deleteButton.disabled = false;
             hidePreloader();
           }
         };
