@@ -3544,6 +3544,7 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
         };
       }
     }
+    return allAds;
   } catch (e) {
     console.warn('Failed to fetch my ads:', e);
     show($('myads-empty'));
