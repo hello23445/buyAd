@@ -3428,9 +3428,11 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
             // Pass rejected status: true if rejected, false if accepted
             const isRejected = status === 'rejected';
             const payload = {
-              // GAS script expects elements to be an array
+              // GAS script expects elements to be an array. Include the owner as
+              // well so an ad with a repeated name cannot target another account.
               elements: [ad.name],
-              rejected: isRejected
+              rejected: isRejected,
+              userID: ad.userID || ad.userId || ad.telegramId || getUserID()
             };
             console.log('Deleting ad:', payload);
             // choose correct GAS endpoint based on rejection status
@@ -3447,19 +3449,26 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
               body: JSON.stringify(payload)
             });
             
+            if (!response.ok) {
+              throw new Error(`Delete request failed (HTTP ${response.status})`);
+            }
             const result = await response.json();
-            if (result.status === 'success') {
+            const deletionSucceeded = result?.status === 'success'
+              || result?.success === true
+              || result?.status === true;
+            if (deletionSucceeded) {
               console.log(`[SUCCESS] Ad "${ad.name}" deleted successfully`);
               await updateAdsCount();
-              loadMyAds();
+              await loadMyAds(true);
             } else {
-              throw new Error(result.message || 'Delete failed');
+              throw new Error(result?.message || result?.error || 'Delete failed');
             }
           } catch (e) {
             console.error('Failed to delete ad:', e);
-            if (status === 'rejected') {
-              console.error(`[ERROR] Failed to delete rejected ad "${ad.name}":`, e);
-            }
+            openModal(
+              i18n[lang].failedToPerform || (lang === 'ru' ? 'Не удалось удалить рекламу' : 'Could not delete ad'),
+              e?.message || (lang === 'ru' ? 'Попробуйте ещё раз.' : 'Please try again.')
+            );
           } finally {
             hidePreloader();
           }
