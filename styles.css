@@ -1599,3 +1599,129 @@ code.admin-ip-history {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* =========================
+   VIDEO UPLOAD — COMPACT LAYOUT
+========================= */
+.video-upload-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.video-upload-actions .btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 11px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  font-size: 14px;
+  border-radius: 14px;
+}
+
+.video-upload-actions #btn-pick-video {
+  grid-column: 1 / -1;
+  min-height: 58px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.video-upload-actions #btn-video-size-upgrade,
+.video-upload-actions #btn-remove-video {
+  grid-column: span 1;
+}
+
+.video-upload-actions #btn-remove-video[hidden] {
+  display: none !important;
+}
+
+.video-upload-actions:has(#btn-remove-video[hidden]) #btn-video-size-upgrade {
+  grid-column: 1 / -1;
+}
+
+.video-upload-actions .btn i {
+  flex: 0 0 auto;
+}
+
+#video-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  margin-top: 12px;
+  min-width: 0;
+}
+
+#video-meta .chip {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 38px;
+  padding: 8px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+#video-meta .chip:first-child {
+  width: 100%;
+}
+
+#video-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 520px) {
+  .video-upload-actions { gap: 8px; }
+  .video-upload-actions .btn {
+    min-height: 48px;
+    padding: 10px 9px;
+    gap: 7px;
+    font-size: 13px;
+  }
+  .video-upload-actions #btn-pick-video {
+    min-height: 54px;
+    font-size: 14px;
+  }
+  #video-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  #video-meta .chip:first-child {
+    grid-column: 1 / -1;
+  }
+  #video-meta .chip {
+    font-size: 12px;
+    padding: 8px 9px;
+  }
+}
+
+@media (max-width: 350px) {
+  .video-upload-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .video-upload-actions #btn-pick-video,
+  .video-upload-actions #btn-video-size-upgrade,
+  .video-upload-actions #btn-remove-video,
+  .video-upload-actions:has(#btn-remove-video[hidden]) #btn-video-size-upgrade {
+    grid-column: 1;
+  }
+  #video-meta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #video-meta .chip:first-child {
+    grid-column: 1;
+  }
+}
