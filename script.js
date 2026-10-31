@@ -3295,7 +3295,7 @@ async function loadMyAds(skipPreloader = false, ipHistoryTrigger = '') {
     list.innerHTML = '';
     show($('myads-empty'));
     if (!skipPreloader) hidePreloader();
-    return;
+    return [];
   }
   
   // Не очищаем список если это скрытая загрузка в фоне
@@ -3435,38 +3435,33 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
             };
             const deleteUrl = isRejected ? DELETE_REJECTED_ADS_GAS_URL : DELETE_ALL_MY_ADS_GAS_URL;
 
-            const response = await fetch(deleteUrl, {
+            // Google Apps Script may redirect to another origin and trigger a CORS
+            // "Load failed" in WebViews. A simple no-cors request still sends the
+            // POST, but its response is opaque, so verify deletion by reloading ads.
+            await fetch(deleteUrl, {
               method: 'POST',
-              mode: 'cors',
+              mode: 'no-cors',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
               body: JSON.stringify(payload)
             });
 
-            const responseText = await response.text();
-            let result;
-            try {
-              result = responseText ? JSON.parse(responseText) : {};
-            } catch (_) {
-              result = { message: responseText.trim() };
+            // Give the Apps Script time to finish writing before checking the list.
+            await new Promise(resolve => setTimeout(resolve, 1200));
+            const refreshedAds = await loadMyAds(true);
+            if (!Array.isArray(refreshedAds)) {
+              throw new Error(lang === 'ru'
+                ? 'Запрос отправлен, но не удалось проверить результат. Обновите список рекламы.'
+                : 'The request was sent, but the result could not be verified. Refresh your ads list.');
+            }
+            const stillExists = refreshedAds.some(item => item.name === ad.name);
+            if (stillExists) {
+              throw new Error(lang === 'ru'
+                ? 'Сервер не подтвердил удаление. Реклама всё ещё отображается в списке.'
+                : 'The server did not confirm deletion. The ad is still in the list.');
             }
 
-            const responseStatus = String(result.status || '').toLowerCase();
-            const deleted = response.ok && (
-              responseStatus === 'success' ||
-              responseStatus === 'ok' ||
-              result.success === true ||
-              result.ok === true ||
-              /^(success|ok|deleted|удалено)$/i.test(String(result.message || '').trim())
-            );
-
-            if (!deleted) {
-              const details = result.message || responseText || `HTTP ${response.status}`;
-              throw new Error(details);
-            }
-
-            console.log(`[SUCCESS] Ad "${ad.name}" deleted successfully`);
+            console.log(`[SUCCESS] Ad "${ad.name}" deletion verified`);
             await updateAdsCount();
-            await loadMyAds();
           } catch (e) {
             console.error(`Failed to delete ad "${ad.name}":`, e);
             openModal(
@@ -3552,6 +3547,7 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
   } catch (e) {
     console.warn('Failed to fetch my ads:', e);
     show($('myads-empty'));
+    return null;
   } finally {
     hidePreloader();
   }
