@@ -771,6 +771,26 @@
       </div>
     </section>
 
+    <!-- IP HISTORY SEARCH -->
+    <section id="screen-ip-history-search" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-ip-history-search" type="button" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>
+          <div class="screen__title">Поиск аккаунтов по IP</div>
+        </div>
+        <div class="card">
+          <div class="field">
+            <div class="field__label">IP-адрес</div>
+            <input id="ip-history-search-input" class="textarea" type="text" inputmode="url" autocomplete="off" placeholder="Введите IPv4 или IPv6">
+            <div class="field__hint">Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.</div>
+            <button id="ip-history-search-submit" class="btn btn--primary btn--full" type="button">Найти аккаунты</button>
+          </div>
+        </div>
+        <div id="ip-history-search-status" class="hint" role="status" aria-live="polite"></div>
+        <div id="ip-history-search-results" class="stack-sm"></div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL LAYER -->
