@@ -44,20 +44,23 @@ Deno.serve(async (req) => {
     const ipFingerprint = await fingerprint(normalizedIp, secret);
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Keep one event per account/IP per 5-minute window to avoid noisy writes.
-    const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: recent, error: readError } = await supabase.from("user_ip_history")
-      .select("id").eq("telegram_id", telegramId).eq("ip_fingerprint", ipFingerprint)
-      .gte("observed_at", since).limit(1);
+    // Store a new event only for the first observed IP or when the account's IP changes.
+    const { data: latest, error: readError } = await supabase.from("user_ip_history")
+      .select("ip_fingerprint")
+      .eq("telegram_id", telegramId)
+      .order("observed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (readError) throw readError;
 
-    if (!recent?.length) {
+    if (latest?.ip_fingerprint !== ipFingerprint) {
+      const now = new Date().toISOString();
       const { error } = await supabase.from("user_ip_history").insert({
         telegram_id: telegramId,
         ip_fingerprint: ipFingerprint,
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
         consent_version: String(body.consentVersion),
-        consented_at: new Date().toISOString()
+        consented_at: now
       });
       if (error) throw error;
     }
