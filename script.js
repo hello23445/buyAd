@@ -1920,33 +1920,13 @@ $('nav-admin').onclick = () => {
   show($('screen-admin'));
   updateAdminLevelBadge();
 
-  // Диагностика отображения кнопки поиска IP. Токен и другие секреты не выводятся.
+  // Показываем поиск по IP только главному администратору.
   const baseAdmin = typeof getBaseAdminByToken === 'function' ? getBaseAdminByToken() : null;
-  const currentAdmin = typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null;
   const ipButton = $('admin-search-ip-history');
-  const diagnoseButton = $('admin-diagnose-ip-headers');
   const ipGroup = ipButton?.previousElementSibling;
-  // Повторно фиксируем видимость обеих IP-функций после общих правил меню.
-  // Источник уровня — базовая запись администратора, не локальный preview.
   const isRootAdmin = Number(baseAdmin?.admin_level) === 5;
   if (ipButton) ipButton.hidden = !isRootAdmin;
-  if (diagnoseButton) diagnoseButton.hidden = !isRootAdmin;
   if (ipGroup?.classList?.contains('menu__group')) ipGroup.hidden = !isRootAdmin;
-  const diagnostics = [
-    'Диагностика меню администратора',
-    'Токен сохранён: ' + (token ? 'да' : 'нет'),
-    'Токен распознан: ' + (ADMIN_TOKENS.includes(token) ? 'да' : 'нет'),
-    'Базовый администратор найден: ' + (baseAdmin ? 'да' : 'нет'),
-    'Базовый уровень: ' + (baseAdmin?.admin_level ?? 'не определён'),
-    'Текущий уровень: ' + (currentAdmin?.admin_level ?? 'не определён'),
-    'Элемент кнопки найден: ' + (ipButton ? 'да' : 'нет'),
-    'Кнопка скрыта: ' + (ipButton ? (ipButton.hidden ? 'да' : 'нет') : 'нет элемента'),
-    'Группа IP найдена: ' + (ipGroup?.classList?.contains('menu__group') ? 'да' : 'нет'),
-    'Группа IP скрыта: ' + (ipGroup?.classList?.contains('menu__group') ? (ipGroup.hidden ? 'да' : 'нет') : 'не определено'),
-    'Модуль IP загружен: ' + (window.BuyAdIpHistory ? 'да' : 'нет')
-  ].join('\n');
-  if (typeof tg?.showAlert === 'function') tg.showAlert(diagnostics);
-  else window.alert(diagnostics);
 };
 
 $('nav-create').onclick = () => {
