@@ -2049,40 +2049,34 @@ function openBotRules() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const language = i18n[lang] || i18n.ru;
   const rulesText = (typeof RULES_TEXT !== 'undefined' && (RULES_TEXT[lang] || RULES_TEXT.ru)) || '';
+  const overlay = $('modal-overlay');
+  const title = $('modal-title');
+  const body = $('modal-body');
+  const actions = $('modal-actions');
+  if (!overlay || !title || !body || !actions) {
+    window.alert(lang === 'ru' ? 'Не удалось открыть окно правил.' : 'Could not open the rules window.');
+    return;
+  }
+  title.textContent = language.rulesTitle || (lang === 'ru' ? 'Правила' : 'Rules');
+  body.replaceChildren();
   const content = document.createElement('div');
   content.className = 'rules rules__text';
-  // RULES_TEXT is a bundled, trusted constant and contains the formatting tags
-  // used by the rules document (bold section titles, etc.).
   content.innerHTML = rulesText || (lang === 'ru' ? 'Правила временно недоступны.' : 'Rules are temporarily unavailable.');
+  body.appendChild(content);
+  actions.replaceChildren();
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'btn btn--primary';
+  closeButton.textContent = language.rulesAcceptBtn || (lang === 'ru' ? 'Понятно' : 'Got it');
+  closeButton.addEventListener('click', closeModal);
+  actions.appendChild(closeButton);
   isRulesModalOpen = true;
+  modalOnCloseCallback = () => { isRulesModalOpen = false; refreshBackButton(); };
+  overlay.hidden = false;
+  overlay.style.display = 'flex';
+  overlay.style.zIndex = '10000';
+  if (tg?.SettingsButton) setTelegramSettingsButtonVisible(false);
   refreshBackButton();
-  try {
-    const overlay = $('modal-overlay');
-    const modalBody = $('modal-body');
-    if (!overlay || !modalBody) throw new Error('Окно правил не найдено');
-    openModal(language.rulesTitle || (lang === 'ru' ? 'Правила' : 'Rules'), content, [
-      {
-        text: language.rulesAcceptBtn || (lang === 'ru' ? 'Понятно' : 'Got it'),
-        onClick: () => {
-          isRulesModalOpen = false;
-          refreshBackButton();
-        }
-      }
-    ], {
-      onClose: () => {
-        isRulesModalOpen = false;
-        refreshBackButton();
-      }
-    });
-    overlay.hidden = false;
-    overlay.style.zIndex = '10000';
-  } catch (error) {
-    isRulesModalOpen = false;
-    refreshBackButton();
-    const message = (lang === 'ru' ? 'Не удалось открыть правила: ' : 'Could not open rules: ') + (error?.message || String(error));
-    if (typeof tg?.showAlert === 'function') tg.showAlert(message);
-    else window.alert(message);
-  }
 }
 
 const mainRulesButton = $('nav-rules');
@@ -2094,6 +2088,7 @@ const blockedRulesButton = $('blocked-open-rules');
 if (blockedRulesButton) {
   blockedRulesButton.disabled = false;
   blockedRulesButton.removeAttribute('disabled');
+  blockedRulesButton.onclick = event => { event.preventDefault(); openBotRules(); };
   blockedRulesButton.setAttribute('aria-disabled', 'false');
   blockedRulesButton.style.pointerEvents = 'auto';
   blockedRulesButton.addEventListener('click', event => {
@@ -2912,40 +2907,24 @@ function initTokenDisplay() {
 
 // Helper to initialize Telegram ID display in settings
 function initTelegramIdDisplay() {
-  const telegramIdEl = $('user-telegram-id');
-  const btnCopyTelegramId = $('btn-copy-telegram-id');
+  const idEl = $('user-telegram-id');
+  const button = $('btn-copy-telegram-id');
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (!telegramIdEl || !btnCopyTelegramId) return;
-
+  if (!idEl || !button) return;
   if (!hasTelegramId) {
-    telegramIdEl.textContent = i18n[lang].notDefined || 'Не определено';
-    telegramIdEl.dataset.revealed = 'true';
-    btnCopyTelegramId.disabled = true;
-    const span = btnCopyTelegramId.querySelector('span');
-    if (span) span.textContent = i18n[lang].copy || 'Копировать';
-    btnCopyTelegramId.onclick = null;
+    idEl.textContent = i18n[lang].notDefined || 'Не определено';
+    idEl.dataset.revealed = 'true';
+    button.disabled = true;
+    const label = button.querySelector('span');
+    if (label) label.textContent = i18n[lang].copy || 'Копировать';
     return;
   }
-
-  telegramIdEl.textContent = String(telegramUserId);
-  telegramIdEl.dataset.revealed = 'true';
-  btnCopyTelegramId.disabled = false;
-  const span = btnCopyTelegramId.querySelector('span');
-  if (span) span.textContent = i18n[lang].copy || 'Копировать';
-  btnCopyTelegramId.onclick = async () => {
-    try {
-      await copyTextCompat(String(telegramUserId));
-      if (span) {
-        const oldText = span.textContent;
-        span.textContent = i18n[lang].copied || 'Скопировано';
-        setTimeout(() => { span.textContent = oldText; }, 2500);
-      }
-    } catch (_) {
-      openModal(i18n[lang].failedToCopy || 'Не удалось скопировать.', '');
-    }
-  };
+  idEl.textContent = '•'.repeat(String(telegramUserId).length);
+  idEl.dataset.revealed = 'false';
+  button.disabled = false;
+  const label = button.querySelector('span');
+  if (label) label.textContent = i18n[lang].show || 'Показать';
 }
-
 /* ========== SETTINGS ========== */
 $('btn-copy-token').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -2974,33 +2953,27 @@ $('btn-copy-token').onclick = () => {
   }
 };
 
-$('btn-copy-telegram-id').onclick = () => {
+$('btn-copy-telegram-id').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const telegramId = String(telegramUserId);
-  const telegramIdEl = $('user-telegram-id');
-  const span = $('btn-copy-telegram-id').querySelector('span');
-  const isRevealed = telegramIdEl.dataset.revealed === 'true';
-  
-  // If Telegram ID is not defined (only fallback), do nothing
-  if (!hasTelegramId) return;
-  
-  if (!isRevealed) {
-    // Show Telegram ID
-    telegramIdEl.textContent = telegramId;
-    telegramIdEl.dataset.revealed = 'true';
-    if (span) span.textContent = i18n[lang].copy || 'Скопировать';
-  } else {
-    // Copy Telegram ID to clipboard
-    navigator.clipboard.writeText(telegramId).then(() => {
-      if (span) {
-        span.textContent = i18n[lang].copied || 'Скопировано';
-        setTimeout(() => { 
-          span.textContent = i18n[lang].copy || 'Скопировать'; 
-        }, 3000);
-      }
-    }).catch(() => {
-      openModal(i18n[lang].failedToCopy, '');
-    });
+  const idEl = $('user-telegram-id');
+  const button = $('btn-copy-telegram-id');
+  const label = button?.querySelector('span');
+  if (!hasTelegramId || !idEl || !button) return;
+  if (idEl.dataset.revealed !== 'true') {
+    idEl.textContent = telegramId;
+    idEl.dataset.revealed = 'true';
+    if (label) label.textContent = i18n[lang].copy || 'Скопировать';
+    return;
+  }
+  try {
+    await copyTextCompat(telegramId);
+    if (label) {
+      label.textContent = i18n[lang].copied || 'Скопировано';
+      setTimeout(() => { if (label.isConnected) label.textContent = i18n[lang].copy || 'Скопировать'; }, 3000);
+    }
+  } catch (_) {
+    openModal(i18n[lang].failedToCopy || 'Не удалось скопировать.', '');
   }
 };
 
