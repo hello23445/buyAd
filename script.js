@@ -2077,12 +2077,17 @@ function openBotRules() {
   }
 }
 
-$('nav-rules').onclick = openBotRules;
-const blockedRulesButton = $('blocked-open-rules');
-if (blockedRulesButton) blockedRulesButton.onclick = event => {
+const mainRulesButton = $('nav-rules');
+if (mainRulesButton) mainRulesButton.onclick = openBotRules;
+
+// Delegate the blocked-screen action so it also works after screen changes.
+document.addEventListener('click', event => {
+  const button = event.target.closest('#blocked-open-rules');
+  if (!button) return;
   event.preventDefault();
+  event.stopPropagation();
   openBotRules();
-};
+});
 
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
