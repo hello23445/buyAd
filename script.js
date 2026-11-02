@@ -2008,16 +2008,17 @@ $('back-from-ad-statistics').onclick = () => {
 //   };
 // }
 
-$('nav-rules').onclick = () => {
+function openBotRules() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+  const language = i18n[lang] || i18n.ru;
   const pre = document.createElement('pre');
   pre.className = 'rules__text';
-  pre.innerHTML = RULES_TEXT[lang];
+  pre.innerHTML = RULES_TEXT[lang] || RULES_TEXT.ru || '';
   isRulesModalOpen = true;
   refreshBackButton();
-  openModal(i18n[lang].rulesTitle, pre, [
+  openModal(language.rulesTitle || 'Правила бота', pre, [
     {
-      text: i18n[lang].rulesAcceptBtn || 'Я принимаю все эти правила',
+      text: language.rulesAcceptBtn || 'Я принимаю все эти правила',
       onClick: () => {
         isRulesModalOpen = false;
         refreshBackButton();
@@ -2029,9 +2030,17 @@ $('nav-rules').onclick = () => {
       refreshBackButton();
     }
   });
-};
+}
 
-$('blocked-open-rules')?.addEventListener('click', () => $('nav-rules')?.click());
+$('nav-rules').onclick = openBotRules;
+const blockedRulesButton = $('blocked-open-rules');
+if (blockedRulesButton) {
+  blockedRulesButton.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openBotRules();
+  });
+}
 
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
