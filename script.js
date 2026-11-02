@@ -4511,7 +4511,7 @@ $('admin-ban-telegram-id').onclick = () => {
       if (!adminGuard('banTelegramId', telegramId)) return;
       const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
       await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
-      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === telegramId) ? 'banAdmin' : 'banTelegramId');
+      recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(telegramId))) ? 'banAdmin' : 'banTelegramId');
       window.BuyAdWarnings?.recordPunishmentIssued('account_ban', telegramId, reason, durationDays, expiresAt);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
