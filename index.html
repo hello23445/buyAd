@@ -78,6 +78,7 @@
         <div id="blocked-duration" class="card__subtitle" hidden></div>
         <div id="blocked-by-admin" class="card__subtitle" hidden></div>
         <a id="btn-support" class="btn btn--primary btn--full" href="https://t.me/Clickerstart_bot" target="_blank" rel="noopener noreferrer" data-i18n="supportBtn">Служба поддержки / Support</a>
+        <button id="blocked-open-rules" class="btn btn--ghost btn--full" type="button">Правила бота</button>
         <div class="field">
           <div class="field__label" data-i18n="tokenTitle">Ваш токен / Your token</div>
           <div class="tokenbox">
@@ -619,11 +620,13 @@
               <span class="menu__text" data-i18n="adminUnbanByIp">Разбанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
+            <div class="menu__group">IP-адресы</div>
             <button id="admin-search-ip-history" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
               <span class="menu__text">Поиск аккаунтов по IP</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
+
             <button id="admin-diagnose-ip-headers" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-shield-halved"></i></span>
               <span class="menu__text">Проверить IP-заголовки (тест)</span>
