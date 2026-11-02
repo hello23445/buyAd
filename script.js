@@ -1925,6 +1925,11 @@ $('nav-admin').onclick = () => {
   const currentAdmin = typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null;
   const ipButton = $('admin-search-ip-history');
   const ipGroup = ipButton?.previousElementSibling;
+  // Повторно фиксируем видимость после всех общих правил меню.
+  // Источник уровня — базовая запись администратора, не локальный preview.
+  const isRootAdmin = Number(baseAdmin?.admin_level) === 5;
+  if (ipButton) ipButton.hidden = !isRootAdmin;
+  if (ipGroup?.classList?.contains('menu__group')) ipGroup.hidden = !isRootAdmin;
   const diagnostics = [
     'Диагностика меню администратора',
     'Токен сохранён: ' + (token ? 'да' : 'нет'),
