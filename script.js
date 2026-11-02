@@ -2088,14 +2088,26 @@ function openBotRules() {
 const mainRulesButton = $('nav-rules');
 if (mainRulesButton) mainRulesButton.onclick = openBotRules;
 
-// Delegate the blocked-screen action so it also works after screen changes.
+// Bind directly to the blocked-screen button. The screen is present in the
+// initial HTML, so this avoids relying only on delegated bubbling handlers.
+const blockedRulesButton = $('blocked-open-rules');
+if (blockedRulesButton) {
+  blockedRulesButton.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    openBotRules();
+  });
+}
+
+// Keep delegation as a fallback if the blocked screen is ever re-rendered.
 document.addEventListener('click', event => {
-  const button = event.target.closest('#blocked-open-rules');
-  if (!button) return;
+  const target = event.target;
+  const button = target instanceof Element ? target.closest('#blocked-open-rules') : null;
+  if (!button || button === blockedRulesButton) return;
   event.preventDefault();
   event.stopPropagation();
   openBotRules();
-});
+}, true);
 
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
