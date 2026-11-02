@@ -136,8 +136,7 @@
         "CF совпадает с X-Real-IP: " + yesNo(h.cfEqualsXRealIp),
         "",
         data.note || "Значения IP не отображаются и не сохраняются."
-      ].join("\
-");
+      ].join(String.fromCharCode(10));
     } catch (error) {
       status.textContent = error.message || "Не удалось выполнить диагностику.";
     } finally {
