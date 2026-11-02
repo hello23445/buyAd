@@ -1730,6 +1730,10 @@ code.admin-ip-history {
 /* =========================
    MODAL — adaptive size, motion and selected theme
 ========================= */
+.modal-overlay[hidden] {
+  display: none !important;
+}
+
 .modal-overlay {
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   overflow-y: auto;
