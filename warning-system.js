@@ -90,7 +90,8 @@
     return cloudWriteQueue;
   };
   const persistWarnings = rows => persistArray('UserWarnings', rows, 'Save user warnings');
-  const persistUserLogs = rows => persistArray('UserLogs', rows, 'Record IP in user log');
+  // IP history is no longer written to the public GitHub repository.
+  const persistUserLogs = () => Promise.reject(new Error('IP history storage is handled by Supabase'));
   const safeWrite = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
@@ -200,15 +201,9 @@
     const readLogRows = () => safeRead(USER_LOG_KEY);
   const logUser = () => {};
   const logAdmin = () => {};
-  async function recordIpHistory(ip, trigger) {
-    const address = String(ip || '').trim();
-    if (!address || !cloudUserLogsLoaded) return false;
-    const rows = readLogRows();
-    rows.push({ id: 'ip_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), timestamp: new Date().toISOString(), userToken: currentToken(), telegramId: currentTelegramId(), event: 'ip_history', details: { ip: address, trigger: String(trigger || 'unknown') } });
-    const trimmed = rows.slice(-MAX_LOG_ROWS);
-    safeWriteCache(USER_LOG_KEY, trimmed);
-    try { await persistUserLogs(trimmed); return true; }
-    catch (error) { console.warn('Не удалось сохранить историю IP:', error); return false; }
+  async function recordIpHistory() {
+    // Deliberately disabled: raw IP addresses must never be written to admin2.js/GitHub.
+    return false;
   }
   const warningsFor = (token, telegramId) => {
     const normalizedToken = String(token || '');
