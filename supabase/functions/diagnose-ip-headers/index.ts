@@ -9,6 +9,20 @@ const corsHeaders = {
 };
 
 function isIp(value: string): boolean {
+  try {
+    ipaddr.parse(value.trim());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return Response.json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders });
+  }
+
   let stage = "request";
   try {
     const body = await req.json();
