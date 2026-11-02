@@ -41,15 +41,15 @@
       title.id = "ip-consent-title";
       const lang = localStorage.getItem("lang") || "ru";
       const translations = typeof i18n !== "undefined" ? i18n[lang] || i18n.ru : {};
-      title.textContent = "Внимание!";
+      title.textContent = translations.ipHistoryConsentTitle || (lang === "ru" ? "История IP-адресов" : "IP address history");
       const message = document.createElement("p");
       message.style.cssText = "line-height:1.55;white-space:normal";
-      message.textContent = "Тут вы можете создавать свои рекламы, но одно нарушение правил - будете наказаны согласно правилам.";
+      message.textContent = translations.ipHistoryConsentMessage || (lang === "ru" ? "С вашего согласия приложение будет сохранять защищённый отпечаток IP-адреса и время входа. Это позволит уполномоченному администратору находить совпадения. Сырые IP-адреса не сохраняются; записи автоматически удаляются через 30 дней." : "With your consent, the app stores a protected IP fingerprint and login time so an authorized administrator can find matches. Raw IP addresses are not stored; records are automatically deleted after 30 days.");
       const actions = document.createElement("div");
       actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px";
       const decline = document.createElement("button");
       decline.type = "button";
-      //decline.textContent = translations.ipHistoryConsentDecline || "Отказаться";
+      decline.textContent = translations.ipHistoryConsentDecline || (lang === "ru" ? "Отказаться" : "Decline");
       const accept = document.createElement("button");
       accept.type = "button";
       accept.textContent = translations.ipHistoryConsentAccept || "Согласен";
