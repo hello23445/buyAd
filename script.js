@@ -2044,14 +2044,19 @@ $('back-from-ad-statistics').onclick = () => {
 function openBotRules() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const language = i18n[lang] || i18n.ru;
-  const rulesText = RULES_TEXT?.[lang] || RULES_TEXT?.ru || '';
-  const pre = document.createElement('pre');
-  pre.className = 'rules__text';
-  pre.textContent = rulesText;
+  const rulesText = (typeof RULES_TEXT !== 'undefined' && (RULES_TEXT[lang] || RULES_TEXT.ru)) || '';
+  const content = document.createElement('div');
+  content.className = 'rules rules__text';
+  // RULES_TEXT is a bundled, trusted constant and contains the formatting tags
+  // used by the rules document (bold section titles, etc.).
+  content.innerHTML = rulesText || (lang === 'ru' ? 'Правила временно недоступны.' : 'Rules are temporarily unavailable.');
   isRulesModalOpen = true;
   refreshBackButton();
   try {
-    openModal(language.rulesTitle || (lang === 'ru' ? 'Правила' : 'Rules'), pre, [
+    const overlay = $('modal-overlay');
+    const modalBody = $('modal-body');
+    if (!overlay || !modalBody) throw new Error('Окно правил не найдено');
+    openModal(language.rulesTitle || (lang === 'ru' ? 'Правила' : 'Rules'), content, [
       {
         text: language.rulesAcceptBtn || (lang === 'ru' ? 'Понятно' : 'Got it'),
         onClick: () => {
@@ -2065,12 +2070,12 @@ function openBotRules() {
         refreshBackButton();
       }
     });
-    const overlay = $('modal-overlay');
-    if (overlay) overlay.hidden = false;
+    overlay.hidden = false;
+    overlay.style.zIndex = '10000';
   } catch (error) {
     isRulesModalOpen = false;
     refreshBackButton();
-    const message = 'Не удалось открыть правила: ' + (error?.message || String(error));
+    const message = (lang === 'ru' ? 'Не удалось открыть правила: ' : 'Could not open rules: ') + (error?.message || String(error));
     if (typeof tg?.showAlert === 'function') tg.showAlert(message);
     else window.alert(message);
   }
