@@ -106,6 +106,8 @@ if (tg) {
         document.getElementById('back-from-admin').click();
       } else if (currentScreen === 'screen-restricted-users' && document.getElementById('back-from-restricted-users')) {
         document.getElementById('back-from-restricted-users').click();
+      } else if (currentScreen === 'screen-ip-history-search' && document.getElementById('back-from-ip-history-search')) {
+        document.getElementById('back-from-ip-history-search').click();
       } else if (currentScreen === 'screen-review-ads' && document.getElementById('back-from-review-ads')) {
         document.getElementById('back-from-review-ads').click();
       } else if (currentScreen === 'screen-warnings' && document.getElementById('back-from-warnings')) {
@@ -130,6 +132,7 @@ function refreshBackButton() {
     'screen-crystals',
     'screen-admin',
     'screen-restricted-users',
+    'screen-ip-history-search',
     'screen-settings',
     'screen-review-ads',
     'screen-warnings'
