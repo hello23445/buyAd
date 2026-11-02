@@ -392,7 +392,7 @@ const ADMIN_PERMISSION_MIN_LEVEL = {
   banTelegramId: 3,
   banIp: 4,
   globalCreateToggle: 4,
-  manageAdmins: 2,
+  manageAdmins: 5,
   changeOwnLevelLocally: 5,
   hideNameOnRejection: 5,
   hideNameOnBan: 5,
@@ -462,7 +462,10 @@ function adminDailyLimit(action) {
   // Эти действия только открывают/просматривают панели и не расходуют дневной лимит.
   if (['reviewAds', 'viewRestricted', 'viewOwnIp'].includes(action)) return Infinity;
   if (level >= 5) return Infinity;
-  if (level === 4) return 6;
+  if (level === 4) {
+    if (action === 'banAdmin' || action === 'unbanAdmin') return 4;
+    return 6;
+  }
 
   const level3Limits = {
     banToken: 3, unbanToken: 3, restrictAds: 4, unrestrictAds: 4,
@@ -497,7 +500,12 @@ function adminGuard(action, targetValue = '') {
   if (!admin) return deny(lang === 'ru' ? 'Действие доступно только администраторам.' : 'This action is for administrators only.');
   const permissionByAction = { reviewAds:'reviewAds', viewRestricted:'viewRestricted', banToken:'banToken', unbanToken:'unban', banTelegramId:'banTelegramId', unbanTelegramId:'unbanTelegramId', banIp:'banIp', unbanIp:'unbanIp', restrictAds:'restrictAds', unrestrictAds:'restrictAds', globalCreateToggle:'globalCreateToggle', manageAdmins:'manageAdmins', viewOwnIp:'viewOwnIp' };
   const permission = permissionByAction[action]; if (permission && !adminHasPermission(permission)) return deny(lang === 'ru' ? 'Это действие запрещено настройками ваших прав.' : 'Your permissions do not allow this action.');
-  const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => item.admin_token === String(targetValue || '').trim());
+  const targetText = String(targetValue || '').trim();
+  const targetAdmin = (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item => {
+    const tokens = [item.admin_token, item.adminToken, item.token].filter(Boolean).map(String);
+    const telegramIds = [item.telegram_id, item.telegramId, item.admin_telegram_id, item.adminTelegramId, item.user_id, item.userId].filter(Boolean).map(String);
+    return tokens.includes(targetText) || telegramIds.includes(targetText);
+  });
   if (['banTelegramId','unbanTelegramId'].includes(action)) {
     const selfTelegramId = String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
     if (selfTelegramId && String(targetValue || '').trim() === selfTelegramId) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
@@ -506,15 +514,19 @@ function adminGuard(action, targetValue = '') {
     const ownIps = typeof getSavedUserAPIs === 'function' ? getSavedUserAPIs() : [];
     if (ownIps.includes(String(targetValue || '').trim())) return deny(lang === 'ru' ? 'Нельзя заблокировать собственный IP-адрес.' : 'You cannot block your own IP address.');
   }
-  if (targetAdmin && ['banToken','unbanToken','restrictAds','unrestrictAds'].includes(action)) {
+  if (targetAdmin && ['banToken','unbanToken','restrictAds','unrestrictAds','banTelegramId','unbanTelegramId'].includes(action)) {
+    const originalAction = action;
     const level = Number(admin.admin_level), targetLevel = Number(targetAdmin.admin_level);
-    if (targetAdmin.admin_token === admin.admin_token) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
-    const allowedTarget = level === 4 ? targetLevel === 1 : level === 5 ? targetLevel < 5 : level >= 2 && targetLevel === 1;
-    if (!allowedTarget) return deny(lang === 'ru' ? (level === 4 ? 'Администратор 4-го уровня может применять наказание только к администраторам 1-го уровня.' : 'Нельзя блокировать себя и администраторов своего или старшего уровня.') : (level === 4 ? 'Level-4 administrators may only punish level-1 administrators.' : 'You cannot punish yourself, peers, or higher-level administrators.'));
-
-    action = 'banAdmin';
+    const targetToken = String(targetAdmin.admin_token || targetAdmin.adminToken || targetAdmin.token || '');
+    const targetTelegramIds = [targetAdmin.telegram_id, targetAdmin.telegramId, targetAdmin.admin_telegram_id, targetAdmin.adminTelegramId, targetAdmin.user_id, targetAdmin.userId].filter(Boolean).map(String);
+    const isSelfTarget = (targetToken && targetToken === String(admin.admin_token || '')) ||
+      (targetTelegramIds.includes(String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '')) && targetAdmin.admin_token === admin.admin_token);
+    if (isSelfTarget) return deny(lang === 'ru' ? 'Нельзя применить наказание к самому себе.' : 'You cannot punish yourself.');
+    const allowedTarget = level === 4 ? targetLevel >= 1 && targetLevel <= 3 : level === 5 ? targetLevel < 5 : level >= 2 && targetLevel === 1;
+    if (!allowedTarget) return deny(lang === 'ru' ? (level === 4 ? 'Администратор 4-го уровня может наказывать только администраторов 1-го, 2-го и 3-го уровней.' : 'Нельзя наказывать себя и администраторов своего или более высокого уровня.') : 'You cannot punish yourself, peers, or higher-level administrators.');
+    action = ['unbanToken','unrestrictAds','unbanTelegramId'].includes(originalAction) ? 'unbanAdmin' : 'banAdmin';
   }
-  const limitAction = ({ unbanToken:'banToken', unbanTelegramId:'banTelegramId', unbanIp:'banIp', unrestrictAds:'restrictAds' })[action] || action;
+  const limitAction = ({ unbanToken:'unbanToken', unbanTelegramId:'unbanTelegramId', unbanIp:'banIp', unrestrictAds:'unrestrictAds' })[action] || action;
   const limit = adminDailyLimit(limitAction); if (adminDailyCount(limitAction) >= limit) return deny(lang === 'ru' ? 'Достигнут дневной лимит для этого действия (' + limit + ').' : 'Daily limit reached for this action (' + limit + ').');
   return true;
 }
@@ -3849,7 +3861,7 @@ async function handleUnban(userID, userToken = '') {
   try {
     const response = await fetch(`${GAS_SYS_URL}?action=unbanUser&userID=${userID}`);
     if (!response.ok) throw new Error('Failed to unban user');
-    recordAdminAction((ADMINS || []).some(admin => admin.admin_token === userToken) ? 'banAdmin' : 'banToken');
+    recordAdminAction((ADMINS || []).some(admin => admin.admin_token === userToken) ? 'unbanAdmin' : 'unbanToken');
     window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', userToken || userID);
     openModal(i18n[lang].doneTitle, i18n[lang].banRemoved);
     $('admin-restricted').click();
@@ -4349,7 +4361,7 @@ $('admin-unblock-user').onclick = () => {
       showPreloader();
       if (!adminGuard('unbanToken', token)) return;
       await updateVariable('UnBanForever', token);
-      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'unbanAdmin' : 'unbanToken');
       window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', token);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
@@ -4399,7 +4411,7 @@ $('admin-unban-create-edit').onclick = () => {
       showPreloader();
       if (!adminGuard('unrestrictAds', token)) return;
       await updateVariable('UnBlockCreateAds', token);
-      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
+      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'unbanAdmin' : 'restrictAds');
       window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', token);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
@@ -4519,7 +4531,7 @@ $('admin-unban-telegram-id').onclick = () => {
       showPreloader();
       if (!adminGuard('unbanTelegramId', telegramId)) return;
       await updateVariable('UnBlockedUsersTelegramID', telegramId);
-      recordAdminAction('banTelegramId');
+      recordAdminAction((ADMINS || []).some(admin => [admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(telegramId))) ? 'unbanAdmin' : 'banTelegramId');
       window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', telegramId);
     } catch (e) {
       alert(e.message || 'Ошибка при обновлении переменной');
