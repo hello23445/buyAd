@@ -6,3 +6,6 @@ verify_jwt = false
 
 # Deployment is handled by GitHub Actions.
 # Trigger deployment after updating the scoped Supabase access token.
+
+[functions.diagnose-ip-headers]
+verify_jwt = false
