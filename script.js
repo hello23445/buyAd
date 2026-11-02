@@ -701,6 +701,8 @@ async function persistAdminRegistry(nextAdmins, commitMessage) {
         ? currentPermissions[permission] === true
         : defaults[permission] === true;
     });
+    // Реестр администраторов остаётся исключительным правом 5-го уровня.
+    permissions.manageAdmins = level === 5 && permissions.manageAdmins === true;
     return { ...admin, admin_level: level, admin_token: token, permissions };
   });
 
