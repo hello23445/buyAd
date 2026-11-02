@@ -136,20 +136,27 @@
         "CF совпадает с X-Real-IP: " + yesNo(h.cfEqualsXRealIp),
         "",
         data.note || "Значения IP не отображаются и не сохраняются."
-      ].join("\\n");
+      ].join("\
+");
     } catch (error) {
       status.textContent = error.message || "Не удалось выполнить диагностику.";
     } finally {
       button.disabled = false;
     }
   }
-\n  function install() {
+
+  function install() {
     const searchButton = document.getElementById("admin-search-ip-history");
     const backButton = document.getElementById("back-from-ip-history-search");
-    const submitButton = document.getElementById("ip-history-search-submit");\n    const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");\n    const diagnoseButton = document.getElementById("ip-history-diagnose-submit");\n    const diagnoseCard = document.getElementById("ip-history-diagnose-card");
+    const submitButton = document.getElementById("ip-history-search-submit");
+    const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");
+    const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
+    const diagnoseCard = document.getElementById("ip-history-diagnose-card");
     if (searchButton) {
       const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
-      searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);\n      const diagnoseButton = document.getElementById("admin-diagnose-ip-headers");\n      if (diagnoseButton) diagnoseButton.hidden = !(admin && Number(admin.admin_level) >= 5);
+      searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);
+      const diagnoseButton = document.getElementById("admin-diagnose-ip-headers");
+      if (diagnoseButton) diagnoseButton.hidden = !(admin && Number(admin.admin_level) >= 5);
       searchButton.addEventListener("click", showSearchScreen);
     }
     backButton?.addEventListener("click", () => {
@@ -159,7 +166,13 @@
       if (adminScreen) adminScreen.hidden = false;
       if (tg?.BackButton) tg.BackButton.show();
     });
-    submitButton?.addEventListener("click", search);\n    diagnoseMenuButton?.addEventListener("click", () => {\n      if (diagnoseCard) diagnoseCard.hidden = false;\n      document.getElementById("ip-history-diagnose-status").textContent = "Нажмите «Запустить проверку».";\n      diagnoseCard?.scrollIntoView({ behavior: "smooth", block: "nearest" });\n    });\n    diagnoseButton?.addEventListener("click", diagnoseHeaders);
+    submitButton?.addEventListener("click", search);
+    diagnoseMenuButton?.addEventListener("click", () => {
+      if (diagnoseCard) diagnoseCard.hidden = false;
+      document.getElementById("ip-history-diagnose-status").textContent = "Нажмите «Запустить проверку».";
+      diagnoseCard?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    diagnoseButton?.addEventListener("click", diagnoseHeaders);
     document.getElementById("ip-history-search-input")?.addEventListener("keydown", event => {
       if (event.key === "Enter") search();
     });
