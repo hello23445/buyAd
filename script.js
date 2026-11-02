@@ -1925,7 +1925,7 @@ $('nav-admin').onclick = () => {
   const currentAdmin = typeof getCurrentAdmin === 'function' ? getCurrentAdmin() : null;
   const ipButton = $('admin-search-ip-history');
   const ipGroup = ipButton?.previousElementSibling;
-  alert([
+  const diagnostics = [
     'Диагностика меню администратора',
     'Токен сохранён: ' + (token ? 'да' : 'нет'),
     'Токен распознан: ' + (ADMIN_TOKENS.includes(token) ? 'да' : 'нет'),
@@ -1937,7 +1937,9 @@ $('nav-admin').onclick = () => {
     'Группа IP найдена: ' + (ipGroup?.classList?.contains('menu__group') ? 'да' : 'нет'),
     'Группа IP скрыта: ' + (ipGroup?.classList?.contains('menu__group') ? (ipGroup.hidden ? 'да' : 'нет') : 'не определено'),
     'Модуль IP загружен: ' + (window.BuyAdIpHistory ? 'да' : 'нет')
-  ].join('\n'));
+  ].join('\n');
+  if (typeof tg?.showAlert === 'function') tg.showAlert(diagnostics);
+  else window.alert(diagnostics);
 };
 
 $('nav-create').onclick = () => {
@@ -2036,36 +2038,44 @@ $('back-from-ad-statistics').onclick = () => {
 function openBotRules() {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const language = i18n[lang] || i18n.ru;
+  const rulesText = RULES_TEXT?.[lang] || RULES_TEXT?.ru || '';
   const pre = document.createElement('pre');
   pre.className = 'rules__text';
-  pre.innerHTML = RULES_TEXT[lang] || RULES_TEXT.ru || '';
+  pre.textContent = rulesText;
   isRulesModalOpen = true;
   refreshBackButton();
-  openModal(language.rulesTitle || 'Правила бота', pre, [
-    {
-      text: language.rulesAcceptBtn || 'Я принимаю все эти правила',
-      onClick: () => {
+  try {
+    openModal(language.rulesTitle || (lang === 'ru' ? 'Правила' : 'Rules'), pre, [
+      {
+        text: language.rulesAcceptBtn || (lang === 'ru' ? 'Понятно' : 'Got it'),
+        onClick: () => {
+          isRulesModalOpen = false;
+          refreshBackButton();
+        }
+      }
+    ], {
+      onClose: () => {
         isRulesModalOpen = false;
         refreshBackButton();
       }
-    }
-  ], {
-    onClose: () => {
-      isRulesModalOpen = false;
-      refreshBackButton();
-    }
-  });
+    });
+    const overlay = $('modal-overlay');
+    if (overlay) overlay.hidden = false;
+  } catch (error) {
+    isRulesModalOpen = false;
+    refreshBackButton();
+    const message = 'Не удалось открыть правила: ' + (error?.message || String(error));
+    if (typeof tg?.showAlert === 'function') tg.showAlert(message);
+    else window.alert(message);
+  }
 }
 
 $('nav-rules').onclick = openBotRules;
 const blockedRulesButton = $('blocked-open-rules');
-if (blockedRulesButton) {
-  blockedRulesButton.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopPropagation();
-    openBotRules();
-  });
-}
+if (blockedRulesButton) blockedRulesButton.onclick = event => {
+  event.preventDefault();
+  openBotRules();
+};
 
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
