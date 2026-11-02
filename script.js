@@ -58,6 +58,16 @@ if (tg) {
   
   // Включаем подтверждение при закрытии приложения
   tg.enableClosingConfirmation();
+  // Не показываем Telegram SettingsButton во время загрузки или поверх любого диалога.
+  const syncTelegramSettingsButton = () => {
+    const dialogOpen = !!document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay, [role="dialog"]:not([hidden])');
+    const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
+    if (dialogOpen || settingsScreenVisible) setTelegramSettingsButtonVisible(false);
+    else if (window.__buyAdSettingsButtonTimer) setTelegramSettingsButtonVisible(true);
+  };
+  new MutationObserver(syncTelegramSettingsButton).observe(document.documentElement, {
+    subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'style']
+  });
   // Кнопка Settings появляется одновременно с доступностью кнопки настроек приложения.
   if (tg.SettingsButton) {
     setTelegramSettingsButtonVisible(false);
@@ -153,6 +163,7 @@ function show(el) {
 }
 function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
 function showPreloader() { 
+  if (tg?.SettingsButton) setTelegramSettingsButtonVisible(false);
   show($('preloader')); 
   if (tg?.BackButton) {
     tg.BackButton.hide();
