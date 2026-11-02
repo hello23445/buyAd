@@ -3,5 +3,5 @@
 window.BUYAD_SUPABASE_CONFIG = {
   url: "https://vbdzklwoqkhcnikibgit.supabase.co",
   anonKey: "sb_publishable_YuYMWSRtByk5A9Fz-vlPYQ_D6KBE51c",
-  enabled: false // Keep disabled until deployment, admin allowlisting and privacy review are complete.
+  enabled: true // Keep disabled until deployment, admin allowlisting and privacy review are complete.
 };
