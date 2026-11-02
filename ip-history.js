@@ -146,7 +146,7 @@
 \n  function install() {
     const searchButton = document.getElementById("admin-search-ip-history");
     const backButton = document.getElementById("back-from-ip-history-search");
-    const submitButton = document.getElementById("ip-history-search-submit");\n    const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
+    const submitButton = document.getElementById("ip-history-search-submit");\n    const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");\n    const diagnoseButton = document.getElementById("ip-history-diagnose-submit");\n    const diagnoseCard = document.getElementById("ip-history-diagnose-card");
     if (searchButton) {
       const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
       searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);\n      const diagnoseButton = document.getElementById("admin-diagnose-ip-headers");\n      if (diagnoseButton) diagnoseButton.hidden = !(admin && Number(admin.admin_level) >= 5);
@@ -159,7 +159,7 @@
       if (adminScreen) adminScreen.hidden = false;
       if (tg?.BackButton) tg.BackButton.show();
     });
-    submitButton?.addEventListener("click", search);\n    diagnoseButton?.addEventListener("click", diagnoseHeaders);
+    submitButton?.addEventListener("click", search);\n    diagnoseMenuButton?.addEventListener("click", () => {\n      if (diagnoseCard) diagnoseCard.hidden = false;\n      document.getElementById("ip-history-diagnose-status").textContent = "Нажмите «Запустить проверку».";\n      diagnoseCard?.scrollIntoView({ behavior: "smooth", block: "nearest" });\n    });\n    diagnoseButton?.addEventListener("click", diagnoseHeaders);
     document.getElementById("ip-history-search-input")?.addEventListener("keydown", event => {
       if (event.key === "Enter") search();
     });
