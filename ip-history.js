@@ -5,10 +5,10 @@
   const config = () => window.BUYAD_SUPABASE_CONFIG || {};
   const tg = window.Telegram?.WebApp;
   const endpoint = name => String(config().url || "").replace(/\/$/, "") + "/functions/v1/" + name;
-  const ready = () => config().enabled === true && /^https:\/\//.test(config().url || "") && !!config().anonKey && !!tg?.initData;
+  const ready = (requireEnabled = true) => (!requireEnabled || config().enabled === true) && /^https:\/\//.test(config().url || "") && !!config().anonKey && !!tg?.initData;
 
-  async function callFunction(name, payload) {
-    if (!ready()) throw new Error("Supabase ещё не настроен.");
+  async function callFunction(name, payload, requireEnabled = true) {
+    if (!ready(requireEnabled)) throw new Error("Supabase ещё не настроен.");
     const response = await fetch(endpoint(name), {
       method: "POST",
       headers: {
@@ -112,13 +112,44 @@
     }
   }
 
-  function install() {
+
+  async function diagnoseHeaders() {
+    const button = document.getElementById("ip-history-diagnose-submit");
+    const status = document.getElementById("ip-history-diagnose-status");
+    if (!button || !status) return;
+    button.disabled = true;
+    status.textContent = "Проверка заголовков…";
+    try {
+      // This endpoint is read-only with respect to IP history and works while collection is disabled.
+      const data = await callFunction("diagnose-ip-headers", {}, false);
+      const h = data.headers || {};
+      const yesNo = value => value ? "Да" : "Нет";
+      status.textContent = [
+        "Авторизация: " + (data.authorized ? "успешна" : "не подтверждена"),
+        "CF-Connecting-IP: " + yesNo(h.cfConnectingIpPresent) + (h.cfConnectingIpPresent ? " (корректный IP: " + yesNo(h.cfConnectingIpIsValidIp) + ")" : ""),
+        "X-Real-IP: " + yesNo(h.xRealIpPresent) + (h.xRealIpPresent ? " (корректный IP: " + yesNo(h.xRealIpIsValidIp) + ")" : ""),
+        "X-Forwarded-For: " + yesNo(h.xForwardedForPresent) + " (записей: " + Number(h.xForwardedForEntryCount || 0) + ")",
+        "XFF первая запись корректна: " + yesNo(h.xForwardedForFirstIsValidIp),
+        "XFF последняя запись корректна: " + yesNo(h.xForwardedForLastIsValidIp),
+        "CF совпадает с XFF первой: " + yesNo(h.cfEqualsXForwardedForFirst),
+        "CF совпадает с XFF последней: " + yesNo(h.cfEqualsXForwardedForLast),
+        "CF совпадает с X-Real-IP: " + yesNo(h.cfEqualsXRealIp),
+        "",
+        data.note || "Значения IP не отображаются и не сохраняются."
+      ].join("\\n");
+    } catch (error) {
+      status.textContent = error.message || "Не удалось выполнить диагностику.";
+    } finally {
+      button.disabled = false;
+    }
+  }
+\n  function install() {
     const searchButton = document.getElementById("admin-search-ip-history");
     const backButton = document.getElementById("back-from-ip-history-search");
-    const submitButton = document.getElementById("ip-history-search-submit");
+    const submitButton = document.getElementById("ip-history-search-submit");\n    const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
     if (searchButton) {
       const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
-      searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);
+      searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);\n      const diagnoseButton = document.getElementById("admin-diagnose-ip-headers");\n      if (diagnoseButton) diagnoseButton.hidden = !(admin && Number(admin.admin_level) >= 5);
       searchButton.addEventListener("click", showSearchScreen);
     }
     backButton?.addEventListener("click", () => {
@@ -128,7 +159,7 @@
       if (adminScreen) adminScreen.hidden = false;
       if (tg?.BackButton) tg.BackButton.show();
     });
-    submitButton?.addEventListener("click", search);
+    submitButton?.addEventListener("click", search);\n    diagnoseButton?.addEventListener("click", diagnoseHeaders);
     document.getElementById("ip-history-search-input")?.addEventListener("keydown", event => {
       if (event.key === "Enter") search();
     });
