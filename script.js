@@ -1222,7 +1222,7 @@ function isPaymentsDisabled() {
 }
 
 function isEditingDisabledGlobally() {
-  return isRuntimeValue('disableEditingAds', 'disabled', '');
+  return isRuntimeValue('disableEditingAds', 'disabled', '') || isTokenCreateBlocked();
 }
 
 function punishmentEntryValue(entry) {
