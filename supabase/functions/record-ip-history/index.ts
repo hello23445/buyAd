@@ -20,6 +20,9 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+    if (body.consentVersion !== "2026-11-02") {
+      return Response.json({ error: "Privacy notice consent is required" }, { status: 403, headers: corsHeaders });
+    }
     const { telegramId } = await verifyTelegramInitData(String(body.initData || ""), Deno.env.get("TELEGRAM_BOT_TOKEN") || "");
 
     // Use the address appended by Supabase's trusted ingress proxy, not a client-supplied body field.
@@ -52,7 +55,9 @@ Deno.serve(async (req) => {
       const { error } = await supabase.from("user_ip_history").insert({
         telegram_id: telegramId,
         ip_fingerprint: ipFingerprint,
-        expires_at: new Date(Date.now() + 30 * 86400000).toISOString()
+        expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+        consent_version: String(body.consentVersion),
+        consented_at: new Date().toISOString()
       });
       if (error) throw error;
     }
