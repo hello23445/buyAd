@@ -146,6 +146,7 @@
     const results = document.getElementById("ip-history-search-results");
     const button = document.getElementById("ip-history-search-submit");
     if (!input || !status || !results || !button) return;
+    const lang = localStorage.getItem("lang") || "ru";
     const ip = input.value.trim();
     if (!ip) { status.textContent = "Введите IP-адрес."; return; }
     status.textContent = "Поиск…";
