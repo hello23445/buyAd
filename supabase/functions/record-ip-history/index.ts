@@ -33,7 +33,9 @@ Deno.serve(async (req) => {
     let normalizedIp: string;
     try {
       const parsed = ipaddr.parse(rawIp);
-      normalizedIp = parsed.kind() === "ipv6" ? parsed.toNormalizedString().toLowerCase() : parsed.toString();
+      normalizedIp = parsed.kind() === "ipv6" && parsed.isIPv4MappedAddress()
+        ? parsed.toIPv4Address().toString()
+        : parsed.kind() === "ipv6" ? parsed.toNormalizedString().toLowerCase() : parsed.toString();
     } catch {
       return Response.json({ error: "Invalid client IP" }, { status: 400, headers: corsHeaders });
     }
