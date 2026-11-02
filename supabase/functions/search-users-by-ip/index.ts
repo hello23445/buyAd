@@ -29,20 +29,29 @@ Deno.serve(async (req) => {
     if (!admin) return Response.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
 
     const rawIp = String(body.ip || "").trim();
-    let normalizedIp: string;
+    let normalizedIps: string[];
     try {
       const parsed = ipaddr.parse(rawIp);
-      normalizedIp = parsed.kind() === "ipv6" ? parsed.toNormalizedString().toLowerCase() : parsed.toString();
+      // Treat IPv4-mapped IPv6 addresses as the same address as their IPv4 form.
+      const canonical = parsed.kind() === "ipv6" && parsed.isIPv4MappedAddress()
+        ? parsed.toIPv4Address().toString()
+        : parsed.kind() === "ipv6" ? parsed.toNormalizedString().toLowerCase() : parsed.toString();
+      normalizedIps = [canonical];
+      if (parsed.kind() === "ipv4") {
+        normalizedIps.push(ipaddr.IPv4.parse(parsed.toString()).toIPv4MappedAddress().toNormalizedString().toLowerCase());
+      } else if (parsed.kind() === "ipv6" && parsed.isIPv4MappedAddress()) {
+        normalizedIps.push(parsed.toNormalizedString().toLowerCase());
+      }
     } catch {
       return Response.json({ error: "Enter a valid IPv4 or IPv6 address" }, { status: 400, headers: corsHeaders });
     }
 
     const secret = Deno.env.get("IP_HASH_SECRET") || "";
     if (secret.length < 32) throw new Error("IP_HASH_SECRET must contain at least 32 characters");
-    const ipFingerprint = await fingerprint(normalizedIp, secret);
+    const fingerprints = await Promise.all([...new Set(normalizedIps)].map(value => fingerprint(value, secret)));
 
     const { data: rows, error } = await supabase.from("user_ip_history")
-      .select("telegram_id, observed_at").eq("ip_fingerprint", ipFingerprint)
+      .select("telegram_id, observed_at").in("ip_fingerprint", fingerprints)
       .gt("expires_at", new Date().toISOString()).order("observed_at", { ascending: false }).limit(5000);
     if (error) throw error;
 
