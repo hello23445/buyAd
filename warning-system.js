@@ -555,6 +555,14 @@
     }
   }
 
+  const adminWarningDailyKey = kind => 'buyAdAdminWarningDaily:' + String(currentAdmin()?.admin_token || currentToken()) + ':' + localDate() + ':' + kind;
+  const getAdminWarningDailyCount = kind => {
+    try { return Number(localStorage.getItem(adminWarningDailyKey(kind)) || 0); } catch (_) { return 0; }
+  };
+  const recordAdminWarningDailyCount = kind => {
+    try { localStorage.setItem(adminWarningDailyKey(kind), String(getAdminWarningDailyCount(kind) + 1)); } catch (_) {}
+  };
+
   async function issueWarning(targetValue, reasonValue, requestedAmount = 1) {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
@@ -591,8 +599,14 @@
       if (actorLevel < 3) {
         return { error: tr('warningDeniedAdminTarget', 'Выдавать варны администраторам могут только администраторы 3-го уровня и выше.', 'Only level 3+ administrators can issue warnings to administrators.') };
       }
-      if (isSelf || targetLevel >= actorLevel) {
-        return { error: tr('warningDeniedAdminHierarchy', 'Нельзя выдать варн себе или администратору своего либо более высокого уровня.', 'You cannot issue a warning to yourself or an administrator of your level or higher.') };
+      const allowedAdminTarget = actorLevel === 4
+        ? targetLevel >= 1 && targetLevel <= 3
+        : targetLevel < actorLevel;
+      if (isSelf || !allowedAdminTarget) {
+        return { error: tr('warningDeniedAdminHierarchy', 'Нельзя выдать варн себе или администратору недопустимого уровня.', 'You cannot issue a warning to yourself or an administrator at an unsupported level.') };
+      }
+      if (actorLevel === 4 && getAdminWarningDailyCount('issued') >= 4) {
+        return { error: tr('warningAdminDailyLimit', 'Достигнут дневной лимит: можно выдать не более 4 наказаний администраторам за день.', 'Daily limit reached: no more than 4 admin punishments can be issued per day.') };
       }
     }
 
@@ -644,6 +658,7 @@
     }
 
     try { await writeWarnings(rows); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Варн не сохранён в GitHub: ' : 'Warning was not saved to GitHub: ') + (error.message || error) }; }
+    if (targetAdmin && currentLevel() === 4) recordAdminWarningDailyCount('issued');
     const finalCount = current.length + amount;
     const details = {
       targetToken: target.token || '',
@@ -695,8 +710,12 @@
     });
     const isSelf = (target.token && String(target.token) === String(admin?.admin_token || '')) ||
       (target.telegramId && String(target.telegramId) === currentTelegramId());
-    if (targetAdmin || isSelf) {
-      return { error: tr('warningDeniedRemoveAdminTarget', 'Нельзя снимать предупреждения с себя или других администраторов.', 'You cannot remove warnings from yourself or other administrators.') };
+    const actorLevel = currentLevel();
+    if (isSelf || (targetAdmin && !(actorLevel === 4 && Number(targetAdmin.admin_level) >= 1 && Number(targetAdmin.admin_level) <= 3))) {
+      return { error: tr('warningDeniedRemoveAdminTarget', 'Снимать предупреждения можно только с пользователей; администратор 4-го уровня может снимать их только с администраторов 1-го, 2-го и 3-го уровней.', 'Warnings may only be removed from users; level 4 administrators may remove them only from level 1, 2, and 3 administrators.') };
+    }
+    if (targetAdmin && actorLevel === 4 && getAdminWarningDailyCount('removed') >= 4) {
+      return { error: tr('warningAdminRemoveDailyLimit', 'Достигнут дневной лимит: можно снять наказание не более 4 раз за день.', 'Daily limit reached: no more than 4 admin punishments can be removed per day.') };
     }
 
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
@@ -704,6 +723,7 @@
     const removed = rows.filter(row => targetMatches(row, target));
     if (!removed.length) return { error: tr('warningNoneForUser', 'У пользователя нет предупреждений.', 'The user has no warnings.') };
     try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждений не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
+    if (targetAdmin && actorLevel === 4) recordAdminWarningDailyCount('removed');
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
