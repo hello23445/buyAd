@@ -1910,7 +1910,6 @@ $('nav-admin').onclick = () => {
     openModal(i18n[lang].accessDenied, '');
     return;
   }
-  alert('Добро пожаловать!');
   hideAllScreens();
   show($('screen-admin'));
   updateAdminLevelBadge();
@@ -2031,6 +2030,8 @@ $('nav-rules').onclick = () => {
     }
   });
 };
+
+$('blocked-open-rules')?.addEventListener('click', () => $('nav-rules')?.click());
 
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
