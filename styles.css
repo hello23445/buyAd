@@ -1851,3 +1851,28 @@ body.theme-light .modal__actions .btn--ghost {
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay, .modal { animation: none !important; }
 }
+
+
+/* Theme-aware controls across every admin panel, dynamic form and modal. */
+body.theme-dark :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #edf2ff;
+  background-color: #172033;
+  border-color: #39445c;
+  color-scheme: dark;
+}
+body.theme-light :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #172033;
+  background-color: #fff;
+  border-color: #cbd2e0;
+  color-scheme: light;
+}
+:is(input, textarea, select)::placeholder { color: var(--hint-color, #8993a8); opacity: .85; }
+.modal :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+  border: 1px solid var(--field-border, rgba(128,128,128,.4));
+  border-radius: 10px; padding: 10px 12px; font: inherit;
+}
+body.theme-dark .modal :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) { --field-border:#39445c; }
+body.theme-light .modal :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) { --field-border:#cbd2e0; }
+body.theme-dark :is(.admin-create-form,.admin-permissions-list,.modal__body) { color:#edf2ff; }
+body.theme-light :is(.admin-create-form,.admin-permissions-list,.modal__body) { color:#172033; }
