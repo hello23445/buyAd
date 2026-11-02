@@ -218,15 +218,13 @@
     const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");
     const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
     const diagnoseCard = document.getElementById("ip-history-diagnose-card");
-    const baseAdmin = typeof getBaseAdminByToken === "function" ? getBaseAdminByToken() : null;
-    // IP-history search is restricted to the configured root admin, independent
-    // of the local level-preview selector. The Edge Function also checks its allowlist.
+    const baseAdmin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
+    // Respect the currently selected local preview level as well as the server-side admin allowlist.
     if (searchButton) {
       searchButton.hidden = !(baseAdmin && Number(baseAdmin.admin_level) === 5);
       searchButton.addEventListener("click", showSearchScreen);
     }
-    // Show diagnostics to the configured root admin even when local level preview is active.
-    // The Edge Function independently verifies the Telegram ID against the server allowlist.
+    // Diagnostics are also restricted by the active level preview.
     if (diagnoseMenuButton) {
       diagnoseMenuButton.hidden = !(baseAdmin && Number(baseAdmin.admin_level) === 5);
     }
