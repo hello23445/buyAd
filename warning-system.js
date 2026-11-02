@@ -627,7 +627,7 @@
     const adminId = admin.admin_token || currentToken();
     const today = localDate();
     const issuedToday = rows.filter(row => row.adminToken === adminId && warningTime(row) > 0 && localDate(new Date(warningTime(row))) === today).length;
-    if (issuedToday + amount > limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений. Осталось выдать сегодня: ' + Math.max(0, limit - issuedToday) + '.' : 'Daily warning limit reached. Remaining warnings today: ' + Math.max(0, limit - issuedToday) + '.' };
+    if (!(targetAdmin && currentLevel() === 4) && issuedToday + amount > limit) return { error: currentLang() === 'ru' ? 'Достигнут дневной лимит выдачи предупреждений. Осталось выдать сегодня: ' + Math.max(0, limit - issuedToday) + '.' : 'Daily warning limit reached. Remaining warnings today: ' + Math.max(0, limit - issuedToday) + '.' };
 
     const now = new Date();
     const hidden = adminNameHidden();
