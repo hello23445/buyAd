@@ -1241,9 +1241,15 @@ function getPunishmentAdminName(arrayName, value) {
   const entry = findPunishmentEntry(arrayName, value);
   return entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
 }
+let cachedClientIp = '';
 function isTokenCreateBlocked() {
-  const token = localStorage.getItem(LS.token);
-  return runtimeArray('BlockCreateAds', []).some(entry => punishmentEntryValue(entry) === String(token || ''));
+ const token=String(localStorage.getItem(LS.token)||'').trim();
+ const telegramId=String(tg?.initDataUnsafe?.user?.id||'').trim();
+ return runtimeArray('BlockCreateAds',[]).some(entry=>{
+  if(!entry||typeof entry!=='object') return punishmentEntryValue(entry)===token;
+  const type=String(entry.type||'token'), value=punishmentEntryValue(entry);
+  return (type==='token'&&value===token)||(type==='telegramId'&&value===telegramId)||(type==='ip'&&!!cachedClientIp&&value===cachedClientIp);
+ });
 }
 
 function isTokenFullyBlocked() {
@@ -1377,6 +1383,7 @@ function updateOnlineStatus() {
 }
 
 async function applyRuntimeBlockings() {
+  cachedClientIp = await getClientIp() || cachedClientIp;
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
   const isTokenBan = isTokenFullyBlocked();
@@ -2084,30 +2091,6 @@ if (mainRulesButton) mainRulesButton.onclick = openBotRules;
 
 // Bind directly to the blocked-screen button. The screen is present in the
 // initial HTML, so this avoids relying only on delegated bubbling handlers.
-const blockedRulesButton = $('blocked-open-rules');
-if (blockedRulesButton) {
-  blockedRulesButton.disabled = false;
-  blockedRulesButton.removeAttribute('disabled');
-  blockedRulesButton.onclick = event => { event.preventDefault(); openBotRules(); };
-  blockedRulesButton.setAttribute('aria-disabled', 'false');
-  blockedRulesButton.style.pointerEvents = 'auto';
-  blockedRulesButton.addEventListener('click', event => {
-    event.preventDefault();
-    event.stopPropagation();
-    openBotRules();
-  });
-}
-
-// Keep delegation as a fallback if the blocked screen is ever re-rendered.
-document.addEventListener('click', event => {
-  const target = event.target;
-  const button = target instanceof Element ? target.closest('#blocked-open-rules') : null;
-  if (!button || button === blockedRulesButton) return;
-  event.preventDefault();
-  event.stopPropagation();
-  openBotRules();
-}, true);
-
 $('nav-report').onclick = () => {
   window.open(REPORT_ERROR_URL, '_blank');
 };
@@ -4373,24 +4356,31 @@ $('admin-unblock-user').onclick = () => {
 };
 
 $('admin-ban-create-edit').onclick = () => {
-  openAdminPunishmentModal('Заблокировать пользователю возможность создавать и редактировать рекламы', async (token, reason, durationDays) => {
-    if (!token) {
-      alert('Введите токен пользователя');
-      return;
-    }
-    try {
-      showPreloader();
-      if (!adminGuard('restrictAds', token)) return;
-      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
-      await updateVariable('BlockCreateAds', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
-      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'restrictAds');
-      window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', token, reason, durationDays, expiresAt);
-    } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
-    } finally {
-      hidePreloader();
-    }
-  }, 'Введите токен пользователя', 'ads');
+ const body=document.createElement('div'); body.style.display='grid'; body.style.gap='.65rem';
+ const fields=[['telegramId','Telegram ID пользователя','Введите Telegram ID'],['ip','IP-адрес пользователя','Введите IP-адрес'],['token','Токен пользователя','Введите токен']];
+ const inputs={};
+ for(const [key,labelText,placeholder] of fields){const label=document.createElement('label');label.textContent=labelText;label.style.fontWeight='600';const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.className='admin-modal-control';inputs[key]=input;body.append(label,input);}
+ const reasonLabel=document.createElement('label');reasonLabel.textContent='Причина блокировки';reasonLabel.style.fontWeight='600';
+ const reason=document.createElement('textarea');reason.rows=3;reason.placeholder='Укажите причину блокировки';reason.className='admin-modal-control';
+ const durationLabel=document.createElement('label');durationLabel.textContent='Срок блокировки';durationLabel.style.fontWeight='600';
+ const duration=document.createElement('select');duration.className='admin-modal-control';
+ [1,2,4,5,10,15,30,40,50,60].forEach(days=>{const o=document.createElement('option');o.value=String(days);o.textContent=days+' '+(days===1?'день':[2,3,4].includes(days)?'дня':'дней');duration.appendChild(o);});
+ const forever=document.createElement('option');forever.value='forever';forever.textContent='Навсегда (админ 3-го уровня и выше)';forever.disabled=Number(getCurrentAdmin()?.admin_level)<3;duration.appendChild(forever);
+ body.append(reasonLabel,reason,durationLabel,duration);
+ openModal('Заблокировать пользователю возможность создавать и редактировать рекламы',body,[
+ {text:'Заблокировать',onClick:async()=>{
+  const targets=fields.map(([type])=>({type,value:inputs[type].value.trim()})).filter(x=>x.value);
+  if(!targets.length){openModal('Не указан пользователь','Введите Telegram ID, IP-адрес или токен.');return;}
+  if(!adminGuard('restrictAds',targets[0].value))return;
+  const durationDays=duration.value==='forever'?null:Number(duration.value);
+  const expiresAt=durationDays==null?'':new Date(Date.now()+durationDays*86400000).toISOString();
+  try{showPreloader();const entries=targets.map(target=>({...target,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,expiresAt:expiresAt||null}));
+   await updateVariable('BlockCreateAds',entries);recordAdminAction('restrictAds');
+   entries.forEach(entry=>window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',entry.value,entry.reason,durationDays,expiresAt));
+  }catch(error){alert(error.message||'Ошибка при обновлении переменной');}finally{hidePreloader();}
+ }},
+ {text:'Отмена',class:'btn btn--ghost'}
+ ]);
 };
 
 $('admin-unban-create-edit').onclick = () => {
@@ -4535,6 +4525,7 @@ $('admin-unban-telegram-id').onclick = () => {
 
 $('admin-close-app').onclick = async () => {
   if (!adminGuard('globalCreateToggle')) return;
+  if (!confirm('Подтвердите изменение параметра «CloseApp»: закрыть приложение для пользователей?')) return;
   try {
     showPreloader();
     await updateVariable('CloseApp', 'closed');
@@ -4547,6 +4538,7 @@ $('admin-close-app').onclick = async () => {
 
 $('admin-open-app').onclick = async () => {
   if (!adminGuard('globalCreateToggle')) return;
+  if (!confirm('Подтвердите изменение параметра «CloseApp»: снова открыть приложение?')) return;
   try {
     showPreloader();
     await updateVariable('UnCloseApp', 'not_closed');
@@ -4558,6 +4550,7 @@ $('admin-open-app').onclick = async () => {
 };
 
 $('admin-disable-gas').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «GASESES»: отключить GAS?')) return;
   try {
     showPreloader();
     await updateVariable('GASESES', 'no');
@@ -4569,6 +4562,7 @@ $('admin-disable-gas').onclick = async () => {
 };
 
 $('admin-enable-gas').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «GASESES»: включить GAS?')) return;
   try {
     showPreloader();
     await updateVariable('UnGASESES', 'true');
@@ -4580,6 +4574,7 @@ $('admin-enable-gas').onclick = async () => {
 };
 
 $('admin-disable-payments').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «Purchases2»: отключить платежи?')) return;
   try {
     showPreloader();
     await updateVariable('Purchases2', 'no');
@@ -4591,6 +4586,7 @@ $('admin-disable-payments').onclick = async () => {
 };
 
 $('admin-enable-payments').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «Purchases2»: включить платежи?')) return;
   try {
     showPreloader();
     await updateVariable('UnPurchases2', 'enabled');
@@ -4602,6 +4598,7 @@ $('admin-enable-payments').onclick = async () => {
 };
 
 $('admin-disable-create-all').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «disableCreateAds2»: запретить создание рекламы всем пользователям?')) return;
   try {
     showPreloader();
     await updateVariable('disableCreateAds2', 'disabled');
@@ -4613,6 +4610,7 @@ $('admin-disable-create-all').onclick = async () => {
 };
 
 $('admin-enable-create-all').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «disableCreateAds2»: разрешить создание рекламы всем пользователям?')) return;
   try {
     showPreloader();
     await updateVariable('UndisableCreateAds2', 'enabled');
@@ -4624,6 +4622,7 @@ $('admin-enable-create-all').onclick = async () => {
 };
 
 $('admin-disable-edit-all').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «disableEditingAds»: запретить редактирование рекламы всем пользователям?')) return;
   try {
     showPreloader();
     await updateVariable('disableEditingAds', 'disabled');
@@ -4635,6 +4634,7 @@ $('admin-disable-edit-all').onclick = async () => {
 };
 
 $('admin-enable-edit-all').onclick = async () => {
+  if (!confirm('Подтвердите изменение параметра «disableEditingAds»: разрешить редактирование рекламы всем пользователям?')) return;
   try {
     showPreloader();
     await updateVariable('UndisableEditingAds', 'enabled');
