@@ -4393,7 +4393,7 @@ $('admin-ban-create-edit').onclick = () => {
   const expiresAt=durationDays==null?'':new Date(Date.now()+durationDays*86400000).toISOString();
   try{showPreloader();const entry={type,value,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,expiresAt:expiresAt||null};
    const current=runtimeArray('BlockCreateAds',[]).filter(x=>punishmentEntryValue(x)!==value);
-   await updateVariable('BlockCreateAds',[...current,entry]);recordAdminAction('restrictAds');
+   await updateVariable('BlockCreateAds',[...current,entry]);recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(value))) ? 'banAdmin' : 'restrictAds');
    window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',value,entry.reason,durationDays,expiresAt);
   }catch(error){alert(error.message||'Ошибка при обновлении переменной');}finally{hidePreloader();}
  }},
