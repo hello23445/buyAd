@@ -58,15 +58,15 @@ if (tg) {
   
   // Включаем подтверждение при закрытии приложения
   tg.enableClosingConfirmation();
-  // Скрываем кнопку Settings при входе на сайт и показываем через 15 секунд
+  // Кнопка Settings появляется одновременно с доступностью кнопки настроек приложения.
   if (tg.SettingsButton) {
     setTelegramSettingsButtonVisible(false);
-    setTimeout(() => {
+    const SETTINGS_BUTTON_DELAY = 15000;
+    window.__buyAdSettingsButtonTimer = setTimeout(() => {
       const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
-      if (!settingsScreenVisible) {
-        setTelegramSettingsButtonVisible(true);
-      }
-    }, 15000);
+      const modalVisible = $('modal-overlay') && !$('modal-overlay').hidden;
+      if (!settingsScreenVisible && !modalVisible) setTelegramSettingsButtonVisible(true);
+    }, SETTINGS_BUTTON_DELAY);
   }
   // Обработчик клика на кнопку Settings
   if (tg.SettingsButton) {
@@ -241,6 +241,8 @@ function openModal(title, body, actions = [], opts = {}) {
     };
     if (actionsBox) actionsBox.appendChild(b);
   });
+  // Hide Telegram SettingsButton while any app modal is open.
+  if (tg?.SettingsButton) setTelegramSettingsButtonVisible(false);
   // set optional on-close callback (for close icon behavior)
   modalOnCloseCallback = opts.onClose || null;
   show($('modal-overlay'));
@@ -252,6 +254,12 @@ function closeModal() {
     modalOnCloseCallback = null;
   }
   hide($('modal-overlay'));
+  if (tg?.SettingsButton) {
+    const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
+    if (!settingsScreenVisible && window.__buyAdSettingsButtonTimer) {
+      setTelegramSettingsButtonVisible(true);
+    }
+  }
 }
 $('modal-close').onclick = closeModal;
 
@@ -566,7 +574,7 @@ function updateAdminLevelBadge() {
   // от локального переключателя уровня. Кнопка не должна оставаться скрытой
   // после общего сброса видимости пунктов меню выше.
   const ipHistorySearch = $('admin-search-ip-history');
-  if (ipHistorySearch) ipHistorySearch.hidden = baseLevel !== 5;
+  if (ipHistorySearch) ipHistorySearch.hidden = Number(admin?.admin_level) !== 5;
 
   // Не оставляем заголовки пустых разделов: показываем только группы с доступными действиями.
   if (menu) {
