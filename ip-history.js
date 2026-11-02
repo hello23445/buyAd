@@ -41,15 +41,15 @@
       title.id = "ip-consent-title";
       const lang = localStorage.getItem("lang") || "ru";
       const translations = typeof i18n !== "undefined" ? i18n[lang] || i18n.ru : {};
-      title.textContent = translations.ipHistoryConsentTitle || "Конфиденциальность и история IP";
+      title.textContent = "Внимание!";
       const message = document.createElement("p");
       message.style.cssText = "line-height:1.55;white-space:normal";
-      message.textContent = translations.ipHistoryConsentMessage || "При входе приложение может определить ваш IP-адрес и сохранить его защищённый хеш, связанный с вашим Telegram ID. Новая запись создаётся только при первом входе или изменении IP. История хранится до 30 дней и доступна только уполномоченным администраторам для проверки совпадений. Совпадение IP не доказывает, что аккаунты принадлежат одному человеку.";
+      message.textContent = "Тут вы можете создавать свои рекламы, но одно нарушение правил - будете наказаны согласно правилам.";
       const actions = document.createElement("div");
       actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px";
       const decline = document.createElement("button");
       decline.type = "button";
-      decline.textContent = translations.ipHistoryConsentDecline || "Отказаться";
+      //decline.textContent = translations.ipHistoryConsentDecline || "Отказаться";
       const accept = document.createElement("button");
       accept.type = "button";
       accept.textContent = translations.ipHistoryConsentAccept || "Согласен";
