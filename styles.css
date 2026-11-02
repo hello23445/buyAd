@@ -1904,3 +1904,14 @@ body.theme-light #screen-admin :is(input:not([type="checkbox"]):not([type="radio
   background: #fff;
   border-color: #cbd2e0;
 }
+
+
+/* Shared theme-aware controls for every admin ban/unban modal. */
+.modal .admin-modal-control {
+  display:block; width:100%; min-width:0; max-width:100%; box-sizing:border-box;
+  padding:0.75rem; border:1px solid var(--field-border, rgba(128,128,128,.4));
+  border-radius:10px; font:inherit; color:inherit; background:transparent; outline:none;
+}
+.modal .admin-modal-control:focus { border-color:#4f6cff; box-shadow:0 0 0 2px rgba(79,108,255,.14); }
+body.theme-dark .modal .admin-modal-control { color:#f3f5ff; background:#172033; border-color:#39445c; }
+body.theme-light .modal .admin-modal-control { color:#20283a; background:#fff; border-color:#cbd2e0; }
