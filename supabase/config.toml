@@ -3,3 +3,5 @@ verify_jwt = false
 
 [functions.search-users-by-ip]
 verify_jwt = false
+
+# Deployment is handled by GitHub Actions.
