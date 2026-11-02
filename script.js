@@ -60,22 +60,26 @@ if (tg) {
   tg.enableClosingConfirmation();
   // Не показываем Telegram SettingsButton во время загрузки или поверх любого диалога.
   const syncTelegramSettingsButton = () => {
-    const dialogOpen = !!document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay, [role="dialog"]:not([hidden])');
+    // Only visible overlay containers count as dialogs. A nested [role="dialog"]
+    // without its own hidden attribute must not keep SettingsButton hidden forever.
+    const dialogOpen = !!document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay:not([hidden])');
     const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
-    if (dialogOpen || settingsScreenVisible) setTelegramSettingsButtonVisible(false);
-    else if (window.__buyAdSettingsButtonTimer) setTelegramSettingsButtonVisible(true);
+    const preloader = $('preloader');
+    const loading = !!preloader && !preloader.hidden && getComputedStyle(preloader).display !== 'none';
+    if (dialogOpen || settingsScreenVisible || loading) setTelegramSettingsButtonVisible(false);
+    else if (window.__buyAdSettingsButtonReady) setTelegramSettingsButtonVisible(true);
   };
   new MutationObserver(syncTelegramSettingsButton).observe(document.documentElement, {
     subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class', 'style']
   });
-  // Кнопка Settings появляется одновременно с доступностью кнопки настроек приложения.
+  // Show SettingsButton once the app's settings entry is available.
   if (tg.SettingsButton) {
     setTelegramSettingsButtonVisible(false);
     const SETTINGS_BUTTON_DELAY = 15000;
+    window.__buyAdSettingsButtonReady = false;
     window.__buyAdSettingsButtonTimer = setTimeout(() => {
-      const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
-      const modalVisible = $('modal-overlay') && !$('modal-overlay').hidden;
-      if (!settingsScreenVisible && !modalVisible) setTelegramSettingsButtonVisible(true);
+      window.__buyAdSettingsButtonReady = true;
+      syncTelegramSettingsButton();
     }, SETTINGS_BUTTON_DELAY);
   }
   // Обработчик клика на кнопку Settings
