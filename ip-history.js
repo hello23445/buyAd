@@ -77,7 +77,7 @@
   async function record() {
     if (!ready() || !(await requestConsent())) return;
     try {
-      await callFunction("record-ip-history", { consentVersion: NOTICE_VERSION });
+      await callFunction("record-ip-history", { consentVersion: NOTICE_VERSION, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
     } catch (error) {
       console.warn("IP history was not recorded:", error);
     }
@@ -112,18 +112,26 @@
     const body = document.createElement("div");
     body.className = "modal__body";
     const fields = [
-      [ru ? "Telegram ID" : "Telegram ID", String(row.telegramId ?? "—")],
       [ru ? "Количество событий" : "Number of events", String(row.events ?? "—")],
       [ru ? "Первое появление" : "First seen", row.firstSeen ? new Date(row.firstSeen).toLocaleString() : "—"],
       [ru ? "Последнее появление" : "Last seen", row.lastSeen ? new Date(row.lastSeen).toLocaleString() : "—"]
     ];
+    const idLine=document.createElement("p");
+    const idLabel=document.createElement("strong"); idLabel.textContent="Telegram ID: ";
+    const idValue=document.createElement("code"); idValue.textContent=String(row.telegramId ?? "—");
+    const copyId=document.createElement("button"); copyId.type="button"; copyId.className="btn btn--ghost"; copyId.textContent=ru?"Копировать":"Copy";
+    copyId.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(String(row.telegramId ?? ""));copyId.textContent=ru?"Скопировано":"Copied";}catch(_){copyId.textContent=ru?"Не удалось":"Failed";}});
+    idLine.append(idLabel,idValue,copyId); body.appendChild(idLine);
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     for (const [label, value] of fields) {
       const item = document.createElement("p");
-      const strong = document.createElement("strong");
-      strong.textContent = label + ": ";
-      item.append(strong, document.createTextNode(value));
+      const strong = document.createElement("strong"); strong.textContent = label + ": ";
+      item.append(strong, document.createTextNode(value + ((label.includes("появление")||label==="First seen"||label==="Last seen") ? " ("+tz+")" : "")));
       body.appendChild(item);
     }
+    const eventsHint=document.createElement("p"); eventsHint.className="field__hint";
+    eventsHint.textContent=ru?"Количество событий — сколько раз сервер зафиксировал входы этого Telegram-аккаунта в истории IP. Это не число устройств и не число разных IP.":"Events count is the number of recorded entries for this Telegram account in IP history; it is not a device or distinct-IP count.";
+    body.appendChild(eventsHint);
     const note = document.createElement("p");
     note.className = "field__hint";
     note.textContent = ru
@@ -165,7 +173,8 @@
         id.textContent = "Telegram ID: " + row.telegramId;
         const details = document.createElement("div");
         details.className = "field__hint";
-        details.textContent = "Событий: " + row.events + " · Первое: " + new Date(row.firstSeen).toLocaleString() + " · Последнее: " + new Date(row.lastSeen).toLocaleString();
+        details.textContent = "Событий: " + row.events + " · Первое: " + new Date(row.firstSeen).toLocaleString() + "\nПоследнее: " + new Date(row.lastSeen).toLocaleString();
+        details.style.whiteSpace = "pre-line";
         const hint = document.createElement("div");
         hint.className = "field__hint";
         hint.textContent = lang === "ru" ? "Нажмите, чтобы открыть сведения об аккаунте" : "Tap to view account details";
@@ -223,6 +232,7 @@
     // Respect the currently selected local preview level as well as the server-side admin allowlist.
     if (searchButton) {
       searchButton.hidden = !(baseAdmin && Number(baseAdmin.admin_level) === 5);
+      const heading=document.getElementById("admin-ip-history-heading"); if(heading) heading.hidden=!(baseAdmin && Number(baseAdmin.admin_level)===5);
       searchButton.addEventListener("click", showSearchScreen);
     }
     // Diagnostics are also restricted by the active level preview.
@@ -237,6 +247,7 @@
       if (tg?.BackButton) tg.BackButton.show();
     });
     submitButton?.addEventListener("click", search);
+    document.getElementById("ip-history-paste")?.addEventListener("click", async () => { const input=document.getElementById("ip-history-search-input"); try { const value=await navigator.clipboard.readText(); if(input) input.value=value.trim(); } catch (_) { const status=document.getElementById("ip-history-search-status"); if(status) status.textContent="Не удалось прочитать буфер обмена. Разрешите доступ или вставьте адрес вручную."; } });
     diagnoseMenuButton?.addEventListener("click", () => {
       if (diagnoseCard) diagnoseCard.hidden = false;
       document.getElementById("ip-history-diagnose-status").textContent = "Нажмите «Запустить проверку».";

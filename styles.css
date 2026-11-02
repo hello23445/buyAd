@@ -1915,3 +1915,9 @@ body.theme-light #screen-admin :is(input:not([type="checkbox"]):not([type="radio
 .modal .admin-modal-control:focus { border-color:#4f6cff; box-shadow:0 0 0 2px rgba(79,108,255,.14); }
 body.theme-dark .modal .admin-modal-control { color:#f3f5ff; background:#172033; border-color:#39445c; }
 body.theme-light .modal .admin-modal-control { color:#20283a; background:#fff; border-color:#cbd2e0; }
+
+body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !important; overscroll-behavior:none; }
+.ip-search-actions { display:flex; gap:8px; align-items:stretch; }
+.ip-search-actions #ip-history-search-submit { flex:1; }
+.ip-search-actions #ip-history-paste { flex:0 0 auto; }
+.ip-history-account-card .field__hint { white-space:pre-line; }

@@ -167,6 +167,7 @@ function show(el) {
 }
 function hide(el) { if (!el) return; try { el.hidden = true; } catch (e) { /* ignore */ } }
 function showPreloader() { 
+  if (!document.body.classList.contains('preloader-scroll-locked')) { window.__buyAdPreloaderScrollY = window.scrollY || 0; document.body.classList.add('preloader-scroll-locked'); }
   if (tg?.SettingsButton) setTelegramSettingsButtonVisible(false);
   show($('preloader')); 
   if (tg?.BackButton) {
@@ -177,7 +178,8 @@ function showPreloader() {
   $('nav-crystals').style.pointerEvents = 'none';
 }
 function hidePreloader() { 
-  hide($('preloader')); 
+  hide($('preloader'));
+  document.body.classList.remove('preloader-scroll-locked'); window.scrollTo(0, Number(window.__buyAdPreloaderScrollY || 0)); 
   refreshBackButton();
   // Включаем кнопку кристаллов после загрузки
   $('nav-crystals').disabled = false;
@@ -230,6 +232,7 @@ function formatNumber(num) {
 
 /* ========== MODAL ========== */
 function openModal(title, body, actions = [], opts = {}) {
+  if (!$('modal-overlay') || $('modal-overlay').hidden) { window.__buyAdModalScrollY = window.scrollY || 0; document.body.classList.add('modal-scroll-locked'); }
   $('modal-title').textContent = title;
   const modalBody = $('modal-body');
   if (modalBody) modalBody.innerHTML = '';
@@ -269,6 +272,7 @@ function closeModal() {
     modalOnCloseCallback = null;
   }
   hide($('modal-overlay'));
+  if (!document.querySelector('.modal-overlay:not([hidden])')) { document.body.classList.remove('modal-scroll-locked'); window.scrollTo(0, Number(window.__buyAdModalScrollY || 0)); }
   if (tg?.SettingsButton) {
     const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
     if (!settingsScreenVisible && window.__buyAdSettingsButtonTimer) {
@@ -4355,28 +4359,30 @@ $('admin-unblock-user').onclick = () => {
   });
 };
 
+
 $('admin-ban-create-edit').onclick = () => {
  const body=document.createElement('div'); body.style.display='grid'; body.style.gap='.65rem';
- const fields=[['telegramId','Telegram ID пользователя','Введите Telegram ID'],['ip','IP-адрес пользователя','Введите IP-адрес'],['token','Токен пользователя','Введите токен']];
- const inputs={};
- for(const [key,labelText,placeholder] of fields){const label=document.createElement('label');label.textContent=labelText;label.style.fontWeight='600';const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.className='admin-modal-control';inputs[key]=input;body.append(label,input);}
+ const label=document.createElement('label');label.textContent='Telegram ID / IP-адрес / токен пользователя';label.style.fontWeight='600';
+ const input=document.createElement('input');input.type='text';input.placeholder='Введите Telegram ID, IP-адрес или токен';input.className='admin-modal-control';
  const reasonLabel=document.createElement('label');reasonLabel.textContent='Причина блокировки';reasonLabel.style.fontWeight='600';
  const reason=document.createElement('textarea');reason.rows=3;reason.placeholder='Укажите причину блокировки';reason.className='admin-modal-control';
  const durationLabel=document.createElement('label');durationLabel.textContent='Срок блокировки';durationLabel.style.fontWeight='600';
  const duration=document.createElement('select');duration.className='admin-modal-control';
  [1,2,4,5,10,15,30,40,50,60].forEach(days=>{const o=document.createElement('option');o.value=String(days);o.textContent=days+' '+(days===1?'день':[2,3,4].includes(days)?'дня':'дней');duration.appendChild(o);});
  const forever=document.createElement('option');forever.value='forever';forever.textContent='Навсегда (админ 3-го уровня и выше)';forever.disabled=Number(getCurrentAdmin()?.admin_level)<3;duration.appendChild(forever);
- body.append(reasonLabel,reason,durationLabel,duration);
- openModal('Заблокировать пользователю возможность создавать и редактировать рекламы',body,[
+ body.append(label,input,reasonLabel,reason,durationLabel,duration);
+ openModal('Заблокировать пользователю возможность создавать и редактировать рекламу',body,[
  {text:'Заблокировать',onClick:async()=>{
-  const targets=fields.map(([type])=>({type,value:inputs[type].value.trim()})).filter(x=>x.value);
-  if(!targets.length){openModal('Не указан пользователь','Введите Telegram ID, IP-адрес или токен.');return;}
-  if(!adminGuard('restrictAds',targets[0].value))return;
+  const value=input.value.trim();
+  if(!value){openModal('Не указан пользователь','Введите Telegram ID, IP-адрес или токен.');return;}
+  const type=/^\d+$/.test(value)?'telegramId':(/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)||value.includes(':')?'ip':'token');
+  if(!adminGuard('restrictAds',value))return;
   const durationDays=duration.value==='forever'?null:Number(duration.value);
   const expiresAt=durationDays==null?'':new Date(Date.now()+durationDays*86400000).toISOString();
-  try{showPreloader();const entries=targets.map(target=>({...target,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,expiresAt:expiresAt||null}));
-   await updateVariable('BlockCreateAds',entries);recordAdminAction('restrictAds');
-   entries.forEach(entry=>window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',entry.value,entry.reason,durationDays,expiresAt));
+  try{showPreloader();const entry={type,value,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,expiresAt:expiresAt||null};
+   const current=runtimeArray('BlockCreateAds',[]).filter(x=>punishmentEntryValue(x)!==value);
+   await updateVariable('BlockCreateAds',[...current,entry]);recordAdminAction('restrictAds');
+   window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',value,entry.reason,durationDays,expiresAt);
   }catch(error){alert(error.message||'Ошибка при обновлении переменной');}finally{hidePreloader();}
  }},
  {text:'Отмена',class:'btn btn--ghost'}

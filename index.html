@@ -619,7 +619,7 @@
               <span class="menu__text" data-i18n="adminUnbanByIp">Разбанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
-            <div class="menu__group">IP-адресы</div>
+            <div class="menu__group" id="admin-ip-history-heading" hidden>IP-АДРЕСЫ</div>
             <button id="admin-search-ip-history" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
               <span class="menu__text" data-i18n="adminSearchIpHistory">Поиск по IP</span>
@@ -796,7 +796,7 @@
             <div class="field__label">IP-адрес</div>
             <input id="ip-history-search-input" class="textarea" type="text" inputmode="url" autocomplete="off" placeholder="Введите IPv4 или IPv6">
             <div class="field__hint">Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.</div>
-            <button id="ip-history-search-submit" class="btn btn--primary btn--full" type="button">Найти аккаунты</button>
+            <div class="ip-search-actions"><button id="ip-history-search-submit" class="btn btn--primary" type="button">Найти аккаунты</button><button id="ip-history-paste" class="btn btn--ghost" type="button">Вставить</button></div>
           </div>
         </div>
         <div id="ip-history-search-status" class="hint" role="status" aria-live="polite"></div>
