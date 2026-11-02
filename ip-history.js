@@ -151,12 +151,16 @@
     const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");
     const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
     const diagnoseCard = document.getElementById("ip-history-diagnose-card");
+    const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
+    const baseAdmin = typeof getBaseAdminByToken === "function" ? getBaseAdminByToken() : null;
     if (searchButton) {
-      const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
       searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);
-      const diagnoseButton = document.getElementById("admin-diagnose-ip-headers");
-      if (diagnoseButton) diagnoseButton.hidden = !(admin && Number(admin.admin_level) >= 5);
       searchButton.addEventListener("click", showSearchScreen);
+    }
+    // Show diagnostics to the configured root admin even when local level preview is active.
+    // The Edge Function independently verifies the Telegram ID against the server allowlist.
+    if (diagnoseMenuButton) {
+      diagnoseMenuButton.hidden = !(baseAdmin && Number(baseAdmin.admin_level) === 5);
     }
     backButton?.addEventListener("click", () => {
       const screen = document.getElementById("screen-ip-history-search");
