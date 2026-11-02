@@ -1910,6 +1910,7 @@ $('nav-admin').onclick = () => {
     openModal(i18n[lang].accessDenied, '');
     return;
   }
+  alert('Добро пожаловать!');
   hideAllScreens();
   show($('screen-admin'));
   updateAdminLevelBadge();
