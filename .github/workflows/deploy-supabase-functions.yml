@@ -6,6 +6,7 @@ on:
       - feature/supabase-ip-history
     paths:
       - "supabase/**"
+      - ".github/workflows/deploy-supabase-functions.yml"
 
 permissions:
   contents: read
@@ -29,4 +30,4 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_PROJECT_ID"
-          supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
+          supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID" --yes
