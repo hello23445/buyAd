@@ -1876,3 +1876,27 @@ body.theme-dark .modal :is(input:not([type="checkbox"]):not([type="radio"]), tex
 body.theme-light .modal :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) { --field-border:#cbd2e0; }
 body.theme-dark :is(.admin-create-form,.admin-permissions-list,.modal__body) { color:#edf2ff; }
 body.theme-light :is(.admin-create-form,.admin-permissions-list,.modal__body) { color:#172033; }
+
+
+/* Keep all admin form controls visually consistent with the new-admin form. */
+#screen-admin :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(128,128,128,.4);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  background: transparent;
+}
+body.theme-dark #screen-admin :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #f3f5ff;
+  background: #172033;
+  border-color: #39445c;
+}
+body.theme-light #screen-admin :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  color: #20283a;
+  background: #fff;
+  border-color: #cbd2e0;
+}
