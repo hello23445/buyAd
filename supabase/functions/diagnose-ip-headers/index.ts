@@ -9,31 +9,23 @@ const corsHeaders = {
 };
 
 function isIp(value: string): boolean {
-  try {
-    ipaddr.parse(value.trim());
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") {
-    return Response.json({ error: "Method not allowed" }, { status: 405, headers: corsHeaders });
-  }
-
+  let stage = "request";
   try {
     const body = await req.json();
+    stage = "telegram_auth";
     const { telegramId } = await verifyTelegramInitData(
       String(body.initData || ""),
       Deno.env.get("TELEGRAM_BOT_TOKEN") || ""
     );
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    stage = "supabase_config";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      return Response.json({ error: "server_configuration_missing" }, { status: 500, headers: corsHeaders });
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    stage = "admin_allowlist";
 
     const { data: admin, error: adminError } = await supabase
       .from("ip_history_admins")
@@ -73,14 +65,27 @@ Deno.serve(async (req) => {
       note: "Only header presence, format and equality are reported. No IP values are returned or stored. This does not prove a proxy header is trustworthy.",
     };
 
-    await supabase.from("ip_history_admin_audit").insert({
+    stage = "audit";
+    const { error: auditError } = await supabase.from("ip_history_admin_audit").insert({
       admin_telegram_id: telegramId,
       action: "diagnose_ip_headers",
     });
+    if (auditError) {
+      console.error("diagnose-ip-headers audit insert failed:", auditError.code || "unknown");
+      return Response.json({ error: "audit_write_failed" }, { status: 500, headers: corsHeaders });
+    }
 
     return Response.json(result, { headers: corsHeaders });
   } catch (error) {
-    console.error("diagnose-ip-headers:", error);
-    return Response.json({ error: "Diagnostic failed" }, { status: 401, headers: corsHeaders });
+    const message = error instanceof Error ? error.message : "";
+    console.error("diagnose-ip-headers failed at", stage, error instanceof Error ? error.name : "unknown");
+    const safeCode = stage === "telegram_auth"
+      ? (message.includes("Expired") ? "telegram_session_expired" :
+         message.includes("signature") ? "telegram_signature_invalid" :
+         message.includes("Missing") ? "telegram_auth_data_missing" : "telegram_auth_failed")
+      : stage === "admin_allowlist" ? "admin_allowlist_unavailable"
+      : "diagnostic_internal_error";
+    const status = stage === "telegram_auth" ? 401 : stage === "admin_allowlist" ? 503 : 500;
+    return Response.json({ error: safeCode }, { status, headers: corsHeaders });
   }
 });
