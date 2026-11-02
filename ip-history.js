@@ -25,23 +25,55 @@
 
   function requestConsent() {
     const saved = localStorage.getItem(CONSENT_KEY);
-    if (saved === NOTICE_VERSION) return true;
-    if (saved === "declined:" + NOTICE_VERSION) return false;
+    if (saved === NOTICE_VERSION) return Promise.resolve(true);
+    if (saved === "declined:" + NOTICE_VERSION) return Promise.resolve(false);
 
-    const accepted = window.confirm(
-      "Конфиденциальность и история IP\\n\\n" +
-      "При входе приложение может определить ваш IP-адрес и сохранить его защищённый хеш, связанный с вашим Telegram ID. " +
-      "Новая запись создаётся только при первом входе или изменении IP. Если IP не изменился, повторная запись не создаётся. " +
-      "История хранится до 30 дней и доступна только уполномоченным администраторам для проверки совпадений. " +
-      "Совпадение IP не доказывает, что аккаунты принадлежат одному человеку.\\n\\n" +
-      "Согласны на такую обработку IP-адреса?"
-    );
-    localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
-    return accepted;
+    return new Promise(resolve => {
+      const overlay = document.createElement("div");
+      overlay.className = "ip-consent-overlay";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.68)";
+      const modal = document.createElement("section");
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.setAttribute("aria-labelledby", "ip-consent-title");
+      modal.style.cssText = "width:min(440px,100%);max-height:85vh;overflow:auto;padding:22px;border-radius:18px;background:var(--card-bg,#fff);color:var(--text-color,#111);box-shadow:0 18px 60px rgba(0,0,0,.3)";
+      const title = document.createElement("h2");
+      title.id = "ip-consent-title";
+      title.textContent = "Конфиденциальность и история IP";
+      const message = document.createElement("p");
+      message.style.cssText = "line-height:1.55;white-space:normal";
+      message.textContent = "При входе приложение может определить ваш IP-адрес и сохранить его защищённый хеш, связанный с вашим Telegram ID. Новая запись создаётся только при первом входе или изменении IP. История хранится до 30 дней и доступна только уполномоченным администраторам для проверки совпадений. Совпадение IP не доказывает, что аккаунты принадлежат одному человеку.";
+      const actions = document.createElement("div");
+      actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px";
+      const decline = document.createElement("button");
+      decline.type = "button";
+      decline.textContent = "Отказаться";
+      const accept = document.createElement("button");
+      accept.type = "button";
+      accept.textContent = "Согласен";
+      for (const button of [decline, accept]) button.style.cssText = "border:0;border-radius:10px;padding:11px 16px;font:inherit;cursor:pointer";
+      accept.style.background = "var(--button-color,#2481cc)";
+      accept.style.color = "var(--button-text-color,#fff)";
+      decline.style.background = "var(--hint-color,#e5e7eb)";
+      const finish = accepted => {
+        localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
+        overlay.remove();
+        resolve(accepted);
+      };
+      accept.addEventListener("click", () => finish(true));
+      decline.addEventListener("click", () => finish(false));
+      overlay.addEventListener("click", event => { if (event.target === overlay) finish(false); });
+      modal.addEventListener("keydown", event => { if (event.key === "Escape") finish(false); });
+      actions.append(decline, accept);
+      modal.append(title, message, actions);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      accept.focus();
+    });
   }
 
   async function record() {
-    if (!ready() || !requestConsent()) return;
+    if (!ready() || !(await requestConsent())) return;
     try {
       await callFunction("record-ip-history", { consentVersion: NOTICE_VERSION });
     } catch (error) {
