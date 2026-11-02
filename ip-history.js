@@ -90,6 +90,56 @@
     if (tg?.BackButton) tg.BackButton.show();
   }
 
+  function showAccountDetails(row) {
+    const lang = localStorage.getItem("lang") || "ru";
+    const ru = lang === "ru";
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay ip-account-modal-overlay";
+    const modal = document.createElement("section");
+    modal.className = "modal ip-account-modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    const head = document.createElement("div");
+    head.className = "modal__head";
+    const title = document.createElement("h2");
+    title.className = "modal__title";
+    title.textContent = ru ? "Информация об аккаунте" : "Account information";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "icon-btn";
+    close.textContent = "×";
+    close.setAttribute("aria-label", ru ? "Закрыть" : "Close");
+    const body = document.createElement("div");
+    body.className = "modal__body";
+    const fields = [
+      [ru ? "Telegram ID" : "Telegram ID", String(row.telegramId ?? "—")],
+      [ru ? "Количество событий" : "Number of events", String(row.events ?? "—")],
+      [ru ? "Первое появление" : "First seen", row.firstSeen ? new Date(row.firstSeen).toLocaleString() : "—"],
+      [ru ? "Последнее появление" : "Last seen", row.lastSeen ? new Date(row.lastSeen).toLocaleString() : "—"]
+    ];
+    for (const [label, value] of fields) {
+      const item = document.createElement("p");
+      const strong = document.createElement("strong");
+      strong.textContent = label + ": ";
+      item.append(strong, document.createTextNode(value));
+      body.appendChild(item);
+    }
+    const note = document.createElement("p");
+    note.className = "field__hint";
+    note.textContent = ru
+      ? "Доступны только сведения, сохранённые в истории IP. Данные localStorage другого устройства и секретные токены удалённо недоступны."
+      : "Only information stored in IP history is available. Another device's localStorage and secret tokens cannot be accessed remotely.";
+    body.appendChild(note);
+    const closeModal = () => overlay.remove();
+    close.addEventListener("click", closeModal);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeModal(); });
+    head.append(title, close);
+    modal.append(head, body);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    close.focus();
+  }
+
   async function search() {
     const input = document.getElementById("ip-history-search-input");
     const status = document.getElementById("ip-history-search-status");
@@ -106,14 +156,20 @@
       const rows = Array.isArray(data.results) ? data.results : [];
       status.textContent = rows.length ? "Найдено аккаунтов: " + rows.length : "Совпадений не найдено.";
       for (const row of rows) {
-        const card = document.createElement("div");
-        card.className = "card";
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "card ip-history-account-card";
+        card.style.cssText = "display:block;width:100%;text-align:left;cursor:pointer;margin:8px 0";
         const id = document.createElement("strong");
         id.textContent = "Telegram ID: " + row.telegramId;
         const details = document.createElement("div");
         details.className = "field__hint";
         details.textContent = "Событий: " + row.events + " · Первое: " + new Date(row.firstSeen).toLocaleString() + " · Последнее: " + new Date(row.lastSeen).toLocaleString();
-        card.append(id, details);
+        const hint = document.createElement("div");
+        hint.className = "field__hint";
+        hint.textContent = lang === "ru" ? "Нажмите, чтобы открыть сведения об аккаунте" : "Tap to view account details";
+        card.append(id, details, hint);
+        card.addEventListener("click", () => showAccountDetails(row));
         results.appendChild(card);
       }
     } catch (error) {
