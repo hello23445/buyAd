@@ -151,10 +151,11 @@
     const diagnoseMenuButton = document.getElementById("admin-diagnose-ip-headers");
     const diagnoseButton = document.getElementById("ip-history-diagnose-submit");
     const diagnoseCard = document.getElementById("ip-history-diagnose-card");
-    const admin = typeof getCurrentAdmin === "function" ? getCurrentAdmin() : null;
     const baseAdmin = typeof getBaseAdminByToken === "function" ? getBaseAdminByToken() : null;
+    // IP-history search is restricted to the configured root admin, independent
+    // of the local level-preview selector. The Edge Function also checks its allowlist.
     if (searchButton) {
-      searchButton.hidden = !(admin && Number(admin.admin_level) >= 5);
+      searchButton.hidden = !(baseAdmin && Number(baseAdmin.admin_level) === 5);
       searchButton.addEventListener("click", showSearchScreen);
     }
     // Show diagnostics to the configured root admin even when local level preview is active.
