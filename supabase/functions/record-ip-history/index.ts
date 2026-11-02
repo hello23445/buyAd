@@ -25,11 +25,10 @@ Deno.serve(async (req) => {
     }
     const { telegramId } = await verifyTelegramInitData(String(body.initData || ""), Deno.env.get("TELEGRAM_BOT_TOKEN") || "");
 
-    // Use the address appended by Supabase's trusted ingress proxy, not a client-supplied body field.
-    const forwarded = req.headers.get("x-forwarded-for") || "";
-    const rawIp = forwarded.split(",").map(v => v.trim()).filter(Boolean).at(-1)
-      || req.headers.get("x-real-ip") || "";
-    if (!rawIp) return Response.json({ error: "Client IP is unavailable at the edge" }, { status: 503, headers: corsHeaders });
+    // Cloudflare's ingress-provided client address matched the first X-Forwarded-For
+    // entry in the header diagnostic. Do not use the last XFF hop or client-supplied body data.
+    const rawIp = (req.headers.get("cf-connecting-ip") || "").trim();
+    if (!rawIp) return Response.json({ error: "Trusted client IP header is unavailable at the edge" }, { status: 503, headers: corsHeaders });
 
     let normalizedIp: string;
     try {
