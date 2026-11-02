@@ -4,7 +4,9 @@ create table if not exists public.user_ip_history (
   telegram_id text not null,
   ip_fingerprint text not null,
   observed_at timestamptz not null default now(),
-  expires_at timestamptz not null default now() + interval '30 days'
+  expires_at timestamptz not null default now() + interval '30 days',
+  consent_version text not null,
+  consented_at timestamptz not null default now()
 );
 
 create index if not exists user_ip_history_fingerprint_time_idx
