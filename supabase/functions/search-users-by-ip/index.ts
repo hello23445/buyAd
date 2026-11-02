@@ -50,13 +50,24 @@ Deno.serve(async (req) => {
     if (secret.length < 32) throw new Error("IP_HASH_SECRET must contain at least 32 characters");
     const fingerprints = await Promise.all([...new Set(normalizedIps)].map(value => fingerprint(value, secret)));
 
-    const { data: rows, error } = await supabase.from("user_ip_history")
-      .select("telegram_id, observed_at").in("ip_fingerprint", fingerprints)
-      .gt("expires_at", new Date().toISOString()).order("observed_at", { ascending: false }).limit(5000);
-    if (error) throw error;
+    // Supabase projects may enforce a response-row cap (often 1,000),
+    // so fetch every matching page instead of silently truncating at the cap.
+    const rows: Array<{ telegram_id: string; observed_at: string }> = [];
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data: page, error } = await supabase.from("user_ip_history")
+        .select("telegram_id, observed_at")
+        .in("ip_fingerprint", fingerprints)
+        .gt("expires_at", new Date().toISOString())
+        .order("observed_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      rows.push(...(page || []));
+      if (!page || page.length < pageSize) break;
+    }
 
     const grouped = new Map<string, { telegramId: string; firstSeen: string; lastSeen: string; events: number }>();
-    for (const row of rows || []) {
+    for (const row of rows) {
       const current = grouped.get(row.telegram_id);
       if (!current) grouped.set(row.telegram_id, {
         telegramId: row.telegram_id, firstSeen: row.observed_at, lastSeen: row.observed_at, events: 1
