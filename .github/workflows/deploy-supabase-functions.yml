@@ -3,6 +3,7 @@ name: Deploy Supabase Edge Functions
 on:
   push:
     branches:
+      - main
       - feature/supabase-ip-history
     paths:
       - "supabase/**"
