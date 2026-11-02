@@ -23,13 +23,27 @@
     return data;
   }
 
+  function requestConsent() {
+    const saved = localStorage.getItem(CONSENT_KEY);
+    if (saved === NOTICE_VERSION) return true;
+    if (saved === "declined:" + NOTICE_VERSION) return false;
+
+    const accepted = window.confirm(
+      "Конфиденциальность и история IP\\n\\n" +
+      "При входе приложение может определить ваш IP-адрес и сохранить его защищённый хеш, связанный с вашим Telegram ID. " +
+      "Новая запись создаётся только при первом входе или изменении IP. Если IP не изменился, повторная запись не создаётся. " +
+      "История хранится до 30 дней и доступна только уполномоченным администраторам для проверки совпадений. " +
+      "Совпадение IP не доказывает, что аккаунты принадлежат одному человеку.\\n\\n" +
+      "Согласны на такую обработку IP-адреса?"
+    );
+    localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
+    return accepted;
+  }
+
   async function record() {
-    if (!ready() || localStorage.getItem(CONSENT_KEY) !== NOTICE_VERSION) return;
-    const last = Number(sessionStorage.getItem("buyAdIpHistoryRecordedAt") || 0);
-    if (Date.now() - last < 5 * 60 * 1000) return;
+    if (!ready() || !requestConsent()) return;
     try {
       await callFunction("record-ip-history", { consentVersion: NOTICE_VERSION });
-      sessionStorage.setItem("buyAdIpHistoryRecordedAt", String(Date.now()));
     } catch (error) {
       console.warn("IP history was not recorded:", error);
     }
