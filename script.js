@@ -2092,6 +2092,10 @@ if (mainRulesButton) mainRulesButton.onclick = openBotRules;
 // initial HTML, so this avoids relying only on delegated bubbling handlers.
 const blockedRulesButton = $('blocked-open-rules');
 if (blockedRulesButton) {
+  blockedRulesButton.disabled = false;
+  blockedRulesButton.removeAttribute('disabled');
+  blockedRulesButton.setAttribute('aria-disabled', 'false');
+  blockedRulesButton.style.pointerEvents = 'auto';
   blockedRulesButton.addEventListener('click', event => {
     event.preventDefault();
     event.stopPropagation();
@@ -2911,30 +2915,35 @@ function initTelegramIdDisplay() {
   const telegramIdEl = $('user-telegram-id');
   const btnCopyTelegramId = $('btn-copy-telegram-id');
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  
   if (!telegramIdEl || !btnCopyTelegramId) return;
-  
+
   if (!hasTelegramId) {
-    // Show "Not defined" when Telegram ID doesn't exist (only fallback)
     telegramIdEl.textContent = i18n[lang].notDefined || 'Не определено';
     telegramIdEl.dataset.revealed = 'true';
     btnCopyTelegramId.disabled = true;
     const span = btnCopyTelegramId.querySelector('span');
     if (span) span.textContent = i18n[lang].copy || 'Копировать';
-  } else {
-    // Show masked Telegram ID with dots
-    const masked = '•'.repeat(String(telegramUserId).length);
-    telegramIdEl.textContent = masked;
-    telegramIdEl.dataset.revealed = 'false';
-    btnCopyTelegramId.disabled = false;
-    
-    // Update button text to "Show"
-    const span = btnCopyTelegramId.querySelector('span');
-    if (span) {
-      span.textContent = i18n[lang].show || 'Показать';
-      span.dataset.isShow = 'true';
-    }
+    btnCopyTelegramId.onclick = null;
+    return;
   }
+
+  telegramIdEl.textContent = String(telegramUserId);
+  telegramIdEl.dataset.revealed = 'true';
+  btnCopyTelegramId.disabled = false;
+  const span = btnCopyTelegramId.querySelector('span');
+  if (span) span.textContent = i18n[lang].copy || 'Копировать';
+  btnCopyTelegramId.onclick = async () => {
+    try {
+      await copyTextCompat(String(telegramUserId));
+      if (span) {
+        const oldText = span.textContent;
+        span.textContent = i18n[lang].copied || 'Скопировано';
+        setTimeout(() => { span.textContent = oldText; }, 2500);
+      }
+    } catch (_) {
+      openModal(i18n[lang].failedToCopy || 'Не удалось скопировать.', '');
+    }
+  };
 }
 
 /* ========== SETTINGS ========== */
@@ -4293,16 +4302,16 @@ async function updateVariable(action, value) {
 function openAdminPunishmentModal(title, onSubmit, placeholder = 'Введите токен пользователя', punishmentType = 'account') {
   const body=document.createElement('div');body.style.display='grid';body.style.gap='0.75rem';
   const label=document.createElement('label');label.textContent=title;label.style.fontWeight='600';body.appendChild(label);
-  const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.style.cssText='width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:0.5rem;font-size:1rem';body.appendChild(input);
+  const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.className='admin-modal-control';body.appendChild(input);
   const lang=localStorage.getItem(LS.lang)||'ru',admin=getCurrentAdmin();
   const reasonLabel=document.createElement('label');reasonLabel.textContent=lang==='ru'?'Причина блокировки'+(Number(admin?.admin_level)===1?' (обязательно)':' (необязательно)'):'Reason for block'+(Number(admin?.admin_level)===1?' (required)':' (optional)');reasonLabel.style.fontWeight='600';body.appendChild(reasonLabel);
-  const reason=document.createElement('textarea');reason.placeholder=lang==='ru'?'Введите причину блокировки':'Enter the reason for the block';reason.rows=3;reason.style.cssText='width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:0.5rem;font-size:1rem;resize:vertical';body.appendChild(reason);
+  const reason=document.createElement('textarea');reason.placeholder=lang==='ru'?'Введите причину блокировки':'Enter the reason for the block';reason.rows=3;reason.className='admin-modal-control';reason.style.resize='vertical';body.appendChild(reason);
   const dl=document.createElement('label');dl.textContent=lang==='ru'?'Срок блокировки':'Ban duration';dl.style.fontWeight='600';body.appendChild(dl);
-  const duration=document.createElement('select');duration.style.cssText='width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:0.5rem;font-size:1rem';
+  const duration=document.createElement('select');duration.className='admin-modal-control';
   (punishmentType==='ads'?[1,2,4,5,10,15,30,40,50,60]:[1,2,5,10,15,30,40,50,60]).forEach(days=>{const o=document.createElement('option');o.value=String(days);o.textContent=lang==='ru'?days+' '+(days===1?'день':[2,3,4].includes(days)?'дня':'дней'):days+(days===1?' day':' days');duration.appendChild(o)});
   const custom=document.createElement('option');custom.value='custom';custom.textContent=lang==='ru'?'Указать вручную (1–60 дней)':'Custom (1–60 days)';duration.appendChild(custom);
   const forever=document.createElement('option');forever.value='forever';forever.textContent=lang==='ru'?'Навсегда (админ 3-го уровня и выше)':'Forever (admin level 3 or higher)';forever.disabled=Number(admin?.admin_level)<3;duration.appendChild(forever);body.appendChild(duration);
-  const customDays=document.createElement('input');customDays.type='number';customDays.min='1';customDays.max='60';customDays.step='1';customDays.placeholder=lang==='ru'?'Количество дней (1–60)':'Number of days (1–60)';customDays.style.cssText='width:100%;padding:0.75rem;border:1px solid #ccc;border-radius:0.5rem;font-size:1rem;display:none';body.appendChild(customDays);
+  const customDays=document.createElement('input');customDays.type='number';customDays.min='1';customDays.max='60';customDays.step='1';customDays.placeholder=lang==='ru'?'Количество дней (1–60)':'Number of days (1–60)';customDays.className='admin-modal-control';customDays.style.display='none';body.appendChild(customDays);
   duration.addEventListener('change',()=>{customDays.style.display=duration.value==='custom'?'':'none'});
   if(Number(admin?.admin_level)===5&&adminHasPermission('hideNameOnBan')){const wrap=document.createElement('label');wrap.style.display='flex';wrap.style.gap='0.5rem';wrap.style.alignItems='center';const cb=document.createElement('input');cb.type='checkbox';cb.checked=localStorage.getItem('hideAdminNameOnBan')==='true';cb.addEventListener('change',()=>localStorage.setItem('hideAdminNameOnBan',cb.checked?'true':'false'));wrap.appendChild(cb);wrap.appendChild(document.createTextNode(lang==='ru'?'Скрывать моё имя при блокировке':'Hide my name when blocking'));body.appendChild(wrap)}
   openModal(title,body,[
@@ -4320,6 +4329,7 @@ function openAdminPunishmentModal(title, onSubmit, placeholder = 'Введите
 
 function openAdminTokenModal(title, onSubmit, placeholder = 'Введите токен пользователя') {
   const body = document.createElement('div');
+  body.className = 'admin-punishment-form';
   body.style.display = 'grid';
   body.style.gap = '0.75rem';
 
@@ -4331,11 +4341,7 @@ function openAdminTokenModal(title, onSubmit, placeholder = 'Введите то
   const input = document.createElement('input');
   input.type = 'text';
   input.placeholder = placeholder;
-  input.style.width = '100%';
-  input.style.padding = '0.75rem';
-  input.style.border = '1px solid #ccc';
-  input.style.borderRadius = '0.5rem';
-  input.style.fontSize = '1rem';
+  input.className = 'admin-modal-control';
   body.appendChild(input);
 
   openModal(title, body, [
