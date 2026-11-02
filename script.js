@@ -1937,7 +1937,7 @@ $('nav-admin').onclick = () => {
     'Группа IP найдена: ' + (ipGroup?.classList?.contains('menu__group') ? 'да' : 'нет'),
     'Группа IP скрыта: ' + (ipGroup?.classList?.contains('menu__group') ? (ipGroup.hidden ? 'да' : 'нет') : 'не определено'),
     'Модуль IP загружен: ' + (window.BuyAdIpHistory ? 'да' : 'нет')
-  ].join('\\n'));
+  ].join('\n'));
 };
 
 $('nav-create').onclick = () => {
