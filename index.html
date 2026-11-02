@@ -619,6 +619,22 @@
               <span class="menu__text" data-i18n="adminUnbanByIp">Разбанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
+            <button id="admin-search-ip-history" class="menu__item" type="button" hidden>
+              <span class="menu__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <span class="menu__text">Поиск аккаунтов по IP</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+            <button id="admin-diagnose-ip-headers" class="menu__item" type="button" hidden>
+              <span class="menu__icon"><i class="fa-solid fa-shield-halved"></i></span>
+              <span class="menu__text">Проверить IP-заголовки (тест)</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+            <div id="ip-history-diagnose-card" class="card" hidden>
+              <div class="card__title">Диагностика IP-заголовков</div>
+              <div class="field__hint">Проверка не сохраняет IP-адреса и не включает сбор истории.</div>
+              <button id="ip-history-diagnose-submit" class="btn btn--primary btn--full" type="button">Запустить проверку</button>
+              <pre id="ip-history-diagnose-status" class="rules__text" role="status" aria-live="polite"></pre>
+            </div>
 
             <button id="admin-view-own-ip" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-network-wired"></i></span>
@@ -766,6 +782,26 @@
       </div>
     </section>
 
+    <!-- IP HISTORY SEARCH -->
+    <section id="screen-ip-history-search" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-ip-history-search" type="button" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>
+          <div class="screen__title">Поиск аккаунтов по IP</div>
+        </div>
+        <div class="card">
+          <div class="field">
+            <div class="field__label">IP-адрес</div>
+            <input id="ip-history-search-input" class="textarea" type="text" inputmode="url" autocomplete="off" placeholder="Введите IPv4 или IPv6">
+            <div class="field__hint">Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.</div>
+            <button id="ip-history-search-submit" class="btn btn--primary btn--full" type="button">Найти аккаунты</button>
+          </div>
+        </div>
+        <div id="ip-history-search-status" class="hint" role="status" aria-live="polite"></div>
+        <div id="ip-history-search-results" class="stack-sm"></div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL LAYER -->
@@ -813,6 +849,8 @@
 <script src="admin.js"></script>
 <script src="script.js"></script>
 <script src="warning-system.js"></script>
+<script src="supabase-config.js"></script>
+<script src="ip-history.js"></script>
 </body>
 
 </html>

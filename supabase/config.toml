@@ -1,0 +1,8 @@
+[functions.record-ip-history]
+verify_jwt = false
+
+[functions.search-users-by-ip]
+verify_jwt = false
+
+# Deployment is handled by GitHub Actions.
+# Trigger deployment after updating the scoped Supabase access token.
