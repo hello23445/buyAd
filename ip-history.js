@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const NOTICE_VERSION = "2026-11-02";
+  const NOTICE_VERSION = "2026-11-03";
   const CONSENT_KEY = "buyAdIpHistoryConsent";
   const config = () => window.BUYAD_SUPABASE_CONFIG || {};
   const tg = window.Telegram?.WebApp;
@@ -31,32 +31,36 @@
     return new Promise(resolve => {
       const overlay = document.createElement("div");
       overlay.className = "ip-consent-overlay";
-      overlay.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.68)";
+      const theme = tg?.themeParams || {};
+      overlay.style.cssText = "position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom));background:rgba(0,0,0,.62);backdrop-filter:blur(5px);";
       const modal = document.createElement("section");
+      modal.className = "card ip-consent-modal";
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
       modal.setAttribute("aria-labelledby", "ip-consent-title");
-      modal.style.cssText = "width:min(440px,100%);max-height:85vh;overflow:auto;padding:22px;border-radius:18px;background:var(--card-bg,#fff);color:var(--text-color,#111);box-shadow:0 18px 60px rgba(0,0,0,.3)";
+      modal.style.cssText = "box-sizing:border-box;width:min(440px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:clamp(20px,5vw,28px);border-radius:22px;background:var(--tg-theme-bg-color," + (theme.bg_color || "var(--bg-color,#fff)") + ");color:var(--tg-theme-text-color," + (theme.text_color || "var(--text-color,#111)") + ");border:1px solid var(--tg-theme-section-separator-color,rgba(127,127,127,.18));box-shadow:0 18px 60px rgba(0,0,0,.28);";
       const title = document.createElement("h2");
       title.id = "ip-consent-title";
+      title.style.cssText = "margin:0 0 16px;font-size:clamp(22px,5vw,28px);line-height:1.2;font-weight:750;letter-spacing:-.02em;";
       const lang = localStorage.getItem("lang") || "ru";
       const translations = typeof i18n !== "undefined" ? i18n[lang] || i18n.ru : {};
-      title.textContent = translations.ipHistoryConsentTitle || (lang === "ru" ? "История IP-адресов" : "IP address history");
+      title.textContent = translations.ipHistoryConsentTitle || (lang === "ru" ? "Внимание!" : "Attention!");
+      const telegramId = String(tg?.initDataUnsafe?.user?.id || "—");
       const message = document.createElement("p");
-      message.style.cssText = "line-height:1.55;white-space:normal";
-      message.textContent = translations.ipHistoryConsentMessage || (lang === "ru" ? "С вашего согласия приложение будет сохранять защищённый отпечаток IP-адреса и время входа. Это позволит уполномоченному администратору находить совпадения. Сырые IP-адреса не сохраняются; записи автоматически удаляются через 30 дней." : "With your consent, the app stores a protected IP fingerprint and login time so an authorized administrator can find matches. Raw IP addresses are not stored; records are automatically deleted after 30 days.");
+      message.style.cssText = "margin:0;line-height:1.55;font-size:clamp(16px,4vw,18px);white-space:normal;overflow-wrap:anywhere;color:var(--tg-theme-text-color," + (theme.text_color || "inherit") + ");";
+      const messageTemplate = translations.ipHistoryConsentMessage || (lang === "ru" ? "Создавая рекламу, вы даёте согласие на использование вашего Telegram ID ({telegramId})." : "By creating an advertisement, you consent to the use of your Telegram ID ({telegramId}).");
+      message.textContent = messageTemplate.replaceAll("{telegramId}", telegramId);
       const actions = document.createElement("div");
-      actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px";
+      actions.style.cssText = "display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:24px;";
       const decline = document.createElement("button");
       decline.type = "button";
+      decline.className = "btn btn--ghost";
       decline.textContent = translations.ipHistoryConsentDecline || (lang === "ru" ? "Отказаться" : "Decline");
       const accept = document.createElement("button");
       accept.type = "button";
-      accept.textContent = translations.ipHistoryConsentAccept || "Согласен";
-      for (const button of [decline, accept]) button.style.cssText = "border:0;border-radius:10px;padding:11px 16px;font:inherit;cursor:pointer";
-      accept.style.background = "var(--button-color,#2481cc)";
-      accept.style.color = "var(--button-text-color,#fff)";
-      decline.style.background = "var(--hint-color,#e5e7eb)";
+      accept.className = "btn btn--primary";
+      accept.textContent = translations.ipHistoryConsentAccept || (lang === "ru" ? "Согласен" : "I agree");
+      for (const button of [decline, accept]) button.style.cssText = "min-height:48px;min-width:112px;padding:12px 18px;border-radius:14px;font:inherit;font-weight:600;cursor:pointer;";
       const finish = accepted => {
         localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
         overlay.remove();
