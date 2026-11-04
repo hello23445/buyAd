@@ -1,6 +1,8 @@
 ﻿// script.js 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
+// Consent stays disabled until the main app has completed startup and access checks.
+window.__buyAdConsentAccessAllowed = false;
 let isRulesModalOpen = false;
 if (tg) {
   tg.ready();
@@ -1872,6 +1874,8 @@ async function updateCrystalsInGAS(amount, isAdd = true) {
 }
 
 async function showMainMenu(updateWhat = 'both') {
+  window.__buyAdConsentAccessAllowed = false;
+  window.dispatchEvent(new Event('buyad:consent-access-changed'));
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
   const isAdmin = ADMIN_TOKENS.includes(token);
@@ -1937,6 +1941,18 @@ async function showMainMenu(updateWhat = 'both') {
   // Проверяем: 1) флаг disableCreateAds 2) забан на создание рекламы
   const isBannedFromAds = banForeverAds.includes(token) || isTokenCreateBlocked();
   $('nav-create').disabled = isCreateAdsDisabledGlobally() || isBannedFromAds;
+
+  // Only open the consent dialog after the main screen and its initial data are ready.
+  // All account-level restrictions are rechecked immediately before enabling it.
+  const blockedScreen = $('screen-blocked');
+  const accessAllowed = !isBannedFromAds &&
+    !isTokenFullyBlocked() &&
+    !isTelegramIdBlocked() &&
+    !currentUserIpBlocked &&
+    (!blockedScreen || blockedScreen.hidden) &&
+    !!$('screen-main') && !$('screen-main').hidden;
+  window.__buyAdConsentAccessAllowed = accessAllowed;
+  window.dispatchEvent(new Event('buyad:consent-access-changed'));
 }
 
 /* ========== NAVIGATION ========== */
