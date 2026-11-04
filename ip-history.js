@@ -23,7 +23,22 @@
     return data;
   }
 
+  function consentAccessAllowed() {
+    const blockedScreen = document.getElementById("screen-blocked");
+    const mainScreen = document.getElementById("screen-main");
+    return window.__buyAdConsentAccessAllowed === true &&
+      document.visibilityState === "visible" &&
+      (!blockedScreen || blockedScreen.hidden) &&
+      !!mainScreen && !mainScreen.hidden;
+  }
+
+  function cancelActiveConsent() {
+    const overlay = document.querySelector(".ip-consent-overlay");
+    if (overlay && typeof overlay.__cancelConsent === "function") overlay.__cancelConsent();
+  }
+
   function requestConsent() {
+    if (!consentAccessAllowed()) return Promise.resolve(false);
     const saved = localStorage.getItem(CONSENT_KEY);
     if (saved === NOTICE_VERSION) return Promise.resolve(true);
     if (saved === "declined:" + NOTICE_VERSION) return Promise.resolve(false);
@@ -61,10 +76,21 @@
       accept.className = "btn btn--primary";
       accept.textContent = translations.ipHistoryConsentAccept || (lang === "ru" ? "Согласен" : "I agree");
       for (const button of [decline, accept]) button.style.cssText = "min-height:48px;min-width:112px;padding:12px 18px;border-radius:14px;font:inherit;font-weight:600;cursor:pointer;";
+      let settled = false;
       const finish = accepted => {
-        localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
+        if (settled) return;
+        settled = true;
+        if (consentAccessAllowed()) {
+          localStorage.setItem(CONSENT_KEY, accepted ? NOTICE_VERSION : "declined:" + NOTICE_VERSION);
+        }
         overlay.remove();
-        resolve(accepted);
+        resolve(accepted && consentAccessAllowed());
+      };
+      overlay.__cancelConsent = () => {
+        if (settled) return;
+        settled = true;
+        overlay.remove();
+        resolve(false);
       };
       accept.addEventListener("click", () => finish(true));
       decline.addEventListener("click", () => finish(false));
@@ -78,12 +104,17 @@
     });
   }
 
+  let recordInFlight = false;
   async function record() {
-    if (!ready() || !(await requestConsent())) return;
+    if (recordInFlight || !consentAccessAllowed() || !ready()) return;
+    recordInFlight = true;
     try {
+      if (!(await requestConsent()) || !consentAccessAllowed()) return;
       await callFunction("record-ip-history", { consentVersion: NOTICE_VERSION, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
     } catch (error) {
       console.warn("IP history was not recorded:", error);
+    } finally {
+      recordInFlight = false;
     }
   }
 
@@ -261,7 +292,17 @@
     document.getElementById("ip-history-search-input")?.addEventListener("keydown", event => {
       if (event.key === "Enter") search();
     });
-    record();
+    // Wait for successful app startup; never display consent on a lock/ban screen
+    // or while the Telegram Mini App / phone screen is in the background.
+    window.addEventListener("buyad:consent-access-changed", () => {
+      if (!consentAccessAllowed()) cancelActiveConsent();
+      else record();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") cancelActiveConsent();
+      else if (consentAccessAllowed()) record();
+    });
+    if (consentAccessAllowed()) record();
   }
 
   window.BuyAdIpHistory = { record };
