@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-05T09:55:17.092Z",
+  "updatedAt": "2026-11-05T09:55:18.950Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -14,6 +14,88 @@
       "loginCount": 2,
       "punishments": [],
       "lastSeenToken": "1Y6QLQHT0JZRS2GK"
+    },
+    "tg:8085105056": {
+      "telegramId": "8085105056",
+      "fallbackId": "",
+      "tokens": [],
+      "firstSeenAt": "2026-11-05T09:55:18.950Z",
+      "registeredAt": null,
+      "lastLoginAt": null,
+      "loginCount": 0,
+      "punishments": [
+        {
+          "id": "warning:warn_1793397972535_0_l9uat",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-10-30T22:06:12.535Z",
+          "expiresAt": "2026-11-04T22:09:08.421Z",
+          "reason": "2.3",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1793397972535_1_t5mwx",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-10-30T22:06:12.536Z",
+          "expiresAt": "2026-11-04T22:09:08.421Z",
+          "reason": "2.3",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1793398148421_0_3p80n",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-10-30T22:09:08.421Z",
+          "expiresAt": "2026-11-04T22:09:08.421Z",
+          "reason": "2.4",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        }
+      ]
+    },
+    "tg:7654234598": {
+      "telegramId": "7654234598",
+      "fallbackId": "",
+      "tokens": [],
+      "firstSeenAt": "2026-11-05T09:55:18.950Z",
+      "registeredAt": null,
+      "lastLoginAt": null,
+      "loginCount": 0,
+      "punishments": [
+        {
+          "id": "warning:warn_1793647716004_0_4kplr",
+          "kind": "warning",
+          "identifier": "7654234598",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-02T19:28:36.004Z",
+          "expiresAt": "2026-11-04T19:28:36.005Z",
+          "reason": "2.5",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1793647716004_1_yyael",
+          "kind": "warning",
+          "identifier": "7654234598",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-02T19:28:36.005Z",
+          "expiresAt": "2026-11-06T19:28:36.005Z",
+          "reason": "2.5",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        }
+      ]
     }
   }
 }
