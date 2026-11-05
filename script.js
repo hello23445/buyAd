@@ -128,6 +128,8 @@ if (tg) {
         document.getElementById('back-from-review-ads').click();
       } else if (currentScreen === 'screen-warnings' && document.getElementById('back-from-warnings')) {
         document.getElementById('back-from-warnings').click();
+      } else if (currentScreen === 'screen-user-statistics' && document.getElementById('back-from-user-statistics')) {
+        document.getElementById('back-from-user-statistics').click();
       } else if (currentScreen === 'screen-settings' && document.getElementById('back-from-settings')) {
         document.getElementById('back-from-settings').click();
       }
@@ -151,7 +153,8 @@ function refreshBackButton() {
     'screen-ip-history-search',
     'screen-settings',
     'screen-review-ads',
-    'screen-warnings'
+    'screen-warnings',
+    'screen-user-statistics'
   ].includes(currentScreen);
 
   if (shouldShow) {
@@ -386,6 +389,7 @@ const ADMIN_DAILY_ACTIONS_KEY = 'buyAdsAdminDailyActions';
 const ADMIN_PERMISSION_MIN_LEVEL = {
   reviewAds: 1,
   viewRestricted: 2,
+  viewUserStatistics: 2,
   banToken: 2,
   unban: 2,
   unbanTelegramId: 3,
@@ -403,6 +407,7 @@ const ADMIN_PERMISSION_MIN_LEVEL = {
 const ADMIN_PERMISSION_LABELS = {
   reviewAds: 'Проверка рекламы',
   viewRestricted: 'Просмотр списка ограниченных пользователей',
+  viewUserStatistics: 'Просмотр статистики пользователей',
   banToken: 'Блокировка пользователя по токену',
   unban: 'Разблокировка пользователя по токену',
   unbanTelegramId: 'Разблокировка по Telegram ID',
@@ -570,6 +575,7 @@ function updateAdminLevelBadge() {
   const permissionVisibility = {
     'admin-check': 'reviewAds',
     'admin-restricted': 'viewRestricted',
+    'admin-user-statistics': 'viewUserStatistics',
     'admin-block-user': 'banToken',
     'admin-unblock-user': 'unban',
     'admin-ban-ip': 'banIp',
@@ -1778,6 +1784,7 @@ function checkAppOpen(isAdmin) {
 function firstEntry(lang) {
   localStorage.setItem(LS.lang, lang);
   localStorage.setItem(LS.token, rand(16));
+  window.BuyAdUserStatistics?.recordLogin(true).catch(error => console.warn('Не удалось записать регистрацию в архив статистики:', error));
   localStorage.setItem('crystals', '50');
   localStorage.setItem('adsCount', '0');
   const pre = document.createElement('pre');
@@ -4358,7 +4365,7 @@ $('admin-block-user').onclick = () => {
       showPreloader();
       if (!adminGuard('banToken', token)) return;
       const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
-      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
+      await updateVariable('BanForever', { value: token, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, issuedAt: new Date().toISOString(), expiresAt: expiresAt || null });
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
       window.BuyAdWarnings?.recordPunishmentIssued('account_ban', token, reason, durationDays, expiresAt);
     } catch (e) {
@@ -4409,7 +4416,7 @@ $('admin-ban-create-edit').onclick = () => {
   if(!adminGuard('restrictAds',value))return;
   const durationDays=duration.value==='forever'?null:Number(duration.value);
   const expiresAt=durationDays==null?'':new Date(Date.now()+durationDays*86400000).toISOString();
-  try{showPreloader();const entry={type,value,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,expiresAt:expiresAt||null};
+  try{showPreloader();const entry={type,value,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,issuedAt:new Date().toISOString(),expiresAt:expiresAt||null};
    const current=runtimeArray('BlockCreateAds',[]).filter(x=>punishmentEntryValue(x)!==value);
    await updateVariable('BlockCreateAds',[...current,entry]);recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(value))) ? 'banAdmin' : 'restrictAds');
    window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',value,entry.reason,durationDays,expiresAt);
@@ -4449,7 +4456,7 @@ $('admin-ban-ip').onclick = () => {
       showPreloader();
       if (!adminGuard('banIp', ip)) return;
       const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
-      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
+      await updateVariable('BlockedUsersIPadresses', { value: ip, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, issuedAt: new Date().toISOString(), expiresAt: expiresAt || null });
       recordAdminAction('banIp');
       window.BuyAdWarnings?.recordAdminAction('ip_banned', { targetIp: ip, reason: reason || 'Не указана', durationDays, expiresAt });
     } catch (e) {
@@ -4528,7 +4535,7 @@ $('admin-ban-telegram-id').onclick = () => {
       showPreloader();
       if (!adminGuard('banTelegramId', telegramId)) return;
       const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
-      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, expiresAt: expiresAt || null });
+      await updateVariable('BlockedUsersTelegramID', { value: telegramId, reason, adminName: getAdminDisplayName(), adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true', durationDays, issuedAt: new Date().toISOString(), expiresAt: expiresAt || null });
       recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(telegramId))) ? 'banAdmin' : 'banTelegramId');
       window.BuyAdWarnings?.recordPunishmentIssued('account_ban', telegramId, reason, durationDays, expiresAt);
     } catch (e) {
