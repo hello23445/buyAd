@@ -540,11 +540,14 @@
     if (!output) return;
     output.classList.add('stats-result');
     output.replaceChildren();
-    const warnings = getWarningsForProfile(profile);
+    const warnings = getWarningsForProfile(profile).filter(row => {
+      const expiresAt = row && (row.lockUntil || row.removeAt || row.expiresAt);
+      return !isExpired({ expiresAt });
+    });
     const activeRestrictions = collectCurrentRestrictions(profile);
     const activeBans = activeRestrictions.filter(row => row.kind !== 'ads_restriction');
     const adRestrictions = activeRestrictions.filter(row => row.kind === 'ads_restriction');
-    const warningCount = warnings.reduce((max, row) => Math.max(max, Number(row.count || 0)), warnings.length);
+    const warningCount = warnings.length;
     let status = 'Активен';
     if (activeBans.some(row => row.kind === 'account_ban')) status = 'Забанен по токену';
     else if (activeBans.some(row => row.kind === 'telegram_ban')) status = 'Забанен по Telegram ID';
