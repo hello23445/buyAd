@@ -654,7 +654,10 @@
         });
         target.user.tokens = Array.from(new Set([...(target.user.tokens || []), ...profile.tokens].map(String)));
         if (live.crystals != null) target.user.crystals = live.crystals;
-        if (live.adCount != null) target.user.adCount = live.adCount;
+        if (live.adCount != null) {
+          target.user.adCount = live.adCount;
+          target.user.adCreatedCount = Math.max(Number(target.user.adCreatedCount || 0), Number(live.adCount));
+        }
         target.user.statsUpdatedAt = nowIso();
       }, 'Refresh user statistics snapshot');
       renderProfile(profile, live);
