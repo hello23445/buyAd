@@ -1,5 +1,19 @@
 {
   "version": 1,
-  "updatedAt": null,
-  "users": {}
+  "updatedAt": "2026-11-05T09:55:15.124Z",
+  "users": {
+    "tg:6434781065": {
+      "telegramId": "6434781065",
+      "fallbackId": "",
+      "tokens": [
+        "1Y6QLQHT0JZRS2GK"
+      ],
+      "firstSeenAt": "2026-11-05T09:55:15.124Z",
+      "registeredAt": null,
+      "lastLoginAt": "2026-11-05T09:55:15.124Z",
+      "loginCount": 1,
+      "punishments": [],
+      "lastSeenToken": "1Y6QLQHT0JZRS2GK"
+    }
+  }
 }
