@@ -196,7 +196,9 @@
   };
   const writeWarnings = rows => {
     if (!safeWrite(WARN_KEY, rows)) return Promise.reject(new Error('Не удалось обновить локальный кэш предупреждений.'));
-    return persistWarnings(rows);
+    const persist = persistWarnings(rows);
+    try { window.dispatchEvent(new CustomEvent('buyad:user-warnings-updated', { detail: { rows } })); } catch (_) {}
+    return persist;
   };
     const readLogRows = () => safeRead(USER_LOG_KEY);
   const logUser = () => {};
