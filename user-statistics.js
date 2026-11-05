@@ -563,7 +563,7 @@
     appendField(identityCard, 'Количество предупреждений', warningCount);
     appendField(identityCard, 'Статус аккаунта', status);
     appendField(identityCard, 'Кристаллы', live.crystals == null ? (profile.crystals == null ? 'Нет данных' : profile.crystals) : live.crystals);
-    appendField(identityCard, 'Создано реклам', live.adCount == null ? (profile.adCount == null ? 'Нет данных' : profile.adCount) : live.adCount);
+    appendField(identityCard, 'Создано реклам', profile.adCreatedCount != null ? profile.adCreatedCount : (live.adCount == null ? (profile.adCount == null ? 'Нет данных' : profile.adCount) : live.adCount));
 
     identityCard.appendChild(makeElement('div', 'field__label', 'Все токены аккаунта'));
     const tokenList = makeElement('div', 'stack-sm');
@@ -718,14 +718,6 @@
     }
     if (typeof updateAdminLevelBadge === 'function') updateAdminLevelBadge();
     updateButtonVisibility();
-  }
-
-  function updateButtonVisibility() {
-    const button = document.getElementById('admin-user-statistics');
-    const group = document.getElementById('admin-user-statistics-group');
-    const visible = hasAccess();
-    if (button) button.hidden = !visible;
-    if (group) group.hidden = !visible;
   }
 
   function hookWarningApi() {
