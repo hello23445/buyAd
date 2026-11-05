@@ -538,6 +538,7 @@
   function renderProfile(profile, live) {
     const output = document.getElementById('user-statistics-result');
     if (!output) return;
+    output.classList.add('stats-result');
     output.replaceChildren();
     const warnings = getWarningsForProfile(profile);
     const activeRestrictions = collectCurrentRestrictions(profile);
@@ -550,7 +551,7 @@
     else if (activeBans.some(row => row.kind === 'ip_ban')) status = 'Полностью забанен по IP';
     else if (warningCount >= 3) status = 'Забанен за 3 из 3 предупреждений';
 
-    const identityCard = makeElement('div', 'card');
+    const identityCard = makeElement('div', 'card stats-overview');
     identityCard.appendChild(makeElement('div', 'card__title', 'Общая информация'));
     appendField(identityCard, 'Дата регистрации', moscowDate(profile.registeredAt));
     appendField(identityCard, 'Последний вход', moscowDate(profile.lastLoginAt));
@@ -609,7 +610,7 @@
     }
     output.appendChild(restrictionCard);
 
-    const historyCard = makeElement('div', 'card');
+    const historyCard = makeElement('div', 'card stats-history');
     historyCard.appendChild(makeElement('div', 'card__title', 'История наказаний'));
     const historyButton = makeElement('button', 'btn btn--primary btn--full', 'Список наказаний за последние 2 месяца');
     historyButton.type = 'button';
@@ -667,6 +668,49 @@
     } finally {
       if (button) button.disabled = false;
     }
+  }
+
+  function installStatisticsStyles() {
+    if (document.getElementById('user-statistics-modern-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'user-statistics-modern-styles';
+    style.textContent = `
+      #screen-user-statistics { --us-bg: var(--card-bg, rgba(255,255,255,.045)); --us-line: rgba(148,163,184,.18); }
+      #screen-user-statistics > .stack { width: min(100%, 1040px); margin: 0 auto; gap: 18px; }
+      #screen-user-statistics .screen__head { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+      #screen-user-statistics .screen__title { font-size: clamp(22px, 3vw, 30px); font-weight:800; letter-spacing:-.035em; }
+      #screen-user-statistics .card { background:var(--us-bg); border:1px solid var(--us-line); border-radius:20px; padding:clamp(16px, 2.5vw, 24px); box-shadow:0 10px 30px rgba(0,0,0,.10); min-width:0; }
+      #screen-user-statistics .card__title { font-size:17px; font-weight:800; letter-spacing:-.02em; margin-bottom:16px; }
+      #screen-user-statistics .field { min-width:0; margin-bottom:12px !important; padding:12px 14px; border:1px solid var(--us-line); border-radius:13px; background:rgba(148,163,184,.055); }
+      #screen-user-statistics .field__label { display:block; font-size:11px; font-weight:750; letter-spacing:.065em; text-transform:uppercase; opacity:.66; margin-bottom:6px; }
+      #screen-user-statistics .rules__text { overflow-wrap:anywhere; line-height:1.45; font-weight:600; }
+      #screen-user-statistics .textarea { width:100%; min-height:48px; border-radius:13px; }
+      #screen-user-statistics .btn { min-height:42px; border-radius:12px; font-weight:750; transition:transform .16s ease, opacity .16s ease; }
+      #screen-user-statistics .btn:not(:disabled):active { transform:scale(.98); }
+      #screen-user-statistics .hint { line-height:1.5; opacity:.72; }
+      #screen-user-statistics .tokenbox { display:flex; align-items:center; gap:10px; min-width:0; padding:10px 12px; border:1px solid var(--us-line); border-radius:12px; background:rgba(148,163,184,.045); }
+      #screen-user-statistics .tokenbox code { flex:1; min-width:0; overflow-wrap:anywhere; white-space:normal; font-size:12px; }
+      #screen-user-statistics .stats-result { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+      #screen-user-statistics .stats-overview { grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; }
+      #screen-user-statistics .stats-overview > .card__title,
+      #screen-user-statistics .stats-overview > .field__label,
+      #screen-user-statistics .stats-overview > .stack-sm { grid-column:1 / -1; }
+      #screen-user-statistics .stats-overview > .field:nth-of-type(n+7) { background:rgba(99,102,241,.07); border-color:rgba(129,140,248,.22); }
+      #screen-user-statistics .stats-history { grid-column:1 / -1; }
+      #screen-user-statistics .stats-history .card { margin-top:10px !important; box-shadow:none; }
+      #screen-user-statistics .stack-sm { display:grid; gap:9px; }
+      #screen-user-statistics button:focus-visible, #screen-user-statistics input:focus-visible { outline:2px solid #818cf8; outline-offset:3px; }
+      @media (max-width:680px) {
+        #screen-user-statistics > .stack { gap:13px; }
+        #screen-user-statistics .stats-result { grid-template-columns:minmax(0,1fr); gap:12px; }
+        #screen-user-statistics .stats-overview { grid-template-columns:minmax(0,1fr); }
+        #screen-user-statistics .stats-result > .card, #screen-user-statistics .stats-history { grid-column:1; }
+        #screen-user-statistics .card { border-radius:16px; padding:16px; }
+        #screen-user-statistics .tokenbox { align-items:flex-start; flex-direction:column; }
+        #screen-user-statistics .tokenbox .btn { width:100%; }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function addScreenAndMenu() {
@@ -778,6 +822,7 @@
   }
 
   function install() {
+    installStatisticsStyles();
     addScreenAndMenu();
     hookWarningApi();
     const rows = warningRows();
