@@ -422,6 +422,7 @@
     wrap.appendChild(makeElement('div', 'field__label', label));
     wrap.appendChild(makeElement('div', 'rules__text', value == null || value === '' ? '—' : value));
     parent.appendChild(wrap);
+    return wrap;
   }
 
   async function copyValue(value, button) {
@@ -558,12 +559,12 @@
     identityCard.appendChild(makeElement('div', 'card__title', 'Общая информация'));
     appendField(identityCard, 'Дата регистрации', moscowDate(profile.registeredAt));
     appendField(identityCard, 'Последний вход', moscowDate(profile.lastLoginAt));
-    appendField(identityCard, 'Telegram ID', profile.telegramId || '—');
-    const idCopy = makeElement('button', 'btn btn--ghost', 'Копировать Telegram ID');
+    const telegramIdField = appendField(identityCard, 'Telegram ID', profile.telegramId || '—');
+    const idCopy = makeElement('button', 'btn btn--ghost user-statistics-copy-id', 'Копировать Telegram ID');
     idCopy.type = 'button';
     idCopy.disabled = !profile.telegramId;
     idCopy.addEventListener('click', () => copyValue(profile.telegramId, idCopy));
-    identityCard.appendChild(idCopy);
+    telegramIdField.appendChild(idCopy);
     appendField(identityCard, 'Количество предупреждений', warningCount);
     appendField(identityCard, 'Статус аккаунта', status);
     appendField(identityCard, 'Кристаллы', live.crystals == null ? (profile.crystals == null ? 'Нет данных' : profile.crystals) : live.crystals);
@@ -685,6 +686,7 @@
       #screen-user-statistics .card { background:var(--us-bg); border:1px solid var(--us-line); border-radius:20px; padding:clamp(16px, 2.5vw, 24px); box-shadow:0 10px 30px rgba(0,0,0,.10); min-width:0; }
       #screen-user-statistics .card__title { font-size:17px; font-weight:800; letter-spacing:-.02em; margin-bottom:16px; }
       #screen-user-statistics .field { min-width:0; margin-bottom:12px !important; padding:12px 14px; border:1px solid var(--us-line); border-radius:13px; background:rgba(148,163,184,.055); }
+      #screen-user-statistics .user-statistics-copy-id { display:block; width:100%; margin-top:12px; }
       #screen-user-statistics .field__label { display:block; font-size:11px; font-weight:750; letter-spacing:.065em; text-transform:uppercase; opacity:.66; margin-bottom:6px; }
       #screen-user-statistics .rules__text { overflow-wrap:anywhere; line-height:1.45; font-weight:600; }
       #screen-user-statistics .textarea { width:100%; min-height:48px; border-radius:13px; }
