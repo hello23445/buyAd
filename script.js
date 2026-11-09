@@ -118,6 +118,8 @@ if (tg) {
         document.getElementById('back-from-ad-statistics').click();
       } else if (currentScreen === 'screen-crystals' && document.getElementById('back-from-crystals')) {
         document.getElementById('back-from-crystals').click();
+      } else if (currentScreen === 'screen-referrals' && document.getElementById('back-from-referrals')) {
+        document.getElementById('back-from-referrals').click();
       } else if (currentScreen === 'screen-admin' && document.getElementById('back-from-admin')) {
         document.getElementById('back-from-admin').click();
       } else if (currentScreen === 'screen-restricted-users' && document.getElementById('back-from-restricted-users')) {
@@ -148,6 +150,7 @@ function refreshBackButton() {
     'screen-myads',
     'screen-ad-statistics',
     'screen-crystals',
+    'screen-referrals',
     'screen-admin',
     'screen-restricted-users',
     'screen-ip-history-search',
@@ -1855,6 +1858,13 @@ async function fetchCrystals() {
     return 0;
   }
 }
+
+window.BuyAdRefreshCrystals = async function () {
+  currentCrystals = await fetchCrystals();
+  if ($('crystals-count')) $('crystals-count').textContent = formatNumber(currentCrystals);
+  if ($('crystals-now')) $('crystals-now').textContent = formatNumber(currentCrystals);
+  return currentCrystals;
+};
 
 async function updateCrystalsInGAS(amount, isAdd = true) {
   if (isGasDisabled()) {
@@ -4696,7 +4706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const startupPreloaderWatchdog = setTimeout(() => {
     console.warn('Startup watchdog: releasing the loading screen.');
     hidePreloader();
-  }, 9000);
+  }, 15000);
   const startupWait = (promise, timeoutMs, fallback) => Promise.race([
     Promise.resolve().then(() => promise).catch(error => { console.warn('Startup task failed:', error); return fallback; }),
     new Promise(resolve => setTimeout(() => resolve(fallback), timeoutMs))
@@ -4708,6 +4718,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const button = $('btn-open-settings');
     if (button) button.disabled = false;
   }, 7000);
+
+  // Record the first visit and its signed Telegram start parameter before
+  // the legacy initUser request can create a Users row.
+  if (typeof window.BuyAdReferralBootstrap === 'function') {
+    await startupWait(window.BuyAdReferralBootstrap(), 12500, null);
+  }
+
 // Инициализация пользователя в таблице Users
 (async () => {
   if (isGasDisabled()) return; // Пропускаем GAS
