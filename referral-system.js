@@ -50,19 +50,24 @@
   }
 
   function api(action, payload = {}) {
+    logReferralDebug('API request: ' + action, { payloadKeys: Object.keys(payload || {}) });
     const webApp = telegram();
     const endpoint = serviceUrl();
     if (!endpoint) {
-      return Promise.reject(new Error(text(
+      const error = new Error(text(
         'Реферальный сервис ещё не подключён. Сначала разверните Google Apps Script и укажите его URL в settings.js.',
         'The referral service is not configured yet. Deploy the Google Apps Script backend and set its URL in settings.js.'
-      )));
+      ));
+      showReferralDebugAlert(error);
+      return Promise.reject(error);
     }
     if (!webApp?.initData || !telegramId()) {
-      return Promise.reject(new Error(text(
+      const error = new Error(text(
         'Откройте приложение через Telegram, чтобы использовать реферальную систему.',
         'Open the app through Telegram to use the referral system.'
-      )));
+      ));
+      showReferralDebugAlert(error);
+      return Promise.reject(error);
     }
 
     return new Promise((resolve, reject) => {
@@ -74,19 +79,30 @@
         try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
         clearTimeout(timeout);
       };
+      const fail = (stage, error, details) => {
+        logReferralDebug(stage + ': ' + action, details || error?.stack || error?.message || String(error));
+        showReferralDebugAlert(error);
+        reject(error);
+      };
       const timeout = setTimeout(() => {
         if (settled) return;
         settled = true;
         cleanup();
-        const error = new Error(text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.'));\n        showReferralDebugAlert(error); reject(error);
+        fail('JSONP timeout', new Error(text('Сервер не ответил за 12 секунд.', 'Server did not respond within 12 seconds.')), { endpoint });
       }, 12000);
 
       window[callbackName] = response => {
         if (settled) return;
         settled = true;
         cleanup();
+        logReferralDebug('API response: ' + action, {
+          success: response?.success,
+          error: response?.error || null,
+          responseKeys: Object.keys(response || {})
+        });
         if (!response || response.success !== true) {
-          reject(new Error(localizeServerError(response?.error || 'Referral request failed.')));
+          const error = new Error(localizeServerError(response?.error || 'Referral request failed.'));
+          fail('Backend returned an error', error, { action, serverError: response?.error || 'Empty response' });
           return;
         }
         resolve(response);
@@ -95,7 +111,7 @@
         if (settled) return;
         settled = true;
         cleanup();
-        const error = new Error(text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.'));\n        logReferralDebug('JSONP script load failed: ' + action, { endpoint: serviceUrl() });\n        showReferralDebugAlert(error); reject(error);
+        fail('JSONP script load failed', new Error(text('Не удалось загрузить ответ сервера.', 'Could not load the server response.')), { endpoint });
       };
 
       try {
@@ -111,7 +127,7 @@
       } catch (error) {
         settled = true;
         cleanup();
-        reject(error);
+        fail('Request setup failed', error, { endpoint, action });
       }
     });
   }
