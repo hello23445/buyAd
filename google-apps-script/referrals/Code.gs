@@ -659,6 +659,14 @@ function claimReferral_(identity) {
   const first = visits.getRange(visitRow, 1, 1, 8).getValues()[0];
   const status = String(first[4] || '');
   const giftAlreadyReceived = normalizeGift_(first[5]);
+
+  // Never expose or grant a reward when the signed first-visit record points
+  // back to the current user, even if an old or manually edited row says claimed.
+  const firstVisitReferral = first[2] ? findReferralByCode_(String(first[2])) : null;
+  if (firstVisitReferral && firstVisitReferral.ownerId === identity.telegramId) {
+    if (status !== 'claimed') visits.getRange(visitRow, 5).setValue('ignored');
+    return { claimed: false, giftReceived: 0, showGift: false, selfReferral: true };
+  }
   if (status === 'claimed') {
     return { claimed: true, giftReceived: giftAlreadyReceived, ownerEarned: Number(first[6] || 0), showGift: giftAlreadyReceived > 0 && !first[7] };
   }
