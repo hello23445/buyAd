@@ -124,7 +124,7 @@ function verifyTelegramInitData_(initData, userToken) {
     .join('\n');
 
   const secretKey = Utilities.computeHmacSha256Signature('WebAppData', botToken);
-  const calculatedHash = bytesToHex_(Utilities.computeHmacSha256Signature(checkString, secretKey));
+  const calculatedHash = bytesToHex_(Utilities.computeHmacSha256Signature(Utilities.newBlob(checkString).getBytes(), secretKey));
   if (!constantTimeEquals_(receivedHash, calculatedHash)) throw new Error('Telegram authorization is missing or invalid.');
 
   const authDate = Number(values.auth_date || 0);
