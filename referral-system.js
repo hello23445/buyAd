@@ -620,7 +620,7 @@
       const item = makeElement('div', 'referral-statistics-metric' + (modifier ? ' ' + modifier : ''));
       const top = makeElement('div', 'referral-statistics-metric-top');
       top.append(makeElement('span', 'referral-statistics-label', label));
-      if (icon === 'users') top.appendChild(makeElement('i', 'fa-solid fa-users referral-statistics-icon'));
+      if (icon === 'users') top.appendChild(makeElement('i', 'fa-solid fa-user-group referral-statistics-icon'));
       else if (icon) top.appendChild(makeElement('span', 'referral-statistics-gem', icon));
       item.append(top, makeElement('strong', 'referral-statistics-value', String(Math.max(0, Number(value) || 0))));
       metrics.appendChild(item);
