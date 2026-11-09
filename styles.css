@@ -2173,3 +2173,23 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
   .referral-option-card { padding: 12px; }
   .referral-reward-panel { padding: 12px; }
 }
+
+
+/* Referral screen visual simplification. */
+.referral-settings-card { gap: 13px; }
+.referral-settings-heading { display: block; padding-bottom: 2px; }
+.referral-settings-heading-copy { font-size: 16px; line-height: 1.35; }
+.referral-option-card { padding: 12px 13px; }
+.referral-option-copy span { font-size: 11px; }
+.referral-field { gap: 7px; }
+.referral-field textarea { min-height: 92px; }
+.referral-preview-card { gap: 6px; padding: 11px 13px; }
+.referral-preview-heading { font-size: 11px; color: var(--hint-color,#8993a8); }
+.referral-preview-body { font-size: 12px; line-height: 1.45; }
+.referral-preview-url { font-size: 10px; }
+.referral-reward-panel { gap: 10px; padding: 13px; }
+.referral-reward-explainer { font-size: 11px; }
+.referral-gift-calculation { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 0; background: transparent; }
+.referral-reward-result { display: block; padding: 10px; border-radius: 11px; background: var(--card-bg,rgba(128,128,128,.08)); font-size: 12px; }
+.referral-screen-refresh:disabled { opacity: .72; cursor: not-allowed; }
+.referral-screen-refresh[aria-busy="true"] { pointer-events: none; }

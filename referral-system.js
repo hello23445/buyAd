@@ -453,26 +453,16 @@
   function buildSettingsCard(referral) {
     const card = makeElement('div', 'card referral-settings-card');
     const heading = makeElement('div', 'referral-settings-heading');
-    heading.append(
-      makeElement('div', 'referral-settings-icon', '⚙️')
-    );
     const headingCopy = makeElement('div', 'referral-settings-heading-copy');
     headingCopy.appendChild(makeElement('strong', '', text('Настройки приглашения', 'Invitation settings')));
     heading.appendChild(headingCopy);
-    heading.appendChild(makeElement('p', 'field__hint', text(
-      'Настройте сообщение и распределение кристаллов. Изменения вступят в силу после сохранения.',
-      'Customize the message and crystal split. Changes take effect after you save.'
-    )));
     card.appendChild(heading);
 
     const visibilityCard = makeElement('div', 'referral-option-card');
     const visibilityCopy = makeElement('div', 'referral-option-copy');
     visibilityCopy.append(
       makeElement('strong', '', text('Показывать текст', 'Show message')),
-      makeElement('span', '', text(
-        'Добавлять ваше сообщение к реферальной ссылке при отправке.',
-        'Include your message when the referral link is shared.'
-      ))
+      makeElement('span', '', text('Текст будет отправлен вместе со ссылкой.', 'Include the message with the link.'))
     );
     const visibilitySwitch = makeElement('label', 'referral-switch');
     const visibilityInput = document.createElement('input');
@@ -508,8 +498,7 @@
 
     const preview = makeElement('div', 'referral-preview-card');
     const previewHeading = makeElement('div', 'referral-preview-heading');
-    previewHeading.append(makeElement('span', '', text('Предпросмотр сообщения', 'Message preview')),
-      makeElement('span', 'referral-preview-badge', text('ПРЕДПРОСМОТР', 'PREVIEW')));
+    previewHeading.append(makeElement('span', '', text('Так увидит приглашённый', 'What your friend will see')));
     const previewBody = makeElement('p', 'referral-preview-body', '');
     const previewUrl = makeElement('div', 'referral-preview-url', referral.url);
     const updatePreview = () => {
@@ -552,8 +541,8 @@
     );
     rewardCard.appendChild(giftHeading);
     rewardCard.appendChild(makeElement('p', 'referral-reward-explainer', text(
-      'За каждого нового участника выделяется 60 💎. Выберите, сколько получит друг — остаток начислится вам.',
-      'A total of 60 💎 is allocated for each new member. Choose the friend’s gift; you receive the remainder.'
+      'Всего за приглашение: 60 💎. Выберите награду другу — остаток получите вы.',
+      '60 💎 per referral. Choose your friend’s reward; you receive the rest.'
     )));
     const range = document.createElement('input');
     range.type = 'range';
@@ -566,8 +555,7 @@
     const calculation = makeElement('div', 'referral-gift-calculation');
     const friendReward = makeElement('div', 'referral-reward-result');
     const ownerReward = makeElement('div', 'referral-reward-result');
-    const totalReward = makeElement('div', 'referral-reward-total', text('Общая награда за приглашение: 60 💎', 'Total reward per referral: 60 💎'));
-    calculation.append(friendReward, ownerReward, totalReward);
+    calculation.append(friendReward, ownerReward);
     const updateCalculation = () => {
       const gift = Math.max(0, Math.min(50, Number(range.value) || 0));
       giftHeading.querySelector('.referral-gift-value').textContent = gift + ' 💎';
@@ -771,20 +759,47 @@
     if (!referralScreenLoaded) await loadState().catch(() => {});
   }
 
-  async function refreshReferralScreen() {
+  let refreshCooldownInterval = null;
+  const REFRESH_COOLDOWN_MS = 120000;
+  function refreshCooldownKey() { return 'buyad_referral_refresh_at_' + String(telegramId() || 'user'); }
+  function refreshCooldownUntil() { try { return Number(localStorage.getItem(refreshCooldownKey())) || 0; } catch (_) { return 0; } }
+  function applyRefreshCooldown(until = refreshCooldownUntil()) {
     const refresh = document.getElementById('refresh-referrals');
     const label = refresh?.querySelector('span');
+    if (refreshCooldownInterval) clearInterval(refreshCooldownInterval);
+    refreshCooldownInterval = null;
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      if (remaining > 0) {
+        if (refresh) refresh.disabled = true;
+        if (label) label.textContent = text('Обновить через ', 'Refresh in ') + formatReferralCooldown(remaining);
+        if (refresh) refresh.title = text('Повторное обновление будет доступно через ', 'Refresh available in ') + formatReferralCooldown(remaining);
+      } else {
+        if (refresh) refresh.disabled = false;
+        if (label) label.textContent = text('Обновить', 'Refresh');
+        if (refresh) refresh.title = text('Обновить данные', 'Refresh data');
+        if (refreshCooldownInterval) clearInterval(refreshCooldownInterval);
+        refreshCooldownInterval = null;
+      }
+    };
+    update();
+    if (until > Date.now()) refreshCooldownInterval = setInterval(update, 1000);
+  }
+  async function refreshReferralScreen() {
+    const refresh = document.getElementById('refresh-referrals');
     if (refresh?.disabled) return;
-    if (refresh) refresh.disabled = true;
-    if (label) label.textContent = text('Обновляем…', 'Refreshing…');
+    const until = Date.now() + REFRESH_COOLDOWN_MS;
+    try { localStorage.setItem(refreshCooldownKey(), String(until)); } catch (_) {}
+    applyRefreshCooldown(until);
+    if (refresh) refresh.setAttribute('aria-busy', 'true');
     try {
       await loadState();
       showToast(text('Данные обновлены', 'Referral data updated'));
     } catch (_) {
       // loadState already displays the error and diagnostics action.
     } finally {
-      if (refresh) refresh.disabled = false;
-      if (label) label.textContent = text('Обновить', 'Refresh');
+      if (refresh) refresh.removeAttribute('aria-busy');
+      applyRefreshCooldown();
     }
   }
 
@@ -862,6 +877,7 @@
     if (nav) nav.addEventListener('click', () => { openReferralScreen(); });
     if (back) back.addEventListener('click', backToMain);
     if (refresh) refresh.addEventListener('click', refreshReferralScreen);
+    applyRefreshCooldown();
 
     window.addEventListener('buyad:consent-access-changed', scheduleGiftCheck);
     const observer = new MutationObserver(scheduleGiftCheck);
