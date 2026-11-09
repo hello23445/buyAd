@@ -1548,6 +1548,7 @@ function applyLang(lang) {
   const reviewBack = $('back-from-review-ads');
   if (reviewBack) reviewBack.setAttribute('aria-label', i18n[lang].reviewBack || (lang === 'ru' ? 'Назад' : 'Back'));
   if (window.BuyAdWarnings?.applyLanguage) window.BuyAdWarnings.applyLanguage(lang);
+  if (window.BuyAdRefreshReferralLanguage) window.BuyAdRefreshReferralLanguage();
   if (! $('screen-main').hidden) showMainMenu();
   if (! $('screen-crystals').hidden) loadCrystals();
   if (! $('screen-myads').hidden) loadMyAds();
