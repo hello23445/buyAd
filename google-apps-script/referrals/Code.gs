@@ -297,13 +297,14 @@ function isUserEligible_(telegramId, userToken) {
   const tokens = [String(userToken || ''), userTokenForId_(id)].filter(Boolean);
 
   const banned = [].concat(config.BlockedUsersTelegramID || [], config.BanForever || []);
+  const now = Date.now();
   const isBanned = banned.some(function (entry) {
+    if (!restrictionIsActive_(entry, now)) return false;
     const value = restrictionValue_(entry);
     return value === id || tokens.indexOf(value) >= 0;
   });
   if (isBanned) return { eligible: false, reason: 'Аккаунт заблокирован' };
 
-  const now = Date.now();
   const hasWarning = (config.UserWarnings || []).some(function (warning) {
     if (!warning || typeof warning !== 'object') return false;
     const warningTelegramId = String(warning.telegramId || warning.telegram_id || '');
@@ -314,6 +315,12 @@ function isUserEligible_(telegramId, userToken) {
   });
   if (hasWarning) return { eligible: false, reason: 'Есть активное предупреждение' };
   return { eligible: true, reason: '' };
+}
+
+function restrictionIsActive_(entry, now) {
+  if (!entry || typeof entry !== 'object' || !entry.expiresAt) return true;
+  const expiresAt = Date.parse(entry.expiresAt);
+  return !Number.isFinite(expiresAt) || expiresAt > now;
 }
 
 function restrictionValue_(entry) {
