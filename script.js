@@ -290,6 +290,15 @@ function closeModal() {
 }
 $('modal-close').onclick = closeModal;
 
+function confirmAdminMenuAction(title, body, confirmText = 'Подтвердить', danger = true) {
+  return new Promise(resolve => {
+    openModal(title, body, [
+      { text: 'Отмена', class: 'btn btn--ghost', onClick: () => resolve(false) },
+      { text: confirmText, class: danger ? 'btn btn--danger' : 'btn btn--primary', onClick: () => resolve(true) }
+    ]);
+  });
+}
+
 function formatPunishmentDuration(entry, lang) {
   if (!entry || typeof entry !== 'object' || !entry.expiresAt) {
     return lang === 'ru' ? 'навсегда' : 'permanently';
@@ -1123,7 +1132,13 @@ function openDeleteAdminModal() {
       openModal('Неверный выбор', 'Нельзя удалить текущего администратора.');
       return;
     }
-    if (!confirm('Удалить администратора «' + (target.admin_name || target.admin_token) + '»? Это действие нельзя отменить.')) return;
+    const confirmed = await confirmAdminMenuAction(
+      'Подтвердить удаление администратора',
+      'Удалить администратора «' + (target.admin_name || target.admin_token) + '»? Это действие нельзя отменить.',
+      'Удалить',
+      true
+    );
+    if (!confirmed) return;
     await saveAdminRegistryChanges(
       ADMINS.filter(item => item.admin_token !== target.admin_token),
       'Delete administrator from admin menu',
@@ -1134,10 +1149,19 @@ function openDeleteAdminModal() {
 }
 $('admin-delete-admin')?.addEventListener('click', openDeleteAdminModal);
 
-$('admin-clear-localstorage')?.addEventListener('click',()=>{
+$('admin-clear-localstorage')?.addEventListener('click', async () => {
  const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
- if(Number(base?.admin_level)!==5 || Number(getCurrentAdmin()?.admin_level)!==5){alert('Доступно только администратору 5-го уровня');return;}
- if(confirm('Очистить локальные данные? Токен, Telegram ID и сохранённые настройки приложения будут сохранены.')){
+ if (Number(base?.admin_level) !== 5 || Number(getCurrentAdmin()?.admin_level) !== 5) {
+   openModal('Недостаточно прав', 'Очистить локальные данные может только главный администратор 5-го уровня.');
+   return;
+ }
+ const confirmed = await confirmAdminMenuAction(
+   'Очистить локальные данные?',
+   'Токен, Telegram ID и сохранённые настройки приложения будут сохранены. Остальные локальные данные будут удалены.',
+   'Очистить',
+   true
+ );
+ if (confirmed) {
   const preserved = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -4669,7 +4693,7 @@ $('admin-unban-telegram-id').onclick = () => {
 
 $('admin-close-app').onclick = async () => {
   if (!adminGuard('globalCreateToggle')) return;
-  if (!confirm('Подтвердите изменение параметра «CloseApp»: закрыть приложение для пользователей?')) return;
+  if (!await confirmAdminMenuAction('Закрыть приложение?', 'Подтвердите закрытие приложения для всех пользователей.', 'Закрыть', true)) return;
   try {
     showPreloader();
     await updateVariable('CloseApp', 'closed');
@@ -4682,7 +4706,7 @@ $('admin-close-app').onclick = async () => {
 
 $('admin-open-app').onclick = async () => {
   if (!adminGuard('globalCreateToggle')) return;
-  if (!confirm('Подтвердите изменение параметра «CloseApp»: снова открыть приложение?')) return;
+  if (!await confirmAdminMenuAction('Открыть приложение?', 'Подтвердите, что приложение снова станет доступно всем пользователям.', 'Открыть', false)) return;
   try {
     showPreloader();
     await updateVariable('UnCloseApp', 'not_closed');
@@ -4694,7 +4718,7 @@ $('admin-open-app').onclick = async () => {
 };
 
 $('admin-disable-gas').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «GASESES»: отключить GAS?')) return;
+  if (!await confirmAdminMenuAction('Отключить GAS?', 'Подтвердите отключение GAS для приложения.', 'Отключить', true)) return;
   try {
     showPreloader();
     await updateVariable('GASESES', 'no');
@@ -4706,7 +4730,7 @@ $('admin-disable-gas').onclick = async () => {
 };
 
 $('admin-enable-gas').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «GASESES»: включить GAS?')) return;
+  if (!await confirmAdminMenuAction('Включить GAS?', 'Подтвердите повторное включение GAS.', 'Включить', false)) return;
   try {
     showPreloader();
     await updateVariable('UnGASESES', 'true');
@@ -4718,7 +4742,7 @@ $('admin-enable-gas').onclick = async () => {
 };
 
 $('admin-disable-payments').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «Purchases2»: отключить платежи?')) return;
+  if (!await confirmAdminMenuAction('Отключить платежи?', 'Пользователи временно не смогут совершать платежи.', 'Отключить', true)) return;
   try {
     showPreloader();
     await updateVariable('Purchases2', 'no');
@@ -4730,7 +4754,7 @@ $('admin-disable-payments').onclick = async () => {
 };
 
 $('admin-enable-payments').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «Purchases2»: включить платежи?')) return;
+  if (!await confirmAdminMenuAction('Включить платежи?', 'Платежи снова станут доступны пользователям.', 'Включить', false)) return;
   try {
     showPreloader();
     await updateVariable('UnPurchases2', 'enabled');
@@ -4742,7 +4766,7 @@ $('admin-enable-payments').onclick = async () => {
 };
 
 $('admin-disable-create-all').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «disableCreateAds2»: запретить создание рекламы всем пользователям?')) return;
+  if (!await confirmAdminMenuAction('Запретить создание рекламы?', 'Создание рекламы будет отключено для всех пользователей.', 'Запретить', true)) return;
   try {
     showPreloader();
     await updateVariable('disableCreateAds2', 'disabled');
@@ -4754,7 +4778,7 @@ $('admin-disable-create-all').onclick = async () => {
 };
 
 $('admin-enable-create-all').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «disableCreateAds2»: разрешить создание рекламы всем пользователям?')) return;
+  if (!await confirmAdminMenuAction('Разрешить создание рекламы?', 'Пользователи снова смогут создавать рекламу.', 'Разрешить', false)) return;
   try {
     showPreloader();
     await updateVariable('UndisableCreateAds2', 'enabled');
@@ -4766,7 +4790,7 @@ $('admin-enable-create-all').onclick = async () => {
 };
 
 $('admin-disable-edit-all').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «disableEditingAds»: запретить редактирование рекламы всем пользователям?')) return;
+  if (!await confirmAdminMenuAction('Запретить редактирование рекламы?', 'Редактирование рекламы будет отключено для всех пользователей.', 'Запретить', true)) return;
   try {
     showPreloader();
     await updateVariable('disableEditingAds', 'disabled');
@@ -4778,7 +4802,7 @@ $('admin-disable-edit-all').onclick = async () => {
 };
 
 $('admin-enable-edit-all').onclick = async () => {
-  if (!confirm('Подтвердите изменение параметра «disableEditingAds»: разрешить редактирование рекламы всем пользователям?')) return;
+  if (!await confirmAdminMenuAction('Разрешить редактирование рекламы?', 'Пользователи снова смогут редактировать рекламу.', 'Разрешить', false)) return;
   try {
     showPreloader();
     await updateVariable('UndisableEditingAds', 'enabled');
