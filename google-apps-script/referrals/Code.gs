@@ -71,6 +71,8 @@ function dispatchReferralAction_(action, identity, payload) {
       return registerReferralVisit_(identity);
     case 'getState':
       return getReferralState_(identity);
+    case 'getStats':
+      return getReferralStats_(identity, String(payload.period || 'day'), payload.manualRefresh === true);
     case 'createReferral':
       return createReferral_(identity);
     case 'saveSettings':
