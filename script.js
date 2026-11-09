@@ -602,6 +602,13 @@ function updateAdminLevelBadge() {
     const element = $(id);
     if (element) element.hidden = !adminHasPermission(permission);
   });
+  const canManageReferralSystem = Number(admin?.admin_level || 0) >= 4;
+  ['admin-referral-enable', 'admin-referral-disable'].forEach(id => {
+    const element = $(id);
+    if (element) element.hidden = !canManageReferralSystem;
+  });
+  const referralGroup = $('admin-referral-group');
+  if (referralGroup) referralGroup.hidden = !canManageReferralSystem;
 
   // Управление реестром администраторов — только если доступ действительно разрешён.
   const canManageAdmins = typeof canManageAdminRegistry === 'function' && canManageAdminRegistry();
@@ -1989,6 +1996,28 @@ $('btn-open-settings').onclick = () => {
   initTokenDisplay(); // Initialize token display when opening settings
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings  initSettingsScreen(); // Initialize new settings
 };
+
+$('admin-referral-enable')?.addEventListener('click', async () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (Number(getCurrentAdmin()?.admin_level || 0) < 4) return openModal(lang === 'ru' ? 'Недостаточно прав' : 'Insufficient permissions', '');
+  try {
+    await window.BuyAdReferralSetGlobalEnabled?.(true);
+    openModal(lang === 'ru' ? 'Реферальная система включена' : 'Referral system enabled', lang === 'ru' ? 'Создание ссылок, переходы и начисление бонусов снова доступны.' : 'Link creation, visits and rewards are available again.');
+  } catch (error) { openModal(lang === 'ru' ? 'Не удалось включить' : 'Could not enable', error.message || ''); }
+});
+$('admin-referral-disable')?.addEventListener('click', async () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  if (Number(getCurrentAdmin()?.admin_level || 0) < 4) return openModal(lang === 'ru' ? 'Недостаточно прав' : 'Insufficient permissions', '');
+  openModal(lang === 'ru' ? 'Отключить реферальную систему?' : 'Disable referral system?', lang === 'ru' ? 'Все реферальные ссылки сразу перестанут работать. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов будут заблокированы.' : 'All referral links will stop working. Link creation, settings changes, visit registration and rewards will be blocked.', [
+    { text: lang === 'ru' ? 'Отключить' : 'Disable', class: 'btn btn--danger', onClick: async () => {
+      try {
+        await window.BuyAdReferralSetGlobalEnabled?.(false);
+        openModal(lang === 'ru' ? 'Реферальная система отключена' : 'Referral system disabled', '');
+      } catch (error) { openModal(lang === 'ru' ? 'Не удалось отключить' : 'Could not disable', error.message || ''); }
+    } },
+    { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
+  ]);
+});
 
 $('nav-admin').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
