@@ -2089,3 +2089,12 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
   .referral-overview-metrics { grid-template-columns: 1fr; }
   .referral-overview-heading { align-items: center; }
 }
+
+
+/* Referral link card hierarchy */
+.referral-link-card { gap: 12px; }
+.referral-link-heading { font-size: 15px; font-weight: 750; line-height: 1.3; }
+.referral-link-hint { margin: -5px 0 0; font-size: 12px; line-height: 1.5; }
+.referral-link-card .referral-url-row { margin-top: 2px; }
+.referral-link-card .referral-share-btn { min-height: 46px; }
+.referral-toggle-row { padding: 12px 13px; border: 1px solid var(--divider,rgba(128,128,128,.18)); border-radius: 12px; }
