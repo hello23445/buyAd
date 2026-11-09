@@ -197,6 +197,8 @@
   function localizeServerError(message) {
     const ru = {
       'Telegram authorization is missing or invalid.': 'Не удалось подтвердить Telegram ID. Откройте приложение через Telegram.',
+      'Referral system is globally disabled.': 'Реферальная система отключена администратором.',
+      'Administrator level 4 or higher is required.': 'Управлять реферальной системой могут только администраторы 4-го уровня и выше.',
       'Telegram authorization has expired. Reopen the app.': 'Сессия Telegram устарела. Перезапустите приложение.',
       'This Telegram account has no registered user row in Users.': 'Ваш Telegram ID пока не найден в таблице Users.',
       'Not enough crystals. 25 crystals are required.': 'Для создания ссылки необходимо минимум 25 кристаллов.',
@@ -212,6 +214,8 @@
     };
     const en = {
       'Telegram authorization is missing or invalid.': 'Telegram ID could not be verified. Open the app through Telegram.',
+      'Referral system is globally disabled.': 'The referral system is disabled by an administrator.',
+      'Administrator level 4 or higher is required.': 'Only level 4+ administrators can manage the referral system.',
       'Telegram authorization has expired. Reopen the app.': 'Your Telegram session expired. Restart the app.',
       'This Telegram account has no registered user row in Users.': 'Your Telegram ID was not found in the Users sheet.',
       'Not enough crystals. 25 crystals are required.': 'At least 25 crystals are required to create a link.',
@@ -541,6 +545,15 @@
     host.innerHTML = '';
     addReferralLogsButton(host);
 
+    if (state.systemEnabled === false) {
+      const notice = makeElement('div', 'card referral-warning');
+      notice.appendChild(makeElement('div', 'referral-warning-icon', '⛔'));
+      notice.appendChild(makeElement('div', 'card__title', text('Реферальная система отключена', 'Referral system is disabled')));
+      notice.appendChild(makeElement('p', 'card__subtitle', text('Администратор временно отключил все реферальные ссылки. Создание ссылок, изменение настроек и начисление бонусов приостановлены.', 'An administrator has temporarily disabled all referral links. Link creation, settings changes and rewards are paused.')));
+      host.appendChild(notice);
+      return;
+    }
+
     if (!state.eligible) {
       const notice = makeElement('div', 'card referral-warning');
       notice.appendChild(makeElement('div', 'referral-warning-icon', '⚠️'));
@@ -716,6 +729,12 @@
     });
     scheduleGiftCheck();
   }
+
+  window.BuyAdReferralSetGlobalEnabled = async function (enabled) {
+    const result = await api('setGlobalEnabled', { enabled: enabled === true });
+    referralLog('Глобальный статус реферальной системы изменён', { enabled: result.systemEnabled });
+    return result;
+  };
 
   window.BuyAdReferralBootstrap = function () {
     if (bootstrapPromise) return bootstrapPromise;
