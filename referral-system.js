@@ -315,7 +315,7 @@
   }
 
   function shareText() {
-    const message = String(referralState?.referral?.shareText || '').trim();
+    const message = referralState?.referral?.showText === false ? '' : String(referralState?.referral?.shareText || '').trim();
     return message ? message + '\n' + referralState.referral.url : referralState?.referral?.url || '';
   }
 
@@ -329,8 +329,9 @@
         text: text('Поделиться в Telegram', 'Share in Telegram'),
         class: 'btn btn--primary btn--full',
         onClick: () => {
+          const shareMessage = referral.showText === false ? '' : String(referral.shareText || '').trim();
           const url = 'https://telegram.me/share/url?url=' + encodeURIComponent(referral.url) +
-            '&text=' + encodeURIComponent(String(referral.shareText || '').trim());
+            (shareMessage ? '&text=' + encodeURIComponent(shareMessage) : '');
           window.open(url, '_blank', 'noopener,noreferrer');
         }
       },
@@ -422,27 +423,137 @@
     return card;
   }
 
+  let saveCooldownInterval = null;
+
+  function formatReferralCooldown(seconds) {
+    const safe = Math.max(0, Math.ceil(Number(seconds) || 0));
+    const minutes = Math.floor(safe / 60);
+    const remainder = safe % 60;
+    return String(minutes).padStart(2, '0') + ':' + String(remainder).padStart(2, '0');
+  }
+
+  function applySaveCooldown(buttonElement, untilTimestamp) {
+    if (saveCooldownInterval) clearInterval(saveCooldownInterval);
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((Number(untilTimestamp) - Date.now()) / 1000));
+      if (remaining > 0) {
+        buttonElement.disabled = true;
+        buttonElement.textContent = text('Сохранить через ', 'Save in ') + formatReferralCooldown(remaining);
+      } else {
+        buttonElement.disabled = false;
+        buttonElement.textContent = text('Сохранить изменения', 'Save changes');
+        if (saveCooldownInterval) clearInterval(saveCooldownInterval);
+        saveCooldownInterval = null;
+      }
+    };
+    update();
+    if (Number(untilTimestamp) > Date.now()) saveCooldownInterval = setInterval(update, 1000);
+  }
+
   function buildSettingsCard(referral) {
     const card = makeElement('div', 'card referral-settings-card');
+    const heading = makeElement('div', 'referral-settings-heading');
+    heading.append(
+      makeElement('div', 'referral-settings-icon', '⚙️')
+    );
+    const headingCopy = makeElement('div', 'referral-settings-heading-copy');
+    headingCopy.appendChild(makeElement('strong', '', text('Настройки приглашения', 'Invitation settings')));
+    heading.appendChild(headingCopy);
+    heading.appendChild(makeElement('p', 'field__hint', text(
+      'Настройте сообщение и распределение кристаллов. Изменения вступят в силу после сохранения.',
+      'Customize the message and crystal split. Changes take effect after you save.'
+    )));
+    card.appendChild(heading);
+
+    const visibilityCard = makeElement('div', 'referral-option-card');
+    const visibilityCopy = makeElement('div', 'referral-option-copy');
+    visibilityCopy.append(
+      makeElement('strong', '', text('Показывать текст', 'Show message')),
+      makeElement('span', '', text(
+        'Добавлять ваше сообщение к реферальной ссылке при отправке.',
+        'Include your message when the referral link is shared.'
+      ))
+    );
+    const visibilitySwitch = makeElement('label', 'referral-switch');
+    const visibilityInput = document.createElement('input');
+    visibilityInput.type = 'checkbox';
+    visibilityInput.checked = referral.showText !== false;
+    visibilityInput.setAttribute('aria-label', text('Показывать текст у ссылки', 'Show message with link'));
+    visibilitySwitch.append(visibilityInput, makeElement('span', 'referral-switch-slider'));
+    visibilityCard.append(visibilityCopy, visibilitySwitch);
+    card.appendChild(visibilityCard);
+
     const messageField = makeElement('label', 'referral-field');
-    messageField.appendChild(makeElement('span', 'field__label', text('Текст (необязательно)', 'Text (optional)')));
+    const messageHeading = makeElement('div', 'referral-message-heading');
+    messageHeading.append(
+      makeElement('span', 'field__label', text('Текст приглашения', 'Invitation message')),
+      makeElement('span', 'referral-char-count', '')
+    );
+    messageField.appendChild(messageHeading);
     const message = document.createElement('textarea');
     message.maxLength = 500;
     message.rows = 4;
     message.value = referral.shareText == null ? DEFAULT_SHARE_TEXT : referral.shareText;
-    message.placeholder = text('Добавьте сообщение рядом со ссылкой…', 'Add a message to share with your link…');
+    message.placeholder = text('Напишите короткое сообщение для друзей…', 'Write a short message for your friends…');
+    message.setAttribute('aria-describedby', 'referral-message-counter');
+    const charCount = messageHeading.querySelector('.referral-char-count');
+    if (charCount) charCount.id = 'referral-message-counter';
+    const updateCharCount = () => {
+      if (charCount) charCount.textContent = message.value.length + ' / 500';
+    };
+    message.addEventListener('input', updateCharCount);
+    updateCharCount();
     messageField.appendChild(message);
     card.appendChild(messageField);
 
-    const giftField = makeElement('div', 'referral-field referral-reward-field');
+    const preview = makeElement('div', 'referral-preview-card');
+    const previewHeading = makeElement('div', 'referral-preview-heading');
+    previewHeading.append(makeElement('span', '', text('Предпросмотр сообщения', 'Message preview')),
+      makeElement('span', 'referral-preview-badge', text('ПРЕДПРОСМОТР', 'PREVIEW')));
+    const previewBody = makeElement('p', 'referral-preview-body', '');
+    const previewUrl = makeElement('div', 'referral-preview-url', referral.url);
+    const updatePreview = () => {
+      const visible = visibilityInput.checked;
+      const currentMessage = message.value.trim();
+      previewBody.textContent = visible && currentMessage
+        ? currentMessage
+        : text('Будет отправлена только реферальная ссылка.', 'Only the referral link will be shared.');
+      previewBody.hidden = !(visible && currentMessage);
+      previewUrl.textContent = referral.url;
+      preview.classList.toggle('is-link-only', !(visible && currentMessage));
+    };
+    message.addEventListener('input', updatePreview);
+    visibilityInput.addEventListener('change', async () => {
+      const nextValue = visibilityInput.checked;
+      visibilityInput.disabled = true;
+      try {
+        const result = await api('setShowText', { enabled: nextValue });
+        if (result.showText !== nextValue) throw new Error(text('Сервер не подтвердил изменение.', 'The server did not confirm the change.'));
+        if (referralState?.referral) referralState.referral.showText = nextValue;
+        updatePreview();
+        showToast(nextValue ? text('Текст будет показываться у ссылки', 'Message will be shown with the link') : text('Будет отправляться только ссылка', 'Only the link will be shared'));
+      } catch (error) {
+        visibilityInput.checked = !nextValue;
+        updatePreview();
+        showToast(error.message);
+      } finally {
+        visibilityInput.disabled = false;
+      }
+    });
+    preview.append(previewHeading, previewBody, previewUrl);
+    card.appendChild(preview);
+    updatePreview();
+
+    const rewardCard = makeElement('div', 'referral-reward-panel');
     const giftHeading = makeElement('div', 'referral-gift-heading');
-    giftHeading.appendChild(makeElement('span', 'field__label', text('Распределение награды', 'Reward distribution')));
-    const giftValue = makeElement('strong', 'referral-gift-value', String(referral.giftAmount || 0) + ' 💎');
-    giftHeading.appendChild(giftValue);
-    giftField.appendChild(giftHeading);
-    giftField.appendChild(makeElement('p', 'referral-reward-explainer', text(
-      'За каждого нового участника выделяется 60 💎. Выберите, сколько получит приглашённый друг. Оставшаяся часть достанется вам.',
-      'A total of 60 💎 is awarded for each new member. Choose how much your invited friend receives. You get the remaining amount.'
+    giftHeading.append(
+      makeElement('span', 'field__label', text('Распределение награды', 'Reward distribution')),
+      makeElement('strong', 'referral-gift-value', String(referral.giftAmount || 0) + ' 💎')
+    );
+    rewardCard.appendChild(giftHeading);
+    rewardCard.appendChild(makeElement('p', 'referral-reward-explainer', text(
+      'За каждого нового участника выделяется 60 💎. Выберите, сколько получит друг — остаток начислится вам.',
+      'A total of 60 💎 is allocated for each new member. Choose the friend’s gift; you receive the remainder.'
     )));
     const range = document.createElement('input');
     range.type = 'range';
@@ -455,37 +566,48 @@
     const calculation = makeElement('div', 'referral-gift-calculation');
     const friendReward = makeElement('div', 'referral-reward-result');
     const ownerReward = makeElement('div', 'referral-reward-result');
-    const totalReward = makeElement('div', 'referral-reward-total', text('Всего за приглашение: 60 💎', 'Total reward per referral: 60 💎'));
+    const totalReward = makeElement('div', 'referral-reward-total', text('Общая награда за приглашение: 60 💎', 'Total reward per referral: 60 💎'));
     calculation.append(friendReward, ownerReward, totalReward);
     const updateCalculation = () => {
       const gift = Math.max(0, Math.min(50, Number(range.value) || 0));
-      giftValue.textContent = gift + ' 💎';
-      friendReward.textContent = text('Друг получит: ', 'Your friend gets: ') + gift + ' 💎';
-      ownerReward.textContent = text('Вы получите: ', 'You get: ') + (60 - gift) + ' 💎';
+      giftHeading.querySelector('.referral-gift-value').textContent = gift + ' 💎';
+      friendReward.textContent = text('Друг получит: ', 'Friend receives: ') + gift + ' 💎';
+      ownerReward.textContent = text('Вы получите: ', 'You receive: ') + (60 - gift) + ' 💎';
     };
     range.addEventListener('input', updateCalculation);
     updateCalculation();
-    giftField.append(range, calculation);
-    card.appendChild(giftField);
+    rewardCard.append(range, calculation);
+    card.appendChild(rewardCard);
 
-    card.appendChild(button(text('Сохранить', 'Save'), 'btn btn--primary btn--full referral-save-btn', async event => {
-      const saveButton = event.currentTarget;
-      saveButton.disabled = true;
-      saveButton.textContent = text('Сохранение…', 'Saving…');
+    const saveButton = button(text('Сохранить изменения', 'Save changes'), 'btn btn--primary btn--full referral-save-btn', async event => {
+      const target = event.currentTarget;
+      target.disabled = true;
+      target.textContent = text('Сохранение…', 'Saving…');
       try {
-        await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value) });
+        const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value) });
+        if (result.limited) {
+          const until = Date.now() + Math.max(0, Number(result.retryAfter) || 0) * 1000;
+          applySaveCooldown(target, until);
+          showToast(text('Сохранять настройки можно раз в 2 минуты.', 'Settings can only be saved once every 2 minutes.'));
+          return;
+        }
+        if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
         await loadState();
         showToast(text('Настройки сохранены', 'Settings saved'));
       } catch (error) {
         showToast(error.message);
       } finally {
-        saveButton.disabled = false;
-        saveButton.textContent = text('Сохранить', 'Save');
+        if (target.isConnected && target.textContent === text('Сохранение…', 'Saving…')) {
+          target.disabled = false;
+          target.textContent = text('Сохранить изменения', 'Save changes');
+        }
       }
-    }));
+    });
+    card.appendChild(saveButton);
+    const cooldownRemaining = Math.max(0, Number(referral.saveCooldownRemaining) || 0);
+    if (cooldownRemaining > 0) applySaveCooldown(saveButton, Date.now() + cooldownRemaining * 1000);
     return card;
   }
-
 
   function buildStatisticsCard(initialStats) {
     const card = makeElement('div', 'card referral-statistics-card');

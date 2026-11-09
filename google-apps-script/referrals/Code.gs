@@ -139,6 +139,8 @@ function dispatchReferralAction_(action, identity, payload) {
       return createReferral_(identity);
     case 'saveSettings':
       return saveReferralSettings_(identity, payload);
+    case 'setShowText':
+      return setReferralShowText_(identity, payload.enabled === true);
     case 'setEnabled':
       return setReferralEnabled_(identity, payload.enabled === true);
     case 'claimReferral':
@@ -261,10 +263,14 @@ function getOrCreateSheet_(name, headers) {
 }
 
 function referralSheet_() {
-  return getOrCreateSheet_('Referrals', [
+  const sheet = getOrCreateSheet_('Referrals', [
     'telegram_id', 'referral_code', 'referral_url', 'enabled',
-    'share_text', 'gift_amount', 'created_at', 'updated_at'
+    'share_text', 'gift_amount', 'created_at', 'updated_at', 'show_text', 'settings_saved_at'
   ]);
+  if (sheet.getMaxColumns() < 10) sheet.insertColumnsAfter(sheet.getMaxColumns(), 10 - sheet.getMaxColumns());
+  if (!String(sheet.getRange(1, 9).getValue() || '').trim()) sheet.getRange(1, 9).setValue('show_text');
+  if (!String(sheet.getRange(1, 10).getValue() || '').trim()) sheet.getRange(1, 10).setValue('settings_saved_at');
+  return sheet;
 }
 
 function eventsSheet_() {
@@ -296,10 +302,10 @@ function findReferralByOwner_(telegramId) {
   const sheet = referralSheet_();
   const last = sheet.getLastRow();
   if (last < 2) return null;
-  const rows = sheet.getRange(2, 1, last - 1, 8).getValues();
+  const rows = sheet.getRange(2, 1, last - 1, 10).getValues();
   for (let i = 0; i < rows.length; i++) {
     if (String(rows[i][0] || '') === String(telegramId)) {
-      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: rows[i][4] == null ? BUYAD_DEFAULT_SHARE_TEXT : String(rows[i][4]), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '' };
+      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: rows[i][4] == null ? BUYAD_DEFAULT_SHARE_TEXT : String(rows[i][4]), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '', showText: rows[i][8] !== false && String(rows[i][8]).toLowerCase() !== 'false', saveSettingsAt: rows[i][9] || 0 };
     }
   }
   return null;
@@ -488,7 +494,9 @@ function getReferralState_(identity) {
       manuallyEnabled: referral.enabled,
       shareText: referral.shareText,
       giftAmount: referral.giftAmount,
-      referralsCount: referralCount
+      referralsCount: referralCount,
+      showText: referral.showText,
+      saveCooldownRemaining: referralSaveCooldownRemaining_(referral.saveSettingsAt)
     } : null
   };
 }
@@ -562,7 +570,7 @@ function createReferral_(identity) {
   try {
     requireReferralSystemEnabled_();
     const existing = findReferralByOwner_(identity.telegramId);
-    if (existing) return { referral: { url: existing.url, enabled: existing.enabled, manuallyEnabled: existing.enabled, shareText: existing.shareText, giftAmount: existing.giftAmount } };
+    if (existing) return { referral: { url: existing.url, enabled: existing.enabled, manuallyEnabled: existing.enabled, shareText: existing.shareText, giftAmount: existing.giftAmount, showText: existing.showText } };
 
     const userRow = findUserRow_(identity.telegramId);
     if (!userRow) throw new Error('This Telegram account has no registered user row in Users.');
@@ -582,7 +590,7 @@ function createReferral_(identity) {
     try {
       sheet.appendRow([
         identity.telegramId, code, url, true, BUYAD_DEFAULT_SHARE_TEXT,
-        0, new Date(), new Date()
+        0, new Date(), new Date(), true
       ]);
       createdRow = sheet.getLastRow();
       SpreadsheetApp.flush();
@@ -593,20 +601,22 @@ function createReferral_(identity) {
     }
     return {
       balance: balance - BUYAD_CREATE_COST,
-      referral: { url: url, enabled: true, manuallyEnabled: true, shareText: BUYAD_DEFAULT_SHARE_TEXT, giftAmount: 0, referralsCount: 0 }
+      referral: { url: url, enabled: true, manuallyEnabled: true, shareText: BUYAD_DEFAULT_SHARE_TEXT, giftAmount: 0, showText: true, referralsCount: 0 }
     };
   } finally {
     lock.releaseLock();
   }
 }
 
+function referralSaveCooldownRemaining_(savedAtValue) {
+  const savedAt = savedAtValue instanceof Date ? savedAtValue.getTime() : Number(savedAtValue || 0);
+  return savedAt ? Math.max(0, Math.ceil((120000 - (Date.now() - savedAt)) / 1000)) : 0;
+}
+
 function saveReferralSettings_(identity, payload) {
   requireReferralSystemEnabled_();
   const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
   if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
-  const referral = findReferralByOwner_(identity.telegramId);
-  if (!referral) throw new Error('A referral link does not exist.');
-
   const shareText = String(payload.shareText == null ? BUYAD_DEFAULT_SHARE_TEXT : payload.shareText).slice(0, 500);
   const gift = Number(payload.giftAmount);
   if (!Number.isInteger(gift) || gift < 0 || gift > BUYAD_MAX_GIFT) throw new Error('Referral settings are invalid.');
@@ -617,12 +627,42 @@ function saveReferralSettings_(identity, payload) {
     requireReferralSystemEnabled_();
     const current = findReferralByOwner_(identity.telegramId);
     if (!current) throw new Error('A referral link does not exist.');
+    const previousValue = current.saveSettingsAt;
+    const previous = previousValue instanceof Date ? previousValue.getTime() : Number(previousValue || 0);
+    const remaining = previous ? Math.max(0, 120000 - (Date.now() - previous)) : 0;
+    if (remaining > 0) {
+      return { saved: false, limited: true, retryAfter: Math.ceil(remaining / 1000) };
+    }
     const sheet = referralSheet_();
-    sheet.getRange(current.row, 5).setValue(shareText);
-    sheet.getRange(current.row, 6).setValue(gift);
+    const savedAt = Date.now();
+    const settingsRow = sheet.getRange(current.row, 5, 1, 6).getValues()[0];
+    settingsRow[0] = shareText;
+    settingsRow[1] = gift;
+    settingsRow[3] = new Date();
+    settingsRow[5] = savedAt;
+    sheet.getRange(current.row, 5, 1, 6).setValues([settingsRow]);
+    SpreadsheetApp.flush();
+    return { saved: true, limited: false, shareText: shareText, giftAmount: gift, cooldownUntil: savedAt + 120000 };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setReferralShowText_(identity, enabled) {
+  requireReferralSystemEnabled_();
+  const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
+  if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    requireReferralSystemEnabled_();
+    const current = findReferralByOwner_(identity.telegramId);
+    if (!current) throw new Error('A referral link does not exist.');
+    const sheet = referralSheet_();
+    sheet.getRange(current.row, 9).setValue(enabled === true);
     sheet.getRange(current.row, 8).setValue(new Date());
     SpreadsheetApp.flush();
-    return { saved: true, shareText: shareText, giftAmount: gift };
+    return { saved: true, showText: enabled === true };
   } finally {
     lock.releaseLock();
   }
