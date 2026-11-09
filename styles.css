@@ -2243,9 +2243,11 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 .referral-copy-btn.is-copy-success { background:#169b68; }
 .referral-copy-btn.is-copy-error { background:#d34d5b; }
 .referral-copy-btn i { transition:transform .16s ease; }
-#screen-admin .screen__head > .row { display:flex; flex:0 0 auto; align-items:center; gap:10px !important; }
-#screen-admin #admin-level-save { order:1; }
-#screen-admin #admin-level-badge { order:2; }
+#screen-admin .screen__head .screen__title { flex:0 1 auto; min-width:0; white-space:nowrap; }
+#screen-admin .screen__head > .admin-level-actions { display:flex; flex:0 0 auto; align-items:center; gap:8px !important; margin-left:0; }
+#screen-admin #admin-level-number,
+#screen-admin #admin-level-badge { order:1; }
+#screen-admin #admin-level-save { order:2; }
 @media(max-width:380px) {
   .referral-statistics-card { padding:16px; gap:15px; }
   .referral-statistics-metric { min-height:92px; padding:12px; }
