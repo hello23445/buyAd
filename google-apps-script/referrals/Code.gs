@@ -20,16 +20,28 @@ function doGet(e) {
   const query = (e && e.parameter) || {};
   const callback = String(query.callback || '');
   let result;
+  let diagnosticStage = 'validate_request';
+  let diagnosticAction = String(query.action || 'unknown');
   try {
     if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(callback)) {
       throw new Error('Invalid JSONP callback.');
     }
+    diagnosticStage = 'parse_payload';
     const payload = query.payload ? JSON.parse(query.payload) : {};
+    diagnosticStage = 'verify_telegram';
     const identity = verifyTelegramInitData_(String(query.initData || ''), payload.userToken || '');
-    result = dispatchReferralAction_(String(query.action || ''), identity, payload);
+    diagnosticStage = 'action:' + diagnosticAction;
+    result = dispatchReferralAction_(diagnosticAction, identity, payload);
     result = Object.assign({ success: true }, result || {});
   } catch (error) {
-    result = { success: false, error: publicError_(error) };
+    const diagnostic = {
+      action: diagnosticAction,
+      stage: diagnosticStage,
+      type: String(error && error.name || 'Error'),
+      message: String(error && error.message || error || 'Unknown error').slice(0, 500)
+    };
+    try { Logger.log('BuyAd referral diagnostic: ' + JSON.stringify(diagnostic) + '\\n' + String(error && error.stack || '')); } catch (_) {}
+    result = { success: false, error: publicError_(error), diagnostic: diagnostic };
   }
   return jsonpOutput_(callback, result);
 }
