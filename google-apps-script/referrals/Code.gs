@@ -42,6 +42,7 @@ function jsonpOutput_(callback, value) {
 }
 
 function publicError_(error) {
+  try { Logger.log('BuyAd referral backend error: ' + String(error && error.stack || error)); } catch (_) {}
   const message = String(error && error.message || error || 'Unknown error');
   const allowed = [
     'Telegram authorization is missing or invalid.',
@@ -376,6 +377,7 @@ function getReferralState_(identity) {
     balance: balance,
     eligible: eligibility.eligible,
     eligibilityReason: eligibility.reason,
+    stats: referral ? getReferralStats_(identity, 'day', false) : null,
     referral: referral ? {
       url: referral.url,
       enabled: referral.enabled && eligibility.eligible,
@@ -384,6 +386,64 @@ function getReferralState_(identity) {
       giftAmount: referral.giftAmount,
       referralsCount: referralCount
     } : null
+  };
+}
+
+
+function getReferralStats_(identity, period, manualRefresh) {
+  const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
+  if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
+  const referral = findReferralByOwner_(identity.telegramId);
+  if (!referral) throw new Error('A referral link does not exist.');
+
+  const cache = CacheService.getScriptCache();
+  const key = 'buyad_ref_stats_refresh_' + identity.telegramId;
+  const now = Date.now();
+  const previous = Number(cache.get(key) || 0);
+  if (manualRefresh && previous && now - previous < 120000) {
+    const remaining = Math.ceil((120000 - (now - previous)) / 1000);
+    return { limited: true, retryAfter: remaining, totalInvited: 0, totalOwnerEarned: 0, totalGifted: 0, groups: [] };
+  }
+  if (manualRefresh) cache.put(key, String(now), 300);
+  else if (!previous) cache.put(key, String(now), 300);
+
+  const validPeriods = ['day', 'week', 'month', 'year'];
+  if (validPeriods.indexOf(period) < 0) period = 'day';
+  const sheet = eventsSheet_();
+  const last = sheet.getLastRow();
+  const rows = last >= 2 ? sheet.getRange(2, 1, last - 1, 6).getValues() : [];
+  const mine = rows.filter(function (row) { return String(row[1] || '') === identity.telegramId; });
+  let totalOwnerEarned = 0, totalGifted = 0;
+  const buckets = {};
+  const tz = Session.getScriptTimeZone() || 'Etc/UTC';
+  mine.forEach(function (row) {
+    const gift = Number(row[3]) || 0;
+    const earned = Number(row[4]) || 0;
+    const date = row[5] instanceof Date ? row[5] : new Date(row[5]);
+    totalGifted += gift;
+    totalOwnerEarned += earned;
+    if (isNaN(date.getTime())) return;
+    let keyDate;
+    if (period === 'year') keyDate = Utilities.formatDate(date, tz, 'yyyy');
+    else if (period === 'month') keyDate = Utilities.formatDate(date, tz, 'yyyy-MM');
+    else if (period === 'week') {
+      const monday = new Date(date);
+      monday.setHours(0, 0, 0, 0);
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      keyDate = Utilities.formatDate(monday, tz, 'yyyy-MM-dd');
+    } else keyDate = Utilities.formatDate(date, tz, 'yyyy-MM-dd');
+    if (!buckets[keyDate]) buckets[keyDate] = { period: keyDate, invited: 0, gifted: 0, earned: 0 };
+    buckets[keyDate].invited++;
+    buckets[keyDate].gifted += gift;
+    buckets[keyDate].earned += earned;
+  });
+  const groups = Object.keys(buckets).sort().reverse().map(function (key) { return buckets[key]; });
+  return {
+    limited: false,
+    totalInvited: mine.length,
+    totalOwnerEarned: totalOwnerEarned,
+    totalGifted: totalGifted,
+    groups: groups.slice(0, 100)
   };
 }
 
