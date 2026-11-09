@@ -381,7 +381,21 @@
     input.setAttribute('aria-label', text('Реферальная ссылка', 'Referral link'));
     const copy = button('', 'referral-copy-btn', async () => {
       const ok = await copyText(referral.url);
+      const icon = copy.querySelector('i');
+      if (copy._feedbackTimer) clearTimeout(copy._feedbackTimer);
+      copy.classList.remove('is-copy-success', 'is-copy-error');
+      copy.classList.add(ok ? 'is-copy-success' : 'is-copy-error');
+      if (icon) icon.className = ok ? 'fa-solid fa-check' : 'fa-solid fa-xmark';
+      copy.setAttribute('aria-label', ok ? text('Ссылка скопирована', 'Link copied') : text('Не удалось скопировать', 'Copy failed'));
+      copy.title = ok ? text('Ссылка скопирована', 'Link copied') : text('Не удалось скопировать', 'Copy failed');
       showToast(ok ? text('Ссылка скопирована', 'Link copied') : text('Не удалось скопировать', 'Copy failed'));
+      copy._feedbackTimer = setTimeout(() => {
+        if (!copy.isConnected) return;
+        copy.classList.remove('is-copy-success', 'is-copy-error');
+        if (icon) icon.className = 'fa-solid fa-copy';
+        copy.setAttribute('aria-label', text('Скопировать ссылку', 'Copy link'));
+        copy.title = text('Скопировать ссылку', 'Copy link');
+      }, 3000);
     });
     copy.setAttribute('aria-label', text('Скопировать ссылку', 'Copy link'));
     copy.title = text('Скопировать ссылку', 'Copy link');
@@ -604,59 +618,40 @@
 
   function buildStatisticsCard(initialStats) {
     const card = makeElement('div', 'card referral-statistics-card');
-    card.appendChild(makeElement('div', 'card__title', text('Статистика рефералов', 'Referral statistics')));
-    const totals = makeElement('div', 'referral-statistics-totals');
-    const addMetric = (label, value, hasGem = false) => {
-      const item = makeElement('div', 'referral-statistics-metric');
-      const caption = makeElement('span', 'referral-statistics-label');
-      caption.append(document.createTextNode(label));
-      if (hasGem) caption.append(document.createTextNode(' '), makeElement('span', 'referral-gem-inline', '💎'));
-      item.append(caption, makeElement('strong', '', String(value || 0)));
-      totals.appendChild(item);
+    const heading = makeElement('div', 'referral-statistics-heading');
+    heading.append(
+      makeElement('div', 'referral-statistics-kicker', text('ВАША АКТИВНОСТЬ', 'YOUR ACTIVITY')),
+      makeElement('div', 'card__title', text('Статистика рефералов', 'Referral overview')),
+      makeElement('p', 'referral-statistics-description', text(
+        'Здесь собраны все приглашения и начисленные за них кристаллы.',
+        'A summary of your invitations and the crystals earned from them.'
+      ))
+    );
+    card.appendChild(heading);
+
+    const metrics = makeElement('div', 'referral-statistics-totals');
+    const addMetric = (label, value, icon, modifier) => {
+      const item = makeElement('div', 'referral-statistics-metric' + (modifier ? ' ' + modifier : ''));
+      const top = makeElement('div', 'referral-statistics-metric-top');
+      top.append(makeElement('span', 'referral-statistics-label', label));
+      if (icon) top.appendChild(makeElement('span', 'referral-statistics-gem', icon));
+      item.append(top, makeElement('strong', 'referral-statistics-value', String(Math.max(0, Number(value) || 0))));
+      metrics.appendChild(item);
     };
-    addMetric(text('Приглашено', 'Invited'), initialStats.totalInvited);
-    addMetric(text('Получено всего', 'Earned total'), initialStats.totalOwnerEarned, true);
-    addMetric(text('Подарено', 'Gifted'), initialStats.totalGifted, true);
-    card.appendChild(totals);
+    addMetric(text('Приглашено друзей', 'Friends invited'), initialStats.totalInvited, '👥', 'is-invited');
+    addMetric(text('Вы заработали', 'You earned'), initialStats.totalOwnerEarned, '💎', 'is-earned');
+    addMetric(text('Подарено друзьям', 'Given to friends'), initialStats.totalGifted, '💎', 'is-gifted');
+    card.appendChild(metrics);
 
-    const controls = makeElement('div', 'referral-statistics-controls');
-    const period = document.createElement('select');
-    period.className = 'referral-period-select';
-    [['day', text('По дням', 'By day')], ['week', text('По неделям', 'By week')], ['month', text('По месяцам', 'By month')], ['year', text('По годам', 'By year')]].forEach(([value, label]) => {
-      const option = document.createElement('option'); option.value = value; option.textContent = label; period.appendChild(option);
-    });
-    const groups = makeElement('div', 'referral-statistics-groups');
-    controls.append(period);
-    card.append(controls, groups);
-
-    function updateStats(data) {
-      totals.innerHTML = '';
-      addMetric(text('Приглашено', 'Invited'), data.totalInvited);
-      addMetric(text('Получено всего', 'Earned total'), data.totalOwnerEarned, true);
-      addMetric(text('Подарено', 'Gifted'), data.totalGifted, true);
-      groups.innerHTML = '';
-      if (!data.groups || !data.groups.length) {
-        groups.appendChild(makeElement('p', 'field__hint', text('За выбранный период приглашений пока нет.', 'No referrals in the selected period yet.')));
-        return;
-      }
-      data.groups.forEach(item => {
-        const row = makeElement('div', 'referral-statistics-row');
-        const earned = makeElement('span', 'referral-statistics-earned');
-        earned.append(document.createTextNode('+' + item.earned + ' '), makeElement('span', 'referral-gem-inline', '💎'));
-        row.append(makeElement('span', '', item.period),
-          makeElement('span', '', text('Приглашено: ', 'Invited: ') + item.invited),
-          earned);
-        groups.appendChild(row);
-      });
-    }
-    async function loadPeriod() {
-      try {
-        const result = await api('getStats', { period: period.value });
-        updateStats(result);
-      } catch (error) { showToast(error.message); }
-    }
-    period.addEventListener('change', loadPeriod);
-    updateStats(initialStats);
+    const note = makeElement('div', 'referral-statistics-note');
+    note.append(
+      makeElement('i', 'fa-solid fa-circle-info'),
+      makeElement('span', '', text(
+        'Суммы указаны за всё время. Обновите данные кнопкой «Обновить» вверху меню.',
+        'Totals cover all time. Use the “Refresh” button at the top of this page to update them.'
+      ))
+    );
+    card.appendChild(note);
     return card;
   }
 

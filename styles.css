@@ -2224,3 +2224,30 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
   .referral-statistics-metric span { font-size: 10px; }
   .referral-statistics-metric strong { font-size: 19px; }
 }
+
+
+/* Referral statistics: clear all-time summary without period selectors. */
+.referral-statistics-card { display:grid; gap:18px; padding:20px; }
+.referral-statistics-heading { display:grid; gap:6px; }
+.referral-statistics-kicker { color:var(--accent-color,#8b7cff); font-size:10px; font-weight:800; letter-spacing:.16em; }
+.referral-statistics-description { margin:0; color:var(--hint-color,#8993a8); font-size:13px; line-height:1.5; }
+.referral-statistics-totals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.referral-statistics-metric { display:grid; gap:12px; min-width:0; min-height:104px; padding:14px; border:1px solid var(--divider,rgba(128,136,170,.16)); border-radius:16px; background:linear-gradient(145deg,var(--card-bg,rgba(128,128,128,.09)),rgba(128,128,128,.025)); }
+.referral-statistics-metric.is-invited { grid-column:1/-1; min-height:88px; }
+.referral-statistics-metric-top { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+.referral-statistics-label { min-width:0; color:var(--hint-color,#8993a8); font-size:12px; line-height:1.35; overflow-wrap:anywhere; }
+.referral-statistics-gem { flex:0 0 auto; font-size:19px; line-height:1; }
+.referral-statistics-value { font-size:26px; line-height:1.1; font-weight:800; font-variant-numeric:tabular-nums; }
+.referral-statistics-note { display:flex; align-items:flex-start; gap:9px; padding:12px 13px; border-radius:13px; background:var(--card-bg,rgba(128,128,128,.07)); color:var(--hint-color,#8993a8); font-size:12px; line-height:1.5; }
+.referral-statistics-note i { flex:0 0 auto; margin-top:2px; color:var(--accent-color,#8b7cff); }
+.referral-copy-btn.is-copy-success { background:#169b68; }
+.referral-copy-btn.is-copy-error { background:#d34d5b; }
+.referral-copy-btn i { transition:transform .16s ease; }
+#screen-admin .screen__head > .row { display:flex; flex:0 0 auto; align-items:center; gap:10px !important; }
+#screen-admin #admin-level-save { order:1; }
+#screen-admin #admin-level-badge { order:2; }
+@media(max-width:380px) {
+  .referral-statistics-card { padding:16px; gap:15px; }
+  .referral-statistics-metric { min-height:92px; padding:12px; }
+  .referral-statistics-value { font-size:23px; }
+}
