@@ -16,6 +16,8 @@
   let claimInProgress = false;
   let giftOverlay = null;
   let refreshTimer = null;
+  let statsCountdownInterval = null;
+  let statsRefreshAt = 0;
 
   function serviceUrl() {
     return typeof REFERRAL_GAS_URL === 'string' ? REFERRAL_GAS_URL.trim() : '';
@@ -357,6 +359,85 @@
     return card;
   }
 
+
+  function buildStatisticsCard(initialStats) {
+    const card = makeElement('div', 'card referral-statistics-card');
+    card.appendChild(makeElement('div', 'card__title', text('Статистика рефералов', 'Referral statistics')));
+    const totals = makeElement('div', 'referral-statistics-totals');
+    const addMetric = (label, value) => {
+      const item = makeElement('div', 'referral-statistics-metric');
+      item.append(makeElement('span', '', label), makeElement('strong', '', String(value || 0)));
+      totals.appendChild(item);
+    };
+    addMetric(text('Приглашено', 'Invited'), initialStats.totalInvited);
+    addMetric(text('Получено всего', 'Earned total') + ' 💎', initialStats.totalOwnerEarned);
+    addMetric(text('Подарено', 'Gifted') + ' 💎', initialStats.totalGifted);
+    card.appendChild(totals);
+
+    const controls = makeElement('div', 'referral-statistics-controls');
+    const period = document.createElement('select');
+    period.className = 'referral-period-select';
+    [['day', text('По дням', 'By day')], ['week', text('По неделям', 'By week')], ['month', text('По месяцам', 'By month')], ['year', text('По годам', 'By year')]].forEach(([value, label]) => {
+      const option = document.createElement('option'); option.value = value; option.textContent = label; period.appendChild(option);
+    });
+    const refresh = button('', 'btn btn--ghost referral-refresh-btn', async () => {
+      if (Date.now() < statsRefreshAt || refresh.disabled) return;
+      refresh.disabled = true;
+      refresh.textContent = text('Обновляем…', 'Refreshing…');
+      try {
+        const result = await api('getStats', { period: period.value, manualRefresh: true });
+        if (result.limited) statsRefreshAt = Date.now() + Number(result.retryAfter || 120) * 1000;
+        else {
+          updateStats(result);
+          statsRefreshAt = Date.now() + 120000;
+        }
+      } catch (error) { showToast(error.message); }
+      finally { updateRefreshLabel(); }
+    });
+    const groups = makeElement('div', 'referral-statistics-groups');
+    controls.append(period, refresh);
+    card.append(controls, groups);
+
+    function updateStats(data) {
+      totals.innerHTML = '';
+      addMetric(text('Приглашено', 'Invited'), data.totalInvited);
+      addMetric(text('Получено всего', 'Earned total') + ' 💎', data.totalOwnerEarned);
+      addMetric(text('Подарено', 'Gifted') + ' 💎', data.totalGifted);
+      groups.innerHTML = '';
+      if (!data.groups || !data.groups.length) {
+        groups.appendChild(makeElement('p', 'field__hint', text('За выбранный период приглашений пока нет.', 'No referrals in the selected period yet.')));
+        return;
+      }
+      data.groups.forEach(item => {
+        const row = makeElement('div', 'referral-statistics-row');
+        row.append(makeElement('span', '', item.period),
+          makeElement('span', '', text('Приглашено: ', 'Invited: ') + item.invited),
+          makeElement('span', '', '+' + item.earned + ' 💎'));
+        groups.appendChild(row);
+      });
+    }
+    function updateRefreshLabel() {
+      const seconds = Math.max(0, Math.ceil((statsRefreshAt - Date.now()) / 1000));
+      refresh.disabled = seconds > 0;
+      refresh.textContent = seconds > 0
+        ? text('Обновить · ', 'Refresh · ') + String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0')
+        : text('Обновить', 'Refresh');
+    }
+    async function loadPeriod() {
+      try {
+        const result = await api('getStats', { period: period.value });
+        updateStats(result);
+      } catch (error) { showToast(error.message); }
+    }
+    period.addEventListener('change', loadPeriod);
+    updateStats(initialStats);
+    statsRefreshAt = Date.now() + 120000;
+    updateRefreshLabel();
+    clearInterval(statsCountdownInterval);
+    statsCountdownInterval = setInterval(updateRefreshLabel, 1000);
+    return card;
+  }
+
   function renderReferralState(state) {
     referralState = state;
     const host = content();
@@ -419,12 +500,7 @@
       host.appendChild(makeElement('div', 'referral-disabled-note',
         text('Ссылка отключена. Включите переключатель, чтобы снова принимать приглашения.', 'The link is disabled. Turn the switch on to accept referrals again.')));
     }
-    if (referral.referralsCount != null) {
-      const stats = makeElement('div', 'referral-stats');
-      stats.appendChild(makeElement('span', '', text('Приглашено друзей', 'Friends invited')));
-      stats.appendChild(makeElement('strong', '', String(referral.referralsCount)));
-      host.appendChild(stats);
-    }
+    host.appendChild(buildStatisticsCard(state.stats || { totalInvited: referral.referralsCount || 0, totalOwnerEarned: 0, totalGifted: 0, groups: [] }));
   }
 
   async function loadState() {
