@@ -363,7 +363,7 @@ function registerReferralVisit_(identity) {
       ) {
         visitsSheet_().getRange(existingRow, 3, 1, 3).setValues([[referralCode, true, 'pending']]);
         SpreadsheetApp.flush();
-        return { firstVisit: false, isNew: true, referralCodePresent: true, referralAccepted: true };
+        return { firstVisit: false, isNew: true, referralCodePresent: true, referralAccepted: true, referralPending: true };
       }
       if (selfReferral && existing[3] === true && !existing[2] && String(existing[4] || '') !== 'claimed') {
         visitsSheet_().getRange(existingRow, 5).setValue('ignored');
@@ -373,6 +373,7 @@ function registerReferralVisit_(identity) {
         isNew: existing[3] === true,
         referralCodePresent: !!existing[2],
         referralAccepted: false,
+        referralPending: String(existing[4] || '') === 'pending' && existing[3] === true && !!existing[2],
         selfReferral: selfReferral
       };
     }
@@ -384,7 +385,7 @@ function registerReferralVisit_(identity) {
       identity.telegramId, new Date(), referralCode, isNew,
       referralCode && isNew ? 'pending' : 'ignored', 0, 0, ''
     ]);
-    return { firstVisit: true, isNew: isNew, referralCodePresent: !!referralCode, referralAccepted: !!(referralCode && isNew), selfReferral: selfReferral };
+    return { firstVisit: true, isNew: isNew, referralCodePresent: !!referralCode, referralAccepted: !!(referralCode && isNew), referralPending: !!(referralCode && isNew), selfReferral: selfReferral };
   } finally {
     lock.releaseLock();
   }
