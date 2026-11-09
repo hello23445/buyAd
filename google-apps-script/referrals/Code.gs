@@ -32,7 +32,7 @@ function requireReferralAdmin_(identity) {
     const response = UrlFetchApp.fetch(BUYAD_ADMIN_ROLE_URL + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
     if (response.getResponseCode() !== 200) throw new Error('Admin registry unavailable');
     const source = response.getContentText();
-    const pattern = /\"admin_level\"\\s*:\\s*(\\d+)[\\s\\S]{0,300}?\"admin_token\"\\s*:\\s*\"([^\"]+)\"/g;
+    const pattern = /"admin_level"\s*:\s*(\d+)[\s\S]{0,300}?"admin_token"\s*:\s*"([^"]+)"/g;
     let match;
     while ((match = pattern.exec(source)) !== null) {
       if (match[2] === token && Number(match[1]) >= 4) return Number(match[1]);
@@ -689,6 +689,7 @@ function claimReferral_(identity) {
 }
 
 function markReferralGiftSeen_(identity) {
+  requireReferralSystemEnabled_();
   const row = findVisitRow_(identity.telegramId);
   if (!row) return { marked: false };
   const visits = visitsSheet_();
