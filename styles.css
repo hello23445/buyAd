@@ -1921,3 +1921,136 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 .ip-search-actions #ip-history-search-submit { flex:1; }
 .ip-search-actions #ip-history-paste { flex:0 0 auto; }
 .ip-history-account-card .field__hint { white-space:pre-line; }
+
+
+/* Referral system */
+.referral-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 130px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.referral-message.is-error,
+.referral-message.is-warning { align-items: flex-start; text-align: left; }
+.referral-create-card { text-align: center; align-items: center; gap: 12px; }
+.referral-hero-icon {
+  display: grid; place-items: center; width: 68px; height: 68px; border-radius: 22px;
+  margin: 2px auto 8px; font-size: 32px;
+  background: linear-gradient(145deg, rgba(93,125,255,.22), rgba(169,111,255,.18));
+  box-shadow: 0 10px 30px rgba(83,103,220,.16);
+}
+.referral-create-card .card__title { text-align: center; }
+.referral-create-card .card__subtitle { text-align: center; line-height: 1.55; }
+.referral-create-btn { margin-top: 8px; }
+.referral-balance-hint { text-align: center; }
+.referral-warning {
+  display: grid; grid-template-columns: 42px minmax(0,1fr); column-gap: 12px; align-items: start;
+}
+.referral-warning-icon { grid-row: span 3; font-size: 28px; }
+.referral-warning .card__title { margin: 0; }
+.referral-warning p { margin: 3px 0 0; }
+.referral-link-card { gap: 14px; }
+.referral-url-row { display: flex; gap: 8px; min-width: 0; }
+.referral-url-row input {
+  flex: 1; min-width: 0; width: 100%; padding: 12px;
+  border: 1px solid var(--field-border, rgba(128,128,128,.35)); border-radius: 12px;
+  font: inherit; font-size: 13px; overflow: hidden; text-overflow: ellipsis;
+}
+.referral-copy-btn {
+  display: grid; place-items: center; flex: 0 0 46px; min-width: 46px; min-height: 46px;
+  border: 0; border-radius: 12px; color: #fff; background: linear-gradient(135deg,#5b7cff,#8c65f5);
+  font-size: 17px;
+}
+.referral-share-btn { margin-top: 2px; }
+.referral-toggle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-top: 14px; border-top: 1px solid var(--divider, rgba(128,128,128,.18));
+  font-size: 14px; font-weight: 600;
+}
+.referral-switch { position: relative; display: inline-flex; width: 50px; height: 29px; flex: 0 0 50px; }
+.referral-switch input { width: 0; height: 0; opacity: 0; }
+.referral-switch-slider {
+  position: absolute; inset: 0; border-radius: 20px; cursor: pointer;
+  background: #7d8799; transition: background .2s ease;
+}
+.referral-switch-slider::before {
+  content: ""; position: absolute; left: 3px; top: 3px; width: 23px; height: 23px;
+  border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.18);
+  transition: transform .2s ease;
+}
+.referral-switch input:checked + .referral-switch-slider { background: #e05b67; }
+.referral-switch input:checked + .referral-switch-slider::before { transform: translateX(21px); }
+.referral-switch input:focus-visible + .referral-switch-slider { outline: 3px solid rgba(91,124,255,.3); }
+.referral-settings-card { gap: 18px; }
+.referral-field { display: grid; gap: 9px; min-width: 0; }
+.referral-field textarea {
+  display: block; width: 100%; min-height: 104px; resize: vertical; box-sizing: border-box;
+  padding: 12px; border: 1px solid var(--field-border, rgba(128,128,128,.35));
+  border-radius: 12px; font: inherit; line-height: 1.5;
+}
+.referral-gift-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.referral-gift-value { color: #8b75ff; font-size: 17px; font-variant-numeric: tabular-nums; }
+.referral-range { width: 100%; accent-color: #7769f8; }
+.referral-gift-calculation { line-height: 1.5; }
+.referral-disabled-note {
+  padding: 12px 14px; border: 1px solid rgba(224,91,103,.24); border-radius: 12px;
+  background: rgba(224,91,103,.07); font-size: 13px; line-height: 1.5;
+}
+.referral-stats {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border-radius: 14px; background: var(--card-bg, rgba(128,128,128,.08));
+  font-size: 14px;
+}
+.referral-stats strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.referral-toast {
+  position: fixed; z-index: 12000; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+  max-width: calc(100vw - 32px); padding: 11px 16px; border-radius: 13px;
+  color: #fff; background: rgba(26,34,52,.94); box-shadow: 0 10px 30px rgba(0,0,0,.22);
+  font-size: 13px; text-align: center; transition: opacity .18s ease, transform .18s ease;
+}
+.referral-toast.is-visible { opacity: 1; transform: translate(-50%,0); }
+.referral-gift-overlay {
+  position: fixed; inset: 0; z-index: 11000; display: grid; place-items: center;
+  padding: max(22px, env(safe-area-inset-top)) 20px max(22px, env(safe-area-inset-bottom));
+  box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain;
+  opacity: 0; background: radial-gradient(circle at 50% 18%, #344c9c 0%, #172344 42%, #0c1326 100%);
+  color: #f7f8ff; transition: opacity .24s ease;
+}
+.referral-gift-overlay.is-visible { opacity: 1; }
+.referral-gift-card {
+  position: relative; isolation: isolate; width: min(100%, 430px); box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px;
+  padding: 34px 24px 26px; border: 1px solid rgba(255,255,255,.16); border-radius: 30px;
+  background: linear-gradient(155deg, rgba(39,58,108,.95), rgba(19,29,57,.98));
+  box-shadow: 0 30px 90px rgba(0,0,0,.38); overflow: hidden;
+}
+.referral-gift-glow {
+  position: absolute; z-index: -1; width: 260px; height: 260px; top: -125px; left: calc(50% - 130px);
+  border-radius: 50%; background: rgba(123,153,255,.3); filter: blur(48px);
+}
+.referral-gift-icon {
+  display: grid; place-items: center; width: 104px; height: 104px; border-radius: 32px;
+  font-size: 58px; background: linear-gradient(145deg, rgba(140,169,255,.3), rgba(174,127,255,.24));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 15px 45px rgba(7,13,32,.25);
+  animation: referralGemFloat 2.5s ease-in-out infinite;
+}
+.referral-gift-eyebrow { color: #c6d2ff; font-size: 10px; font-weight: 800; letter-spacing: .18em; }
+.referral-gift-title { margin: 0; font-size: clamp(24px, 6vw, 30px); line-height: 1.2; }
+.referral-gift-amount {
+  margin-top: 6px; font-size: clamp(58px, 17vw, 82px); line-height: .95; font-weight: 900;
+  letter-spacing: -.055em; color: #d4dcff; text-shadow: 0 7px 35px rgba(128,157,255,.4);
+  font-variant-numeric: tabular-nums;
+}
+.referral-gift-unit { color: #acbdf5; font-size: 12px; font-weight: 800; letter-spacing: .24em; }
+.referral-gift-message { max-width: 310px; margin: 4px 0 10px; color: #d4dcf5; font-size: 14px; line-height: 1.6; }
+.referral-gift-close { min-height: 52px; border: 0; border-radius: 15px; color: #fff; background: linear-gradient(100deg,#5d7eff,#9771f4); font-weight: 800; }
+@keyframes referralGemFloat { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-7px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .referral-gift-icon { animation: none; }
+  .referral-gift-overlay, .referral-toast { transition: none; }
+}
