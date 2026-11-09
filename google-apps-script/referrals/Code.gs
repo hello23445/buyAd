@@ -337,12 +337,13 @@ function loadAdminRestrictionConfig_() {
     const source = response.getContentText();
     const result = {};
     ['BanForever', 'BlockedUsersTelegramID', 'UserWarnings'].forEach(function (name) {
-      const pattern = new RegExp('(?:export\\s+)?const\\s+' + name + '\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;');
+      const pattern = new RegExp('(?:export\\s+)?(?:const|let|var)\\s+' + name + '\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;');
       const match = source.match(pattern);
       if (!match) throw new Error('Missing ' + name);
       result[name] = JSON.parse(match[1]);
     });
-    cache.put('buyad_referral_admin_restrictions_v1', JSON.stringify(result), 20);
+    // Keep the cache short so newly issued warnings/bans disable links promptly.
+    cache.put('buyad_referral_admin_restrictions_v1', JSON.stringify(result), 5);
     return result;
   } catch (error) {
     throw new Error('Could not verify the account restriction status. Try again later.');
@@ -394,7 +395,10 @@ function createReferral_(identity) {
     const balance = userBalance_(userRow);
     if (balance < BUYAD_CREATE_COST) throw new Error('Not enough crystals. 25 crystals are required.');
 
-    const digest = bytesToHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, identity.telegramId, Utilities.Charset.UTF_8));
+    // HMAC-SHA-256 prevents outsiders from cheaply enumerating numeric Telegram IDs.
+    // The bot token remains server-side in Script Properties and is never returned.
+    const hashSecret = PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN');
+    const digest = bytesToHex_(Utilities.computeHmacSha256Signature(identity.telegramId, hashSecret));
     const code = 'ref_' + digest;
     const url = 'https://t.me/buyAdss_bot/buy?startapp=' + code;
     const sheet = referralSheet_();
