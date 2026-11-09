@@ -26,26 +26,32 @@ function requireReferralSystemEnabled_() {
 }
 
 function setReferralSystemEnabled_(enabled) {
-  const properties = PropertiesService.getScriptProperties();
-  if (enabled === true) {
-    properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'true');
-    return;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const properties = PropertiesService.getScriptProperties();
+    if (enabled === true) {
+      properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'true');
+      return;
+    }
+
+    // Disable globally before touching rows; actions re-check the flag under this lock.
+    properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'false');
+    const sheet = referralSheet_();
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return;
+
+    const rowCount = lastRow - 1;
+    sheet.getRange(2, 4, rowCount, 1).setValues(
+      Array.from({ length: rowCount }, function () { return [false]; })
+    );
+    sheet.getRange(2, 8, rowCount, 1).setValues(
+      Array.from({ length: rowCount }, function () { return [new Date()]; })
+    );
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
   }
-
-  // Disable globally first, so no concurrent request can create or reward a referral.
-  properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'false');
-  const sheet = referralSheet_();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return;
-
-  const rowCount = lastRow - 1;
-  sheet.getRange(2, 4, rowCount, 1).setValues(
-    Array.from({ length: rowCount }, function () { return [false]; })
-  );
-  sheet.getRange(2, 8, rowCount, 1).setValues(
-    Array.from({ length: rowCount }, function () { return [new Date()]; })
-  );
-  SpreadsheetApp.flush();
 }
 
 function requireReferralAdmin_(identity) {
@@ -333,6 +339,7 @@ function registerReferralVisit_(identity) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    if (!isReferralSystemEnabled_()) return { firstVisit: false, isNew: false, referralCodePresent: false, systemEnabled: false };
     const existingRow = findVisitRow_(identity.telegramId);
     const rawCode = identity.startParam;
     let referralCode = /^ref_[a-f0-9]{64}$/.test(rawCode) ? rawCode : '';
@@ -564,6 +571,7 @@ function createReferral_(identity) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    requireReferralSystemEnabled_();
     const existing = findReferralByOwner_(identity.telegramId);
     if (existing) return { referral: { url: existing.url, enabled: existing.enabled, manuallyEnabled: existing.enabled, shareText: existing.shareText, giftAmount: existing.giftAmount } };
 
@@ -617,6 +625,7 @@ function saveReferralSettings_(identity, payload) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    requireReferralSystemEnabled_();
     const current = findReferralByOwner_(identity.telegramId);
     if (!current) throw new Error('A referral link does not exist.');
     const sheet = referralSheet_();
@@ -641,6 +650,7 @@ function setReferralEnabled_(identity, enabled) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    requireReferralSystemEnabled_();
     const current = findReferralByOwner_(identity.telegramId);
     if (!current) throw new Error('A referral link does not exist.');
     referralSheet_().getRange(current.row, 4).setValue(enabled);
@@ -685,6 +695,7 @@ function claimReferral_(identity) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    if (!isReferralSystemEnabled_()) return { claimed: false, giftReceived: 0, showGift: false, systemEnabled: false };
     const refreshedVisitRow = findVisitRow_(identity.telegramId);
     const refreshedVisit = visitsSheet_().getRange(refreshedVisitRow, 1, 1, 8).getValues()[0];
     if (String(refreshedVisit[4] || '') === 'claimed') {
