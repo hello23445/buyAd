@@ -540,41 +540,6 @@
     return card;
   }
 
-  function buildOverviewCard(state) {
-    const card = makeElement('div', 'card referral-overview-card');
-    const heading = makeElement('div', 'referral-overview-heading');
-    heading.appendChild(makeElement('div', 'referral-hero-icon', '💎'));
-    const copy = makeElement('div', 'referral-overview-copy');
-    copy.appendChild(makeElement('div', 'card__title', text('Приглашай друзей — получай кристаллы', 'Invite friends — earn crystals')));
-    copy.appendChild(makeElement('p', 'card__subtitle', text(
-      'За каждого нового участника начисляется 60 💎 суммарно: часть получает друг, остальное — вы. Настройте размер подарка и поделитесь ссылкой.',
-      'Each new member generates 60 💎 in total: your friend receives a gift and you receive the remainder. Set the gift amount and share your link.'
-    )));
-    heading.appendChild(copy);
-    card.appendChild(heading);
-
-    const metrics = makeElement('div', 'referral-overview-metrics');
-    const addMetric = (label, value) => {
-      const metric = makeElement('div', 'referral-overview-metric');
-      metric.append(makeElement('span', '', label), makeElement('strong', '', String(value || 0)));
-      metrics.appendChild(metric);
-    };
-    const stats = state.stats || {};
-    addMetric(text('Ваш баланс', 'Your balance'), (state.balance == null ? '—' : state.balance) + ' 💎');
-    addMetric(text('Приглашено', 'Invited'), stats.totalInvited || state.referral?.referralsCount || 0);
-    addMetric(text('Ваш доход', 'Your earnings'), (stats.totalOwnerEarned || 0) + ' 💎');
-    card.appendChild(metrics);
-
-    const steps = makeElement('div', 'referral-overview-steps');
-    steps.append(
-      makeElement('span', '', text('1. Создайте ссылку за 25 💎', '1. Create a link for 25 💎')),
-      makeElement('span', '', text('2. Поделитесь с друзьями', '2. Share it with friends')),
-      makeElement('span', '', text('3. Получите награду за нового участника', '3. Earn a reward for each new member'))
-    );
-    card.appendChild(steps);
-    return card;
-  }
-
   function renderReferralState(state) {
     referralState = state;
     const host = content();
