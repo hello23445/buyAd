@@ -316,7 +316,7 @@
   }
 
   function shareText() {
-    const message = referralState?.referral?.showText === false ? '' : String(referralState?.referral?.shareText || '').trim();
+    const message = referralState?.referral?.showText === false ? '' : String(referralState?.referral?.shareText || defaultShareText()).trim();
     return message ? message + '\n' + referralState.referral.url : referralState?.referral?.url || '';
   }
 
@@ -330,7 +330,7 @@
         text: text('Поделиться в Telegram', 'Share in Telegram'),
         class: 'btn btn--primary btn--full',
         onClick: () => {
-          const shareMessage = referral.showText === false ? '' : String(referral.shareText || '').trim();
+          const shareMessage = referral.showText === false ? '' : String(referral.shareText || defaultShareText()).trim();
           const url = 'https://telegram.me/share/url?url=' + encodeURIComponent(referral.url) +
             (shareMessage ? '&text=' + encodeURIComponent(shareMessage) : '');
           window.open(url, '_blank', 'noopener,noreferrer');
@@ -423,7 +423,7 @@
     field.append(input, copy);
     card.appendChild(field);
 
-    card.appendChild(button(text('Поделиться', 'Share'), 'btn btn--primary btn--full referral-share-btn', openShareDialog));
+    card.appendChild(button(text('Поделиться ссылкой', 'Share link'), 'btn btn--primary btn--full referral-share-btn', openShareDialog));
 
     const toggleRow = makeElement('div', 'referral-toggle-row');
     const toggleCopy = makeElement('div', 'referral-toggle-copy');
@@ -440,18 +440,8 @@
     toggleRow.append(toggleCopy, toggleLabel);
     card.appendChild(toggleRow);
 
-    checkbox.addEventListener('change', async () => {
-      checkbox.disabled = true;
-      try {
-        await api('setEnabled', { enabled: checkbox.checked });
-        await loadState();
-        showToast(checkbox.checked ? text('Ссылка включена', 'Referral link enabled') : text('Ссылка отключена', 'Referral link disabled'));
-      } catch (error) {
-        checkbox.checked = !checkbox.checked;
-        showToast(error.message);
-      } finally {
-        checkbox.disabled = false;
-      }
+    checkbox.addEventListener('change', () => {
+      if (referralState?.referral) referralState.referral.pendingEnabled = checkbox.checked;
     });
     return card;
   }
@@ -535,14 +525,14 @@
     const messageField = makeElement('label', 'referral-field');
     const messageHeading = makeElement('div', 'referral-message-heading');
     messageHeading.append(
-      makeElement('span', 'field__label', text('Текст приглашения', 'Invitation message')),
+      makeElement('span', 'field__label', text('Текст приглашения (необязательно)', 'Invitation message (optional)')),
       makeElement('span', 'referral-char-count', '')
     );
     messageField.appendChild(messageHeading);
     const message = document.createElement('textarea');
     message.maxLength = 500;
     message.rows = 4;
-    message.value = referral.shareText == null ? defaultShareText() : referral.shareText;
+    message.value = referral.shareText == null || String(referral.shareText).trim() === '' ? defaultShareText() : referral.shareText;
     message.placeholder = text('Напишите короткое сообщение для друзей…', 'Write a short message for your friends…');
     message.setAttribute('aria-describedby', 'referral-message-counter');
     const charCount = messageHeading.querySelector('.referral-char-count');
@@ -599,7 +589,7 @@
       target.disabled = true;
       target.textContent = text('Сохранение…', 'Saving…');
       try {
-        const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value) });
+        const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value), enabled: checkbox.checked });
         if (result.limited) {
           const until = Date.now() + Math.max(0, Number(result.retryAfter) || 0) * 1000;
           applySaveCooldown(target, until);
@@ -607,6 +597,7 @@
           return;
         }
         if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
+        if (referralState?.referral) referralState.referral.manuallyEnabled = checkbox.checked;
         await loadState();
         showToast(text('Настройки сохранены', 'Settings saved'));
       } catch (error) {
@@ -730,12 +721,12 @@
 
     const referral = state.referral;
 
-    host.appendChild(buildHeaderCard(referral));
-    host.appendChild(buildSettingsCard(referral));
     if (!referral.enabled) {
       host.appendChild(makeElement('div', 'referral-disabled-note',
         text('Ссылка отключена. Включите переключатель, чтобы снова принимать приглашения.', 'The link is disabled. Turn the switch on to accept referrals again.')));
     }
+    host.appendChild(buildHeaderCard(referral));
+    host.appendChild(buildSettingsCard(referral));
     host.appendChild(buildStatisticsCard(state.stats || { totalInvited: referral.referralsCount || 0, totalOwnerEarned: 0, totalGifted: 0, groups: [] }));
   }
 
@@ -813,7 +804,7 @@
       const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
       if (isReferralLoading) {
         if (refresh) refresh.disabled = true;
-        if (label) label.textContent = text('Загрузка…', 'Loading…');
+        if (label) label.textContent = text('Обновить', 'Refresh');
       } else if (remaining > 0) {
         if (refresh) refresh.disabled = true;
         if (label) label.textContent = text('Обновить(', 'Refresh(') + formatReferralCooldown(remaining) + ')';
