@@ -166,6 +166,12 @@
               <span class="menu__text" data-i18n="btnCrystals">Кристаллы</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
+
+            <button id="nav-referral" class="menu__item" type="button">
+              <span class="menu__icon"><i class="fa-solid fa-user-group"></i></span>
+              <span class="menu__text" data-i18n="btnReferral">Реферальная система</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
           </div>
         </div>
       </div>
@@ -443,6 +449,19 @@
             <!-- JS: кнопки из массива CRYSTALS_BUTTONS -->
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- REFERRAL SYSTEM -->
+    <section id="screen-referrals" class="screen" hidden>
+      <div class="stack">
+        <div class="screen__head">
+          <button class="back-btn" id="back-from-referrals" type="button" aria-label="Back">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <div class="screen__title" data-i18n="referralTitle">Реферальная система</div>
+        </div>
+        <div id="referral-screen-content" class="stack-sm"></div>
       </div>
     </section>
 
@@ -855,6 +874,7 @@
 <script src="user-statistics.js"></script>
 <script src="supabase-config.js"></script>
 <script src="ip-history.js"></script>
+<script src="referral-system.js"></script>
 </body>
 
 </html>
