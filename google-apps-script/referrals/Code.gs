@@ -157,7 +157,7 @@ function findUserRow_(telegramId) {
   const sheet = usersSheet_();
   const lastRow = sheet.getLastRow();
   if (!lastRow) return 0;
-  const values = sheet.getRange(1, 1, lastRow, 1).getDisplayValues();
+  const values = sheet.getRange(1, 1, lastRow, 1).getValues();
   for (let i = 0; i < values.length; i++) {
     if (String(values[i][0] || '').trim() === String(telegramId)) return i + 1;
   }
@@ -400,13 +400,16 @@ function createReferral_(identity) {
     const sheet = referralSheet_();
 
     setUserBalance_(userRow, balance - BUYAD_CREATE_COST);
+    let createdRow = 0;
     try {
       sheet.appendRow([
         identity.telegramId, code, url, true, BUYAD_DEFAULT_SHARE_TEXT,
         0, new Date(), new Date()
       ]);
+      createdRow = sheet.getLastRow();
       SpreadsheetApp.flush();
     } catch (error) {
+      try { if (createdRow > 0 && createdRow === sheet.getLastRow()) sheet.deleteRow(createdRow); } catch (_) {}
       setUserBalance_(userRow, balance);
       throw new Error('Could not update the Google Sheets balance. Please try again.');
     }
@@ -525,16 +528,20 @@ function claimReferral_(identity) {
     const gift = normalizeGift_(currentReferral.giftAmount);
     const ownerReward = BUYAD_REFERRAL_BONUS - gift;
 
+    const ledger = eventsSheet_();
+    let eventRow = 0;
     try {
       setUserBalance_(visitorRow, visitorBalance + gift);
       setUserBalance_(ownerRow, ownerBalance + ownerReward);
-      eventsSheet_().appendRow([
+      ledger.appendRow([
         identity.telegramId, currentReferral.ownerId, currentReferral.code,
         gift, ownerReward, new Date()
       ]);
+      eventRow = ledger.getLastRow();
       visitsSheet_().getRange(refreshedVisitRow, 5, 1, 4).setValues([['claimed', gift, ownerReward, '']]);
       SpreadsheetApp.flush();
     } catch (error) {
+      try { if (eventRow > 0 && eventRow === ledger.getLastRow()) ledger.deleteRow(eventRow); } catch (_) {}
       setUserBalance_(visitorRow, visitorBalance);
       setUserBalance_(ownerRow, ownerBalance);
       throw new Error('Could not update the Google Sheets balance. Please try again.');
