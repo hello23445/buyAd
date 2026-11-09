@@ -2002,47 +2002,62 @@ $('btn-open-settings').onclick = () => {
   initTelegramIdDisplay(); // Initialize Telegram ID display when opening settings  initSettingsScreen(); // Initialize new settings
 };
 
-$('admin-referral-enable')?.addEventListener('click', () => {
+function openAdminReferralConfirmation({ title, body, confirmText, confirmClass, enabled }) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (Number(getCurrentAdmin()?.admin_level || 0) < 4) return openModal(lang === 'ru' ? 'Недостаточно прав' : 'Insufficient permissions', '');
-  openModal(
-    lang === 'ru' ? 'Включить реферальную систему?' : 'Enable referral system?',
-    lang === 'ru'
-      ? 'После включения пользователи снова смогут создавать ссылки, приглашать новых участников и получать кристаллы. Индивидуальные настройки ссылок будут восстановлены.'
-      : 'After enabling, users can create links, invite new members and earn crystals again. Individual referral-link settings will be restored.',
-    [
-      { text: lang === 'ru' ? 'Включить' : 'Enable', class: 'btn btn--primary', onClick: async () => {
-        try {
-          if (typeof window.BuyAdReferralSetGlobalEnabled !== 'function') {
-            throw new Error(lang === 'ru' ? 'Модуль реферальной системы не загружен. Перезапустите приложение.' : 'Referral module is not loaded. Restart the app.');
-          }
-          const result = await window.BuyAdReferralSetGlobalEnabled(true);
-          if (result?.systemEnabled !== true) throw new Error(lang === 'ru' ? 'Сервер не подтвердил включение.' : 'The server did not confirm activation.');
-          openModal(lang === 'ru' ? 'Реферальная система включена' : 'Referral system enabled', lang === 'ru' ? 'Создание ссылок, переходы и начисление бонусов снова доступны. Индивидуальные настройки ссылок восстановлены.' : 'Link creation, visits and rewards are available again. Individual link settings have been restored.');
-          refreshAdminReferralStatus();
-        } catch (error) { openModal(lang === 'ru' ? 'Не удалось включить' : 'Could not enable', error.message || ''); }
-      } },
-      { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
-    ]
-  );
-});
-$('admin-referral-disable')?.addEventListener('click', async () => {
-  const lang = localStorage.getItem(LS.lang) || 'ru';
-  if (Number(getCurrentAdmin()?.admin_level || 0) < 4) return openModal(lang === 'ru' ? 'Недостаточно прав' : 'Insufficient permissions', '');
-  openModal(lang === 'ru' ? 'Отключить реферальную систему?' : 'Disable referral system?', lang === 'ru' ? 'Все реферальные ссылки сразу перестанут работать. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов будут заблокированы.' : 'All referral links will stop working. Link creation, settings changes, visit registration and rewards will be blocked.', [
-    { text: lang === 'ru' ? 'Отключить' : 'Disable', class: 'btn btn--danger', onClick: async () => {
+  if (Number(getCurrentAdmin()?.admin_level || 0) < 4) {
+    openModal(lang === 'ru' ? 'Недостаточно прав' : 'Insufficient permissions', '');
+    return;
+  }
+  openModal(title, body, [
+    { text: confirmText, class: confirmClass, onClick: async () => {
       try {
         if (typeof window.BuyAdReferralSetGlobalEnabled !== 'function') {
           throw new Error(lang === 'ru' ? 'Модуль реферальной системы не загружен. Перезапустите приложение.' : 'Referral module is not loaded. Restart the app.');
         }
-        const result = await window.BuyAdReferralSetGlobalEnabled(false);
-        if (result?.systemEnabled !== false) throw new Error(lang === 'ru' ? 'Сервер не подтвердил отключение.' : 'The server did not confirm deactivation.');
-        openModal(lang === 'ru' ? 'Реферальная система отключена' : 'Referral system disabled', lang === 'ru' ? 'Все реферальные ссылки временно не работают. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов заблокированы. Индивидуальные настройки ссылок сохранены.' : 'All referral links are temporarily inactive. Link creation, settings changes, visit registration and rewards are blocked. Individual link settings are preserved.');
+        const result = await window.BuyAdReferralSetGlobalEnabled(enabled);
+        if (result?.systemEnabled !== enabled) {
+          throw new Error(lang === 'ru' ? 'Сервер не подтвердил изменение.' : 'The server did not confirm the change.');
+        }
+        openModal(
+          enabled
+            ? (lang === 'ru' ? 'Реферальная система включена' : 'Referral system enabled')
+            : (lang === 'ru' ? 'Реферальная система отключена' : 'Referral system disabled'),
+          enabled
+            ? (lang === 'ru' ? 'Создание ссылок, переходы и начисление бонусов снова доступны. Индивидуальные настройки ссылок восстановлены.' : 'Link creation, visits and rewards are available again. Individual link settings have been restored.')
+            : (lang === 'ru' ? 'Все реферальные ссылки временно не работают. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов заблокированы. Индивидуальные настройки ссылок сохранены.' : 'All referral links are temporarily inactive. Link creation, settings changes, visit registration and rewards are blocked. Individual link settings are preserved.')
+        );
         refreshAdminReferralStatus();
-      } catch (error) { openModal(lang === 'ru' ? 'Не удалось отключить' : 'Could not disable', error.message || ''); }
+      } catch (error) {
+        openModal(lang === 'ru' ? 'Не удалось изменить статус' : 'Could not change status', error.message || '');
+      }
     } },
     { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
   ]);
+}
+
+$('admin-referral-enable')?.addEventListener('click', () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  openAdminReferralConfirmation({
+    title: lang === 'ru' ? 'Включить реферальную систему?' : 'Enable referral system?',
+    body: lang === 'ru'
+      ? 'После включения пользователи снова смогут создавать ссылки, приглашать новых участников и получать кристаллы. Индивидуальные настройки ссылок будут восстановлены.'
+      : 'After enabling, users can create links, invite new members and earn crystals again. Individual referral-link settings will be restored.',
+    confirmText: lang === 'ru' ? 'Включить' : 'Enable',
+    confirmClass: 'btn btn--primary',
+    enabled: true
+  });
+});
+$('admin-referral-disable')?.addEventListener('click', () => {
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  openAdminReferralConfirmation({
+    title: lang === 'ru' ? 'Отключить реферальную систему?' : 'Disable referral system?',
+    body: lang === 'ru'
+      ? 'Все реферальные ссылки сразу перестанут работать. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов будут заблокированы.'
+      : 'All referral links will stop working. Link creation, settings changes, visit registration and rewards will be blocked.',
+    confirmText: lang === 'ru' ? 'Отключить' : 'Disable',
+    confirmClass: 'btn btn--danger',
+    enabled: false
+  });
 });
 
 async function refreshAdminReferralStatus() {
