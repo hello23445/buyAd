@@ -18,6 +18,24 @@
   let refreshTimer = null;
   let statsCountdownInterval = null;
   let statsRefreshAt = 0;
+  const referralDebugLog = [];
+
+  function logReferralDebug(message, details) {
+    const entry = '[' + new Date().toISOString() + '] ' + message +
+      (details === undefined ? '' : '\\n' + (typeof details === 'string' ? details : JSON.stringify(details, null, 2)));
+    referralDebugLog.push(entry);
+    if (referralDebugLog.length > 40) referralDebugLog.shift();
+    console.debug('[BuyAd referral]', message, details || '');
+  }
+
+  function showReferralDebugAlert(error) {
+    const reason = String(error?.message || error || 'Unknown error');
+    logReferralDebug('ERROR', reason);
+    const report = 'BuyAd — диагностика реферальной системы\\n\\n' +
+      referralDebugLog.slice(-20).join('\\n\\n') +
+      '\\n\\nПоследняя ошибка: ' + reason;
+    window.alert(report.slice(0, 12000));
+  }
 
   function serviceUrl() {
     return typeof REFERRAL_GAS_URL === 'string' ? REFERRAL_GAS_URL.trim() : '';
@@ -60,7 +78,7 @@
         if (settled) return;
         settled = true;
         cleanup();
-        reject(new Error(text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.')));
+        const error = new Error(text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.'));\n        showReferralDebugAlert(error); reject(error);
       }, 12000);
 
       window[callbackName] = response => {
@@ -77,7 +95,7 @@
         if (settled) return;
         settled = true;
         cleanup();
-        reject(new Error(text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.')));
+        const error = new Error(text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.'));\n        logReferralDebug('JSONP script load failed: ' + action, { endpoint: serviceUrl() });\n        showReferralDebugAlert(error); reject(error);
       };
 
       try {
