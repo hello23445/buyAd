@@ -2193,3 +2193,34 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 .referral-reward-result { display: block; padding: 10px; border-radius: 11px; background: var(--card-bg,rgba(128,128,128,.08)); font-size: 12px; }
 .referral-screen-refresh:disabled { opacity: .72; cursor: not-allowed; }
 .referral-screen-refresh[aria-busy="true"] { pointer-events: none; }
+
+
+/* Referral screen spacing, compact gem labels and clearer statistics. */
+#referral-screen-content { display: grid; gap: 22px; }
+.referral-link-card { gap: 17px; padding: 19px; }
+.referral-link-card .referral-url-row { margin-top: 5px; }
+.referral-link-card .referral-share-btn { margin-top: 5px; min-height: 54px; }
+.referral-link-card .referral-toggle-row { margin-top: 5px; padding: 15px; }
+.referral-settings-card { margin-bottom: 2px; }
+.referral-statistics-card { gap: 17px; padding: 19px; }
+.referral-statistics-totals { gap: 10px; }
+.referral-statistics-metric { min-height: 82px; justify-content: space-between; padding: 13px 11px; border: 1px solid var(--divider,rgba(128,136,170,.13)); background: linear-gradient(145deg,var(--card-bg,rgba(128,128,128,.09)),rgba(128,128,128,.025)); }
+.referral-statistics-metric span { display: inline; line-height: 1.35; overflow-wrap: normal; }
+.referral-statistics-metric strong { font-size: 22px; line-height: 1.2; }
+.referral-gem-inline { display: inline-block; white-space: nowrap; vertical-align: baseline; }
+.referral-gift-value { white-space: nowrap; }
+.referral-reward-result { display: grid; grid-template-columns: minmax(0,1fr); justify-items: start; align-content: start; gap: 7px; min-width: 0; }
+.referral-reward-label { line-height: 1.35; overflow-wrap: anywhere; }
+.referral-reward-amount { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.referral-statistics-earned { white-space: nowrap; }
+.referral-statistics-controls { margin-top: 3px; }
+.referral-statistics-groups { gap: 9px; }
+.referral-statistics-row { padding: 12px; }
+@media(max-width:380px) {
+  #referral-screen-content { gap: 18px; }
+  .referral-link-card { padding: 16px; gap: 15px; }
+  .referral-statistics-card { padding: 16px; }
+  .referral-statistics-metric { min-height: 76px; padding: 10px 8px; }
+  .referral-statistics-metric span { font-size: 10px; }
+  .referral-statistics-metric strong { font-size: 19px; }
+}

@@ -537,7 +537,7 @@
     const giftHeading = makeElement('div', 'referral-gift-heading');
     giftHeading.append(
       makeElement('span', 'field__label', text('Распределение награды', 'Reward distribution')),
-      makeElement('strong', 'referral-gift-value', String(referral.giftAmount || 0) + ' 💎')
+      makeElement('strong', 'referral-gift-value', '')
     );
     rewardCard.appendChild(giftHeading);
     rewardCard.appendChild(makeElement('p', 'referral-reward-explainer', text(
@@ -555,12 +555,17 @@
     const calculation = makeElement('div', 'referral-gift-calculation');
     const friendReward = makeElement('div', 'referral-reward-result');
     const ownerReward = makeElement('div', 'referral-reward-result');
+    friendReward.append(makeElement('span', 'referral-reward-label', text('Друг получит', 'Friend receives')), makeElement('strong', 'referral-reward-amount'));
+    ownerReward.append(makeElement('span', 'referral-reward-label', text('Вы получите', 'You receive')), makeElement('strong', 'referral-reward-amount'));
     calculation.append(friendReward, ownerReward);
     const updateCalculation = () => {
       const gift = Math.max(0, Math.min(50, Number(range.value) || 0));
-      giftHeading.querySelector('.referral-gift-value').textContent = gift + ' 💎';
-      friendReward.textContent = text('Друг получит: ', 'Friend receives: ') + gift + ' 💎';
-      ownerReward.textContent = text('Вы получите: ', 'You receive: ') + (60 - gift) + ' 💎';
+      const setGemAmount = (target, amount) => {
+        target.replaceChildren(document.createTextNode(String(amount) + ' '), makeElement('span', 'referral-gem-inline', '💎'));
+      };
+      setGemAmount(giftHeading.querySelector('.referral-gift-value'), gift);
+      friendReward.querySelector('.referral-reward-amount').replaceChildren(document.createTextNode(String(gift) + ' '), makeElement('span', 'referral-gem-inline', '💎'));
+      ownerReward.querySelector('.referral-reward-amount').replaceChildren(document.createTextNode(String(60 - gift) + ' '), makeElement('span', 'referral-gem-inline', '💎'));
     };
     range.addEventListener('input', updateCalculation);
     updateCalculation();
@@ -601,14 +606,17 @@
     const card = makeElement('div', 'card referral-statistics-card');
     card.appendChild(makeElement('div', 'card__title', text('Статистика рефералов', 'Referral statistics')));
     const totals = makeElement('div', 'referral-statistics-totals');
-    const addMetric = (label, value) => {
+    const addMetric = (label, value, hasGem = false) => {
       const item = makeElement('div', 'referral-statistics-metric');
-      item.append(makeElement('span', '', label), makeElement('strong', '', String(value || 0)));
+      const caption = makeElement('span', 'referral-statistics-label');
+      caption.append(document.createTextNode(label));
+      if (hasGem) caption.append(document.createTextNode(' '), makeElement('span', 'referral-gem-inline', '💎'));
+      item.append(caption, makeElement('strong', '', String(value || 0)));
       totals.appendChild(item);
     };
     addMetric(text('Приглашено', 'Invited'), initialStats.totalInvited);
-    addMetric(text('Получено всего', 'Earned total') + ' 💎', initialStats.totalOwnerEarned);
-    addMetric(text('Подарено', 'Gifted') + ' 💎', initialStats.totalGifted);
+    addMetric(text('Получено всего', 'Earned total'), initialStats.totalOwnerEarned, true);
+    addMetric(text('Подарено', 'Gifted'), initialStats.totalGifted, true);
     card.appendChild(totals);
 
     const controls = makeElement('div', 'referral-statistics-controls');
@@ -624,8 +632,8 @@
     function updateStats(data) {
       totals.innerHTML = '';
       addMetric(text('Приглашено', 'Invited'), data.totalInvited);
-      addMetric(text('Получено всего', 'Earned total') + ' 💎', data.totalOwnerEarned);
-      addMetric(text('Подарено', 'Gifted') + ' 💎', data.totalGifted);
+      addMetric(text('Получено всего', 'Earned total'), data.totalOwnerEarned, true);
+      addMetric(text('Подарено', 'Gifted'), data.totalGifted, true);
       groups.innerHTML = '';
       if (!data.groups || !data.groups.length) {
         groups.appendChild(makeElement('p', 'field__hint', text('За выбранный период приглашений пока нет.', 'No referrals in the selected period yet.')));
@@ -633,9 +641,11 @@
       }
       data.groups.forEach(item => {
         const row = makeElement('div', 'referral-statistics-row');
+        const earned = makeElement('span', 'referral-statistics-earned');
+        earned.append(document.createTextNode('+' + item.earned + ' '), makeElement('span', 'referral-gem-inline', '💎'));
         row.append(makeElement('span', '', item.period),
           makeElement('span', '', text('Приглашено: ', 'Invited: ') + item.invited),
-          makeElement('span', '', '+' + item.earned + ' 💎'));
+          earned);
         groups.appendChild(row);
       });
     }
