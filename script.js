@@ -609,6 +609,11 @@ function updateAdminLevelBadge() {
   });
   const referralGroup = $('admin-referral-group');
   if (referralGroup) referralGroup.hidden = !canManageReferralSystem;
+  const referralStatus = $('admin-referral-status');
+  if (referralStatus) {
+    referralStatus.hidden = !canManageReferralSystem;
+    referralStatus.textContent = i18n[localStorage.getItem(LS.lang) || 'ru']?.adminReferralStatusLoading || 'Status: checking…';
+  }
 
   // Управление реестром администраторов — только если доступ действительно разрешён.
   const canManageAdmins = typeof canManageAdminRegistry === 'function' && canManageAdminRegistry();
@@ -2006,7 +2011,8 @@ $('admin-referral-enable')?.addEventListener('click', async () => {
     }
     const result = await window.BuyAdReferralSetGlobalEnabled(true);
     if (result?.systemEnabled !== true) throw new Error(lang === 'ru' ? 'Сервер не подтвердил включение.' : 'The server did not confirm activation.');
-    openModal(lang === 'ru' ? 'Реферальная система включена' : 'Referral system enabled', lang === 'ru' ? 'Создание ссылок, переходы и начисление бонусов снова доступны. Ссылки, отключённые ранее, нужно включить отдельно.' : 'Link creation, visits and rewards are available again. Links disabled earlier must be re-enabled individually.');
+    openModal(lang === 'ru' ? 'Реферальная система включена' : 'Referral system enabled', lang === 'ru' ? 'Создание ссылок, переходы и начисление бонусов снова доступны. Индивидуальные настройки ссылок восстановлены.' : 'Link creation, visits and rewards are available again. Individual link settings have been restored.');
+    refreshAdminReferralStatus();
   } catch (error) { openModal(lang === 'ru' ? 'Не удалось включить' : 'Could not enable', error.message || ''); }
 });
 $('admin-referral-disable')?.addEventListener('click', async () => {
@@ -2020,12 +2026,33 @@ $('admin-referral-disable')?.addEventListener('click', async () => {
         }
         const result = await window.BuyAdReferralSetGlobalEnabled(false);
         if (result?.systemEnabled !== false) throw new Error(lang === 'ru' ? 'Сервер не подтвердил отключение.' : 'The server did not confirm deactivation.');
-        openModal(lang === 'ru' ? 'Реферальная система отключена' : 'Referral system disabled', lang === 'ru' ? 'Все существующие ссылки отключены. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов заблокированы. После повторного включения системы ссылки нужно включать вручную.' : 'All existing links are disabled. Link creation, settings changes, visit registration and rewards are blocked. After the system is re-enabled, links must be enabled manually.');
+        openModal(lang === 'ru' ? 'Реферальная система отключена' : 'Referral system disabled', lang === 'ru' ? 'Все реферальные ссылки временно не работают. Создание ссылок, изменение настроек, регистрация переходов и начисление бонусов заблокированы. Индивидуальные настройки ссылок сохранены.' : 'All referral links are temporarily inactive. Link creation, settings changes, visit registration and rewards are blocked. Individual link settings are preserved.');
+        refreshAdminReferralStatus();
       } catch (error) { openModal(lang === 'ru' ? 'Не удалось отключить' : 'Could not disable', error.message || ''); }
     } },
     { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
   ]);
 });
+
+async function refreshAdminReferralStatus() {
+  const status = $('admin-referral-status');
+  if (!status) return;
+  const lang = localStorage.getItem(LS.lang) || 'ru';
+  const dictionary = i18n[lang] || i18n.ru;
+  status.textContent = dictionary.adminReferralStatusLoading || 'Status: checking…';
+  try {
+    if (typeof window.BuyAdReferralGetGlobalStatus !== 'function') {
+      throw new Error('Referral module is not loaded.');
+    }
+    const result = await window.BuyAdReferralGetGlobalStatus();
+    status.textContent = result.systemEnabled === true
+      ? (dictionary.adminReferralStatusEnabled || 'Status: enabled')
+      : (dictionary.adminReferralStatusDisabled || 'Status: disabled');
+  } catch (error) {
+    status.textContent = dictionary.adminReferralStatusUnavailable || 'Status: unavailable';
+    console.warn('Could not load global referral status:', error);
+  }
+}
 
 $('nav-admin').onclick = () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -2045,6 +2072,7 @@ $('nav-admin').onclick = () => {
   const isRootAdmin = Number(baseAdmin?.admin_level) === 5;
   if (ipButton) ipButton.hidden = !isRootAdmin;
   if (ipGroup?.classList?.contains('menu__group')) ipGroup.hidden = !isRootAdmin;
+  if (Number(getCurrentAdmin()?.admin_level || 0) >= 4) refreshAdminReferralStatus();
 };
 
 $('nav-create').onclick = () => {
