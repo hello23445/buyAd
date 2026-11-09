@@ -2,7 +2,7 @@
 (() => {
   'use strict';
 
-  const DEFAULT_SHARE_TEXT = 'В этом боте можно быстро и эффективно продвигать свои ресурсы абсолютно бесплатно!';
+  const defaultShareText = () => text('В этом боте можно быстро и эффективно продвигать свои ресурсы абсолютно бесплатно!', 'Promote your resources quickly and effectively in this bot — absolutely free!');
   const REFERRAL_BASE_URL = 'https://t.me/buyAdss_bot/buy?startapp=';
   const screen = () => document.getElementById('screen-referrals');
   const content = () => document.getElementById('referral-screen-content');
@@ -483,7 +483,7 @@
     const message = document.createElement('textarea');
     message.maxLength = 500;
     message.rows = 4;
-    message.value = referral.shareText == null ? DEFAULT_SHARE_TEXT : referral.shareText;
+    message.value = referral.shareText == null ? defaultShareText() : referral.shareText;
     message.placeholder = text('Напишите короткое сообщение для друзей…', 'Write a short message for your friends…');
     message.setAttribute('aria-describedby', 'referral-message-counter');
     const charCount = messageHeading.querySelector('.referral-char-count');
