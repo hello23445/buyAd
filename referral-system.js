@@ -733,7 +733,6 @@
       const state = await api('getState');
       renderReferralState(state);
       referralScreenLoaded = true;
-      restoreReferralScroll(scrollSnapshot);
       return state;
     } catch (error) {
       referralLog('Не удалось загрузить состояние реферальной системы', { name: error?.name, message: error?.message, stack: error?.stack });
@@ -743,6 +742,7 @@
     } finally {
       isReferralLoading = false;
       applyRefreshCooldown();
+      restoreReferralScroll(scrollSnapshot);
     }
   }
 
