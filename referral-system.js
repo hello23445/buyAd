@@ -564,7 +564,7 @@
     rewardCard.appendChild(giftHeading);
     rewardCard.appendChild(makeElement('p', 'referral-reward-explainer referral-gift-message', text(
       'Всего за приглашение: 60 💎.\nВыберите награду другу – остаток получите вы.',
-      '60 💎 per referral.\\nChoose your friend’s reward; you receive the rest.'
+      '60 💎 per referral.\nChoose your friend’s reward; you receive the rest.'
     )));
     const range = document.createElement('input');
     range.type = 'range';
