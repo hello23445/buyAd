@@ -283,21 +283,32 @@ function registerReferralVisit_(identity) {
   }
 }
 
+function userTokenForId_(telegramId) {
+  const row = findUserRow_(telegramId);
+  if (!row) return '';
+  // Column B is reserved for the existing user's token in the legacy Users table.
+  // If a deployment uses another value there, it will simply not match a ban token.
+  return String(usersSheet_().getRange(row, 2).getDisplayValue() || '').trim();
+}
+
 function isUserEligible_(telegramId, userToken) {
   const config = loadAdminRestrictionConfig_();
   const id = String(telegramId);
-  const token = String(userToken || '');
+  const tokens = [String(userToken || ''), userTokenForId_(id)].filter(Boolean);
 
   const banned = [].concat(config.BlockedUsersTelegramID || [], config.BanForever || []);
   const isBanned = banned.some(function (entry) {
     const value = restrictionValue_(entry);
-    return value === id || (token && value === token);
+    return value === id || tokens.indexOf(value) >= 0;
   });
   if (isBanned) return { eligible: false, reason: 'Аккаунт заблокирован' };
 
   const now = Date.now();
   const hasWarning = (config.UserWarnings || []).some(function (warning) {
-    if (!warning || typeof warning !== 'object' || String(warning.telegramId || warning.telegram_id || '') !== id) return false;
+    if (!warning || typeof warning !== 'object') return false;
+    const warningTelegramId = String(warning.telegramId || warning.telegram_id || '');
+    const warningToken = String(warning.token || warning.userToken || '');
+    if (warningTelegramId !== id && (!warningToken || tokens.indexOf(warningToken) < 0)) return false;
     const removeAt = warning.removeAt ? Date.parse(warning.removeAt) : NaN;
     return !Number.isFinite(removeAt) || removeAt > now;
   });
