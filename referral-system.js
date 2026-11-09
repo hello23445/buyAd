@@ -505,7 +505,9 @@
     visibilityInput.checked = referral.showText !== false;
     visibilityInput.setAttribute('aria-label', text('Показывать текст у ссылки', 'Show message with link'));
     visibilitySwitch.append(visibilityInput, makeElement('span', 'referral-switch-slider'));
-    visibilityCard.append(visibilityCopy, visibilitySwitch, visibilitySpinner);
+    const visibilityControl = makeElement('div', 'referral-option-control');
+    visibilityControl.append(visibilitySwitch, visibilitySpinner);
+    visibilityCard.append(visibilityCopy, visibilityControl);
     card.appendChild(visibilityCard);
 
     const messageField = makeElement('label', 'referral-field');
