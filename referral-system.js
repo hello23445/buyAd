@@ -13,6 +13,7 @@
   const text = (ru, en) => isRussian() ? ru : en;
   let referralState = null;
   let referralScreenLoaded = false;
+  let isReferralLoading = false;
   let bootstrapPromise = null;
   let claimInProgress = false;
   let giftOverlay = null;
@@ -366,6 +367,24 @@
     }
   }
 
+  function captureReferralScroll() {
+    const snapshot = { windowY: window.scrollY || document.documentElement.scrollTop || 0, nodes: [] };
+    let node = content();
+    while (node) {
+      if (node.scrollHeight > node.clientHeight + 4) snapshot.nodes.push({ node, top: node.scrollTop });
+      node = node.parentElement;
+    }
+    return snapshot;
+  }
+
+  function restoreReferralScroll(snapshot) {
+    if (!snapshot) return;
+    requestAnimationFrame(() => {
+      snapshot.nodes.forEach(item => { if (item.node?.isConnected) item.node.scrollTop = item.top; });
+      window.scrollTo(0, snapshot.windowY);
+    });
+  }
+
   function buildHeaderCard(referral) {
     const card = makeElement('div', 'card referral-link-card');
     card.appendChild(makeElement('div', 'referral-link-heading', text('Ваша реферальная ссылка', 'Your referral link')));
@@ -452,7 +471,7 @@
       const remaining = Math.max(0, Math.ceil((Number(untilTimestamp) - Date.now()) / 1000));
       if (remaining > 0) {
         buttonElement.disabled = true;
-        buttonElement.textContent = text('Сохранить через ', 'Save in ') + formatReferralCooldown(remaining);
+        buttonElement.textContent = text('Сохранить изменения(', 'Save changes(') + formatReferralCooldown(remaining) + ')';
       } else {
         buttonElement.disabled = false;
         buttonElement.textContent = text('Сохранить изменения', 'Save changes');
@@ -479,12 +498,14 @@
       makeElement('span', '', text('Текст будет отправлен вместе со ссылкой.', 'Include the message with the link.'))
     );
     const visibilitySwitch = makeElement('label', 'referral-switch');
+    const visibilitySpinner = makeElement('span', 'referral-option-spinner');
+    visibilitySpinner.hidden = true;
     const visibilityInput = document.createElement('input');
     visibilityInput.type = 'checkbox';
     visibilityInput.checked = referral.showText !== false;
     visibilityInput.setAttribute('aria-label', text('Показывать текст у ссылки', 'Show message with link'));
     visibilitySwitch.append(visibilityInput, makeElement('span', 'referral-switch-slider'));
-    visibilityCard.append(visibilityCopy, visibilitySwitch);
+    visibilityCard.append(visibilityCopy, visibilitySwitch, visibilitySpinner);
     card.appendChild(visibilityCard);
 
     const messageField = makeElement('label', 'referral-field');
@@ -509,43 +530,6 @@
     updateCharCount();
     messageField.appendChild(message);
     card.appendChild(messageField);
-
-    const preview = makeElement('div', 'referral-preview-card');
-    const previewHeading = makeElement('div', 'referral-preview-heading');
-    previewHeading.append(makeElement('span', '', text('Так увидит приглашённый', 'What your friend will see')));
-    const previewBody = makeElement('p', 'referral-preview-body', '');
-    const previewUrl = makeElement('div', 'referral-preview-url', referral.url);
-    const updatePreview = () => {
-      const visible = visibilityInput.checked;
-      const currentMessage = message.value.trim();
-      previewBody.textContent = visible && currentMessage
-        ? currentMessage
-        : text('Будет отправлена только реферальная ссылка.', 'Only the referral link will be shared.');
-      previewBody.hidden = !(visible && currentMessage);
-      previewUrl.textContent = referral.url;
-      preview.classList.toggle('is-link-only', !(visible && currentMessage));
-    };
-    message.addEventListener('input', updatePreview);
-    visibilityInput.addEventListener('change', async () => {
-      const nextValue = visibilityInput.checked;
-      visibilityInput.disabled = true;
-      try {
-        const result = await api('setShowText', { enabled: nextValue });
-        if (result.showText !== nextValue) throw new Error(text('Сервер не подтвердил изменение.', 'The server did not confirm the change.'));
-        if (referralState?.referral) referralState.referral.showText = nextValue;
-        updatePreview();
-        showToast(nextValue ? text('Текст будет показываться у ссылки', 'Message will be shown with the link') : text('Будет отправляться только ссылка', 'Only the link will be shared'));
-      } catch (error) {
-        visibilityInput.checked = !nextValue;
-        updatePreview();
-        showToast(error.message);
-      } finally {
-        visibilityInput.disabled = false;
-      }
-    });
-    preview.append(previewHeading, previewBody, previewUrl);
-    card.appendChild(preview);
-    updatePreview();
 
     const rewardCard = makeElement('div', 'referral-reward-panel');
     const giftHeading = makeElement('div', 'referral-gift-heading');
@@ -621,7 +605,7 @@
     const heading = makeElement('div', 'referral-statistics-heading');
     heading.append(
       makeElement('div', 'referral-statistics-kicker', text('ВАША АКТИВНОСТЬ', 'YOUR ACTIVITY')),
-      makeElement('div', 'card__title', text('Статистика рефералов', 'Referral overview')),
+      makeElement('div', 'card__title', text('Статистика', 'Statistics')),
       makeElement('p', 'referral-statistics-description', text(
         'Здесь собраны все приглашения и начисленные за них кристаллы.',
         'A summary of your invitations and the crystals earned from them.'
@@ -634,11 +618,12 @@
       const item = makeElement('div', 'referral-statistics-metric' + (modifier ? ' ' + modifier : ''));
       const top = makeElement('div', 'referral-statistics-metric-top');
       top.append(makeElement('span', 'referral-statistics-label', label));
-      if (icon) top.appendChild(makeElement('span', 'referral-statistics-gem', icon));
+      if (icon === 'users') top.appendChild(makeElement('i', 'fa-solid fa-users referral-statistics-icon'));
+      else if (icon) top.appendChild(makeElement('span', 'referral-statistics-gem', icon));
       item.append(top, makeElement('strong', 'referral-statistics-value', String(Math.max(0, Number(value) || 0))));
       metrics.appendChild(item);
     };
-    addMetric(text('Приглашено друзей', 'Friends invited'), initialStats.totalInvited, '👥', 'is-invited');
+    addMetric(text('Приглашено друзей', 'Friends invited'), initialStats.totalInvited, 'users', 'is-invited');
     addMetric(text('Вы заработали', 'You earned'), initialStats.totalOwnerEarned, '💎', 'is-earned');
     addMetric(text('Подарено друзьям', 'Given to friends'), initialStats.totalGifted, '💎', 'is-gifted');
     card.appendChild(metrics);
@@ -647,8 +632,8 @@
     note.append(
       makeElement('i', 'fa-solid fa-circle-info'),
       makeElement('span', '', text(
-        'Суммы указаны за всё время. Обновите данные кнопкой «Обновить» вверху меню.',
-        'Totals cover all time. Use the “Refresh” button at the top of this page to update them.'
+        'Суммы указаны за всё время.\nОбновите данные кнопкой «Обновить» вверху меню.',
+        'Totals cover all time.\nUse the “Refresh” button at the top of this page to update them.'
       ))
     );
     card.appendChild(note);
@@ -731,6 +716,9 @@
   }
 
   async function loadState() {
+    const scrollSnapshot = captureReferralScroll();
+    isReferralLoading = true;
+    applyRefreshCooldown();
     const host = content();
     if (host) {
       host.innerHTML = '';
@@ -743,12 +731,16 @@
       const state = await api('getState');
       renderReferralState(state);
       referralScreenLoaded = true;
+      restoreReferralScroll(scrollSnapshot);
       return state;
     } catch (error) {
       referralLog('Не удалось загрузить состояние реферальной системы', { name: error?.name, message: error?.message, stack: error?.stack });
       setPageMessage(error.message, 'is-error');
       addReferralLogsButton(host);
       throw error;
+    } finally {
+      isReferralLoading = false;
+      applyRefreshCooldown();
     }
   }
 
@@ -775,9 +767,12 @@
     refreshCooldownInterval = null;
     const update = () => {
       const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      if (remaining > 0) {
+      if (isReferralLoading) {
         if (refresh) refresh.disabled = true;
-        if (label) label.textContent = text('Обновить через ', 'Refresh in ') + formatReferralCooldown(remaining);
+        if (label) label.textContent = text('Загрузка…', 'Loading…');
+      } else if (remaining > 0) {
+        if (refresh) refresh.disabled = true;
+        if (label) label.textContent = text('Обновить(', 'Refresh(') + formatReferralCooldown(remaining) + ')';
         if (refresh) refresh.title = text('Повторное обновление будет доступно через ', 'Refresh available in ') + formatReferralCooldown(remaining);
       } else {
         if (refresh) refresh.disabled = false;
@@ -792,7 +787,7 @@
   }
   async function refreshReferralScreen() {
     const refresh = document.getElementById('refresh-referrals');
-    if (refresh?.disabled) return;
+    if (isReferralLoading || refresh?.disabled) return;
     const until = Date.now() + REFRESH_COOLDOWN_MS;
     try { localStorage.setItem(refreshCooldownKey(), String(until)); } catch (_) {}
     applyRefreshCooldown(until);
