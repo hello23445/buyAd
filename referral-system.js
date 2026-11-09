@@ -593,8 +593,6 @@
     const host = content();
     if (!host) return;
     host.innerHTML = '';
-    addReferralLogsButton(host);
-
     if (state.systemEnabled === false) {
       const notice = makeElement('div', 'card referral-warning');
       notice.appendChild(makeElement('div', 'referral-warning-icon', '⛔'));
