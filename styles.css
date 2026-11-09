@@ -2124,3 +2124,22 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
   .referral-statistics-row { grid-template-columns: minmax(0,1fr) auto; }
   .referral-statistics-row span:last-child { grid-column: 2; }
 }
+
+
+/* Referral screen: clear reward explanation and explicit manual refresh. */
+.screen__head .screen__title { flex: 1 1 auto; min-width: 0; }
+.referral-screen-refresh { flex: 0 0 auto; min-height: 36px; padding: 8px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; white-space: nowrap; }
+.referral-screen-refresh:disabled { opacity: .65; }
+.referral-toggle-row { align-items: center; gap: 12px; }
+.referral-toggle-copy { min-width: 0; display: grid; gap: 4px; }
+.referral-toggle-title { font-size: 14px; font-weight: 700; }
+.referral-toggle-hint { color: var(--hint-color,#8993a8); font-size: 11px; line-height: 1.4; }
+.referral-reward-explainer { margin: 0; color: var(--hint-color,#8993a8); font-size: 12px; line-height: 1.5; }
+.referral-gift-calculation { display: grid; gap: 7px; padding: 12px 13px; border-radius: 12px; background: var(--card-bg,rgba(128,128,128,.08)); }
+.referral-reward-result { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 650; line-height: 1.4; }
+.referral-reward-total { padding-top: 8px; border-top: 1px solid var(--divider,rgba(128,128,128,.18)); color: var(--hint-color,#8993a8); font-size: 11px; line-height: 1.4; }
+.referral-gift-message { white-space: pre-line; }
+@media(max-width:380px) {
+  .referral-screen-refresh { padding: 8px; }
+  .referral-screen-refresh span { display: none; }
+}

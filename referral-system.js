@@ -12,12 +12,11 @@
   const isRussian = () => language().startsWith('ru');
   const text = (ru, en) => isRussian() ? ru : en;
   let referralState = null;
+  let referralScreenLoaded = false;
   let bootstrapPromise = null;
   let claimInProgress = false;
   let giftOverlay = null;
   let refreshTimer = null;
-  let statsCountdownInterval = null;
-  let statsRefreshAt = 0;
   const referralLogs = [];
   function referralLog(message, details) {
     const time = new Date().toLocaleTimeString();
@@ -370,8 +369,8 @@
     const card = makeElement('div', 'card referral-link-card');
     card.appendChild(makeElement('div', 'referral-link-heading', text('Ваша реферальная ссылка', 'Your referral link')));
     card.appendChild(makeElement('p', 'field__hint referral-link-hint', text(
-      'Отправьте её друзьям. Бонус начисляется за нового участника, который впервые зарегистрируется по вашей ссылке.',
-      'Share it with friends. Rewards are granted when a new member first joins through your link.'
+      'Отправьте ссылку другу. Когда новый пользователь впервые зарегистрируется по ней, награда будет начислена автоматически.',
+      'Send this link to a friend. When a new user first joins through it, the reward is added automatically.'
     )));
     const field = makeElement('div', 'referral-url-row');
     const input = document.createElement('input');
@@ -393,14 +392,18 @@
     card.appendChild(button(text('Поделиться', 'Share'), 'btn btn--primary btn--full referral-share-btn', openShareDialog));
 
     const toggleRow = makeElement('div', 'referral-toggle-row');
-    const toggleText = makeElement('span', '', text('Приём приглашений', 'Accepting referrals'));
+    const toggleCopy = makeElement('div', 'referral-toggle-copy');
+    toggleCopy.append(
+      makeElement('span', 'referral-toggle-title', text('Принимать новые приглашения', 'Accept new referrals')),
+      makeElement('span', 'referral-toggle-hint', text('Выключите, чтобы временно перестать принимать новых участников.', 'Turn this off to temporarily stop accepting new members.'))
+    );
     const toggleLabel = makeElement('label', 'referral-switch');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = referral.manuallyEnabled === true;
     const slider = makeElement('span', 'referral-switch-slider');
     toggleLabel.append(checkbox, slider);
-    toggleRow.append(toggleText, toggleLabel);
+    toggleRow.append(toggleCopy, toggleLabel);
     card.appendChild(toggleRow);
 
     checkbox.addEventListener('change', async () => {
@@ -431,11 +434,16 @@
     messageField.appendChild(message);
     card.appendChild(messageField);
 
-    const giftField = makeElement('div', 'referral-field');
+    const giftField = makeElement('div', 'referral-field referral-reward-field');
     const giftHeading = makeElement('div', 'referral-gift-heading');
-    giftHeading.appendChild(makeElement('span', 'field__label', text('Подарки', 'Gifts')));
+    giftHeading.appendChild(makeElement('span', 'field__label', text('Распределение награды', 'Reward distribution')));
     const giftValue = makeElement('strong', 'referral-gift-value', String(referral.giftAmount || 0) + ' 💎');
     giftHeading.appendChild(giftValue);
+    giftField.appendChild(giftHeading);
+    giftField.appendChild(makeElement('p', 'referral-reward-explainer', text(
+      'За каждого нового участника выделяется 60 💎. Выберите, сколько получит приглашённый друг. Оставшаяся часть достанется вам.',
+      'A total of 60 💎 is awarded for each new member. Choose how much your invited friend receives. You get the remaining amount.'
+    )));
     const range = document.createElement('input');
     range.type = 'range';
     range.min = '0';
@@ -443,17 +451,21 @@
     range.step = '1';
     range.value = String(referral.giftAmount || 0);
     range.className = 'referral-range';
-    const calculation = makeElement('div', 'field__hint referral-gift-calculation');
+    range.setAttribute('aria-label', text('Количество кристаллов для друга', 'Crystals for your friend'));
+    const calculation = makeElement('div', 'referral-gift-calculation');
+    const friendReward = makeElement('div', 'referral-reward-result');
+    const ownerReward = makeElement('div', 'referral-reward-result');
+    const totalReward = makeElement('div', 'referral-reward-total', text('Всего за приглашение: 60 💎', 'Total reward per referral: 60 💎'));
+    calculation.append(friendReward, ownerReward, totalReward);
     const updateCalculation = () => {
       const gift = Math.max(0, Math.min(50, Number(range.value) || 0));
       giftValue.textContent = gift + ' 💎';
-      calculation.textContent = isRussian()
-        ? 'Пользователь получит ' + gift + ' 💎 · Вы получите ' + (60 - gift) + ' 💎 из 60'
-        : 'Your friend gets ' + gift + ' 💎 · You receive ' + (60 - gift) + ' 💎 of 60';
+      friendReward.textContent = text('Друг получит: ', 'Your friend gets: ') + gift + ' 💎';
+      ownerReward.textContent = text('Вы получите: ', 'You get: ') + (60 - gift) + ' 💎';
     };
     range.addEventListener('input', updateCalculation);
     updateCalculation();
-    giftField.append(giftHeading, range, calculation);
+    giftField.append(range, calculation);
     card.appendChild(giftField);
 
     card.appendChild(button(text('Сохранить', 'Save'), 'btn btn--primary btn--full referral-save-btn', async event => {
@@ -495,22 +507,8 @@
     [['day', text('По дням', 'By day')], ['week', text('По неделям', 'By week')], ['month', text('По месяцам', 'By month')], ['year', text('По годам', 'By year')]].forEach(([value, label]) => {
       const option = document.createElement('option'); option.value = value; option.textContent = label; period.appendChild(option);
     });
-    const refresh = button('', 'btn btn--ghost referral-refresh-btn', async () => {
-      if (Date.now() < statsRefreshAt || refresh.disabled) return;
-      refresh.disabled = true;
-      refresh.textContent = text('Обновляем…', 'Refreshing…');
-      try {
-        const result = await api('getStats', { period: period.value, manualRefresh: true });
-        if (result.limited) statsRefreshAt = Date.now() + Number(result.retryAfter || 120) * 1000;
-        else {
-          updateStats(result);
-          statsRefreshAt = Date.now() + 120000;
-        }
-      } catch (error) { showToast(error.message); }
-      finally { updateRefreshLabel(); }
-    });
     const groups = makeElement('div', 'referral-statistics-groups');
-    controls.append(period, refresh);
+    controls.append(period);
     card.append(controls, groups);
 
     function updateStats(data) {
@@ -531,13 +529,6 @@
         groups.appendChild(row);
       });
     }
-    function updateRefreshLabel() {
-      const seconds = Math.max(0, Math.ceil((statsRefreshAt - Date.now()) / 1000));
-      refresh.disabled = seconds > 0;
-      refresh.textContent = seconds > 0
-        ? text('Обновить · ', 'Refresh · ') + String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0')
-        : text('Обновить', 'Refresh');
-    }
     async function loadPeriod() {
       try {
         const result = await api('getStats', { period: period.value });
@@ -546,10 +537,6 @@
     }
     period.addEventListener('change', loadPeriod);
     updateStats(initialStats);
-    statsRefreshAt = Date.now() + 120000;
-    updateRefreshLabel();
-    clearInterval(statsCountdownInterval);
-    statsCountdownInterval = setInterval(updateRefreshLabel, 1000);
     return card;
   }
 
@@ -618,7 +605,7 @@
     }
 
     if (!state.referral) {
-      host.appendChild(buildOverviewCard(state));
+
       const card = makeElement('div', 'card referral-create-card');
       card.appendChild(makeElement('div', 'referral-hero-icon', '💎'));
       card.appendChild(makeElement('div', 'card__title', text('Приглашайте друзей', 'Invite your friends')));
@@ -653,7 +640,7 @@
     }
 
     const referral = state.referral;
-    host.appendChild(buildOverviewCard(state));
+
     host.appendChild(buildHeaderCard(referral));
     host.appendChild(buildSettingsCard(referral));
     if (!referral.enabled) {
@@ -675,6 +662,7 @@
     try {
       const state = await api('getState');
       renderReferralState(state);
+      referralScreenLoaded = true;
       return state;
     } catch (error) {
       referralLog('Не удалось загрузить состояние реферальной системы', { name: error?.name, message: error?.message, stack: error?.stack });
@@ -693,7 +681,24 @@
       ), 'is-warning');
       return;
     }
-    await loadState().catch(() => {});
+    if (!referralScreenLoaded) await loadState().catch(() => {});
+  }
+
+  async function refreshReferralScreen() {
+    const refresh = document.getElementById('refresh-referrals');
+    const label = refresh?.querySelector('span');
+    if (refresh?.disabled) return;
+    if (refresh) refresh.disabled = true;
+    if (label) label.textContent = text('Обновляем…', 'Refreshing…');
+    try {
+      await loadState();
+      showToast(text('Данные обновлены', 'Referral data updated'));
+    } catch (_) {
+      // loadState already displays the error and diagnostics action.
+    } finally {
+      if (refresh) refresh.disabled = false;
+      if (label) label.textContent = text('Обновить', 'Refresh');
+    }
   }
 
   function openGiftScreen(amount) {
@@ -717,8 +722,8 @@
     const amountElement = makeElement('div', 'referral-gift-amount', '+' + gift);
     const unit = makeElement('div', 'referral-gift-unit', text('КРИСТАЛЛОВ', 'CRYSTALS'));
     const message = makeElement('p', 'referral-gift-message', text(
-      'Добро пожаловать в BuyAd! Подарок уже зачислен на ваш баланс.',
-      'Welcome to BuyAd! Your gift has been added to your balance.'
+      'Добро пожаловать!\nПодарок уже зачислен на ваш баланс.',
+      'Welcome!\nYour gift has been added to your balance.'
     ));
     const close = button(text('Отлично, спасибо!', 'Awesome, thanks!'), 'btn btn--primary btn--full referral-gift-close', () => {
       overlay.classList.remove('is-visible');
@@ -766,8 +771,10 @@
   function install() {
     const nav = document.getElementById('nav-referral');
     const back = document.getElementById('back-from-referrals');
+    const refresh = document.getElementById('refresh-referrals');
     if (nav) nav.addEventListener('click', () => { openReferralScreen(); });
     if (back) back.addEventListener('click', backToMain);
+    if (refresh) refresh.addEventListener('click', refreshReferralScreen);
 
     window.addEventListener('buyad:consent-access-changed', scheduleGiftCheck);
     const observer = new MutationObserver(scheduleGiftCheck);
