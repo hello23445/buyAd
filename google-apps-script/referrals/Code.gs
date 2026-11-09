@@ -520,6 +520,13 @@ function claimReferral_(identity) {
       visitsSheet_().getRange(refreshedVisitRow, 5).setValue('ignored');
       return { claimed: false, giftReceived: 0, showGift: false };
     }
+    // Re-check restrictions while holding the transaction lock; a warning or ban
+    // issued after the initial lookup must prevent this reward.
+    const latestOwnerEligibility = isUserEligible_(currentReferral.ownerId, '');
+    if (!latestOwnerEligibility.eligible) {
+      visitsSheet_().getRange(refreshedVisitRow, 5).setValue('ignored');
+      return { claimed: false, giftReceived: 0, showGift: false };
+    }
 
     const visitorRow = ensureUserRow_(identity.telegramId, 0);
     const ownerRow = findUserRow_(currentReferral.ownerId);
@@ -547,6 +554,7 @@ function claimReferral_(identity) {
       SpreadsheetApp.flush();
     } catch (error) {
       try { if (eventRow > 0 && eventRow === ledger.getLastRow()) ledger.deleteRow(eventRow); } catch (_) {}
+      try { visitsSheet_().getRange(refreshedVisitRow, 5, 1, 4).setValues([['pending', 0, 0, '']]); } catch (_) {}
       setUserBalance_(visitorRow, visitorBalance);
       setUserBalance_(ownerRow, ownerBalance);
       throw new Error('Could not update the Google Sheets balance. Please try again.');
