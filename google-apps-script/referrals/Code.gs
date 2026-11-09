@@ -25,6 +25,29 @@ function requireReferralSystemEnabled_() {
   if (!isReferralSystemEnabled_()) throw new Error('Referral system is globally disabled.');
 }
 
+function setReferralSystemEnabled_(enabled) {
+  const properties = PropertiesService.getScriptProperties();
+  if (enabled === true) {
+    properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'true');
+    return;
+  }
+
+  // Disable globally first, so no concurrent request can create or reward a referral.
+  properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'false');
+  const sheet = referralSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const rowCount = lastRow - 1;
+  sheet.getRange(2, 4, rowCount, 1).setValues(
+    Array.from({ length: rowCount }, function () { return [false]; })
+  );
+  sheet.getRange(2, 8, rowCount, 1).setValues(
+    Array.from({ length: rowCount }, function () { return [new Date()]; })
+  );
+  SpreadsheetApp.flush();
+}
+
 function requireReferralAdmin_(identity) {
   const token = String(identity && identity.userToken || '');
   if (!token) throw new Error('Administrator access required.');
@@ -111,7 +134,7 @@ function dispatchReferralAction_(action, identity, payload) {
       return registerReferralVisit_(identity);
     case 'setGlobalEnabled':
       requireReferralAdmin_(identity);
-      PropertiesService.getScriptProperties().setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', payload.enabled === true ? 'true' : 'false');
+      setReferralSystemEnabled_(payload.enabled === true);
       return { systemEnabled: isReferralSystemEnabled_() };
     case 'getState':
       return getReferralState_(identity);
@@ -155,7 +178,7 @@ function verifyTelegramInitData_(initData, userToken) {
     .map(function (key) { return key + '=' + values[key]; })
     .join('\n');
 
-  const secretKey = Utilities.computeHmacSha256Signature('WebAppData', botToken);
+  const secretKey = Utilities.computeHmacSha256Signature(botToken, 'WebAppData');
   const calculatedHash = bytesToHex_(Utilities.computeHmacSha256Signature(Utilities.newBlob(checkString).getBytes(), secretKey));
   if (!constantTimeEquals_(receivedHash, calculatedHash)) throw new Error('Telegram authorization is missing or invalid.');
 
@@ -319,13 +342,21 @@ function registerReferralVisit_(identity) {
     // The user must not already exist in Users before this first-visit stamp.
     const isNew = findUserRow_(identity.telegramId) === 0;
     const rawCode = identity.startParam;
-    const referralCode = /^ref_[a-f0-9]{64}$/.test(rawCode) ? rawCode : '';
+    let referralCode = /^ref_[a-f0-9]{64}$/.test(rawCode) ? rawCode : '';
+    let selfReferral = false;
+    if (referralCode) {
+      const linkedReferral = findReferralByCode_(referralCode);
+      if (linkedReferral && linkedReferral.ownerId === identity.telegramId) {
+        selfReferral = true;
+        referralCode = '';
+      }
+    }
     const sheet = visitsSheet_();
     sheet.appendRow([
       identity.telegramId, new Date(), referralCode, isNew,
       referralCode && isNew ? 'pending' : 'ignored', 0, 0, ''
     ]);
-    return { firstVisit: true, isNew: isNew, referralCode: referralCode };
+    return { firstVisit: true, isNew: isNew, referralCode: referralCode, selfReferral: selfReferral };
   } finally {
     lock.releaseLock();
   }
@@ -614,14 +645,14 @@ function claimReferral_(identity) {
     visits.getRange(visitRow, 5).setValue('ignored');
     return { claimed: false, giftReceived: 0, showGift: false };
   }
+  if (referral.ownerId === identity.telegramId) {
+    visits.getRange(visitRow, 5).setValue('ignored');
+    throw new Error('Referral self-registration is not allowed.');
+  }
   const ownerEligibility = isUserEligible_(referral.ownerId, '');
   if (!ownerEligibility.eligible) {
     visits.getRange(visitRow, 5).setValue('ignored');
     return { claimed: false, giftReceived: 0, showGift: false };
-  }
-  if (referral.ownerId === identity.telegramId) {
-    visits.getRange(visitRow, 5).setValue('ignored');
-    throw new Error('Referral self-registration is not allowed.');
   }
 
   const lock = LockService.getScriptLock();
@@ -641,6 +672,10 @@ function claimReferral_(identity) {
     if (!currentReferral || !currentReferral.enabled || currentReferral.ownerId !== referral.ownerId) {
       visitsSheet_().getRange(refreshedVisitRow, 5).setValue('ignored');
       return { claimed: false, giftReceived: 0, showGift: false };
+    }
+    if (currentReferral.ownerId === identity.telegramId) {
+      visitsSheet_().getRange(refreshedVisitRow, 5).setValue('ignored');
+      throw new Error('Referral self-registration is not allowed.');
     }
     // Re-check restrictions while holding the transaction lock; a warning or ban
     // issued after the initial lookup must prevent this reward.
