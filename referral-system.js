@@ -34,7 +34,7 @@
     const title = text('Диагностика реферальной системы', 'Referral diagnostics');
     const body = makeElement('div', 'referral-logs-modal');
     const output = makeElement('pre', 'referral-logs-output',
-      referralLogs.length ? referralLogs.join('\\n') : text('Логи пока пусты.', 'No logs yet.'));
+      referralLogs.length ? referralLogs.join('\n') : text('Логи пока пусты.', 'No logs yet.'));
     output.style.maxHeight = '60vh';
     output.style.overflowY = 'auto';
     output.style.whiteSpace = 'pre-wrap';
