@@ -334,13 +334,6 @@ function registerReferralVisit_(identity) {
   lock.waitLock(10000);
   try {
     const existingRow = findVisitRow_(identity.telegramId);
-    if (existingRow) {
-      const existing = visitsSheet_().getRange(existingRow, 1, 1, 8).getValues()[0];
-      return { firstVisit: false, isNew: existing[3] === true, referralCode: String(existing[2] || '') };
-    }
-
-    // The user must not already exist in Users before this first-visit stamp.
-    const isNew = findUserRow_(identity.telegramId) === 0;
     const rawCode = identity.startParam;
     let referralCode = /^ref_[a-f0-9]{64}$/.test(rawCode) ? rawCode : '';
     let selfReferral = false;
@@ -349,14 +342,47 @@ function registerReferralVisit_(identity) {
       if (linkedReferral && linkedReferral.ownerId === identity.telegramId) {
         selfReferral = true;
         referralCode = '';
+      } else if (!linkedReferral || !linkedReferral.enabled) {
+        referralCode = '';
       }
     }
+
+    if (existingRow) {
+      const existing = visitsSheet_().getRange(existingRow, 1, 1, 8).getValues()[0];
+      // Telegram may open the Mini App once without start_param and deliver the
+      // referral deep-link on a subsequent launch. Upgrade only an unclaimed
+      // first-visit row for a genuinely new account; never overwrite a claim.
+      if (
+        referralCode &&
+        existing[3] === true &&
+        !existing[2] &&
+        String(existing[4] || '') !== 'claimed' &&
+        findUserRow_(identity.telegramId) === 0
+      ) {
+        visitsSheet_().getRange(existingRow, 3, 1, 3).setValues([[referralCode, true, 'pending']]);
+        SpreadsheetApp.flush();
+        return { firstVisit: false, isNew: true, referralCodePresent: true, referralAccepted: true };
+      }
+      if (selfReferral && existing[3] === true && String(existing[4] || '') !== 'claimed') {
+        visitsSheet_().getRange(existingRow, 5).setValue('ignored');
+      }
+      return {
+        firstVisit: false,
+        isNew: existing[3] === true,
+        referralCodePresent: !!existing[2],
+        referralAccepted: false,
+        selfReferral: selfReferral
+      };
+    }
+
+    // The user must not already exist in Users before this first-visit stamp.
+    const isNew = findUserRow_(identity.telegramId) === 0;
     const sheet = visitsSheet_();
     sheet.appendRow([
       identity.telegramId, new Date(), referralCode, isNew,
       referralCode && isNew ? 'pending' : 'ignored', 0, 0, ''
     ]);
-    return { firstVisit: true, isNew: isNew, referralCode: referralCode, selfReferral: selfReferral };
+    return { firstVisit: true, isNew: isNew, referralCodePresent: !!referralCode, referralAccepted: !!(referralCode && isNew), selfReferral: selfReferral };
   } finally {
     lock.releaseLock();
   }
@@ -454,6 +480,7 @@ function getReferralState_(identity) {
     }
   }
   return {
+    systemEnabled: true,
     telegramIdFound: !!row,
     balance: balance,
     eligible: eligibility.eligible,
