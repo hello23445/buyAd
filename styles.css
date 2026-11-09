@@ -2251,3 +2251,48 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
   .referral-statistics-metric { min-height:92px; padding:12px; }
   .referral-statistics-value { font-size:23px; }
 }
+
+
+/* Referral settings: explicit vertical groups and visible async feedback. */
+.referral-settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.referral-settings-heading {
+  margin: 0 0 12px;
+}
+.referral-option-card {
+  margin: 0 0 24px;
+}
+.referral-field {
+  margin: 0 0 26px;
+}
+.referral-reward-panel {
+  margin: 0 0 26px;
+}
+.referral-save-btn {
+  margin-top: 0;
+}
+.referral-option-spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 2px solid rgba(139,124,255,.22);
+  border-top-color: var(--accent-color,#8b7cff);
+  border-radius: 50%;
+  animation: referralOptionSpin .7s linear infinite;
+}
+.referral-option-spinner[hidden] { display: none; }
+.referral-option-card.is-loading { opacity: .82; }
+@keyframes referralOptionSpin { to { transform: rotate(360deg); } }
+.referral-statistics-note span { white-space: pre-line; }
+.referral-statistics-icon {
+  flex: 0 0 auto;
+  color: var(--accent-color,#8b7cff);
+  font-size: 18px;
+  line-height: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .referral-option-spinner { animation-duration: 1.8s; }
+}
