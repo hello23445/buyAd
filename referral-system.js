@@ -164,6 +164,16 @@
           reject(new Error(localizeServerError(response?.error || 'Referral request failed.')));
           return;
         }
+        if (action === 'registerVisit') {
+          referralLog('Результат регистрации перехода', {
+            firstVisit: response.firstVisit === true,
+            isNew: response.isNew === true,
+            referralCodePresent: response.referralCodePresent === true,
+            referralAccepted: response.referralAccepted === true,
+            selfReferral: response.selfReferral === true,
+            systemEnabled: response.systemEnabled !== false
+          });
+        }
         referralLog('Успешный ответ: ' + action);
         resolve(response);
       };
@@ -358,6 +368,11 @@
 
   function buildHeaderCard(referral) {
     const card = makeElement('div', 'card referral-link-card');
+    card.appendChild(makeElement('div', 'referral-link-heading', text('Ваша реферальная ссылка', 'Your referral link')));
+    card.appendChild(makeElement('p', 'field__hint referral-link-hint', text(
+      'Отправьте её друзьям. Бонус начисляется за нового участника, который впервые зарегистрируется по вашей ссылке.',
+      'Share it with friends. Rewards are granted when a new member first joins through your link.'
+    )));
     const field = makeElement('div', 'referral-url-row');
     const input = document.createElement('input');
     input.type = 'text';
@@ -378,7 +393,7 @@
     card.appendChild(button(text('Поделиться', 'Share'), 'btn btn--primary btn--full referral-share-btn', openShareDialog));
 
     const toggleRow = makeElement('div', 'referral-toggle-row');
-    const toggleText = makeElement('span', '', text('Реферальная ссылка активна', 'Referral link is active'));
+    const toggleText = makeElement('span', '', text('Приём приглашений', 'Accepting referrals'));
     const toggleLabel = makeElement('label', 'referral-switch');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
