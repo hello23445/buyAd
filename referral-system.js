@@ -31,9 +31,48 @@
     console.info('[BuyAd referrals]', line);
   }
   function showReferralLogs() {
-    alert(text('Диагностика реферальной системы\n\n', 'Referral diagnostics\n\n') +
-      (referralLogs.length ? referralLogs.join('\n') : text('Логи пока пусты.', 'No logs yet.')));
+    const title = text('Диагностика реферальной системы', 'Referral diagnostics');
+    const body = makeElement('div', 'referral-logs-modal');
+    const output = makeElement('pre', 'referral-logs-output',
+      referralLogs.length ? referralLogs.join('\\n') : text('Логи пока пусты.', 'No logs yet.'));
+    output.style.maxHeight = '60vh';
+    output.style.overflowY = 'auto';
+    output.style.whiteSpace = 'pre-wrap';
+    output.style.overflowWrap = 'anywhere';
+    output.style.fontSize = '12px';
+    output.style.lineHeight = '1.5';
+    output.style.margin = '0';
+    body.appendChild(output);
+
+    const actions = [{ text: text('Закрыть', 'Close'), class: 'btn btn--primary btn--full' }];
+    if (typeof window.openModal === 'function') {
+      window.openModal(title, body, actions);
+      return;
+    }
+
+    const overlay = makeElement('div', 'modal-overlay referral-logs-overlay');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '10000', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: '20px',
+      background: 'rgba(0,0,0,.7)'
+    });
+    const panel = makeElement('div', 'modal referral-logs-panel');
+    Object.assign(panel.style, {
+      width: '100%', maxWidth: '520px', maxHeight: '80vh', overflow: 'auto',
+      padding: '20px', borderRadius: '16px', background: 'var(--card-bg, #fff)'
+    });
+    panel.appendChild(makeElement('h3', 'modal__title', title));
+    panel.appendChild(body);
+    panel.appendChild(button(text('Закрыть', 'Close'), 'btn btn--primary btn--full', () => overlay.remove()));
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay) overlay.remove();
+    });
+    document.body.appendChild(overlay);
   }
+
   function addReferralLogsButton(host) {
     if (!host) return;
     const logButton = button(text('Показать логи', 'Show logs'), 'btn btn--ghost btn--full referral-logs-btn', showReferralLogs);
