@@ -2292,7 +2292,7 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 .referral-statistics-icon {
   flex: 0 0 auto;
   color: var(--accent-color,#8b7cff);
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
 }
 @media (prefers-reduced-motion: reduce) {
