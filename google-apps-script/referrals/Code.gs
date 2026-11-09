@@ -370,7 +370,7 @@ function registerReferralVisit_(identity) {
         SpreadsheetApp.flush();
         return { firstVisit: false, isNew: true, referralCodePresent: true, referralAccepted: true };
       }
-      if (selfReferral && existing[3] === true && String(existing[4] || '') !== 'claimed') {
+      if (selfReferral && existing[3] === true && !existing[2] && String(existing[4] || '') !== 'claimed') {
         visitsSheet_().getRange(existingRow, 5).setValue('ignored');
       }
       return {
