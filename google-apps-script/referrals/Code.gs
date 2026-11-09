@@ -234,7 +234,7 @@ function findReferralByOwner_(telegramId) {
   const rows = sheet.getRange(2, 1, last - 1, 8).getValues();
   for (let i = 0; i < rows.length; i++) {
     if (String(rows[i][0] || '') === String(telegramId)) {
-      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: String(rows[i][4] || BUYAD_DEFAULT_SHARE_TEXT), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '' };
+      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: rows[i][4] == null ? BUYAD_DEFAULT_SHARE_TEXT : String(rows[i][4]), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '' };
     }
   }
   return null;
@@ -247,7 +247,7 @@ function findReferralByCode_(code) {
   const rows = sheet.getRange(2, 1, last - 1, 8).getValues();
   for (let i = 0; i < rows.length; i++) {
     if (String(rows[i][1] || '') === String(code)) {
-      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: String(rows[i][4] || BUYAD_DEFAULT_SHARE_TEXT), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '' };
+      return { row: i + 2, ownerId: String(rows[i][0]), code: String(rows[i][1]), url: String(rows[i][2]), enabled: rows[i][3] === true || String(rows[i][3]).toLowerCase() === 'true', shareText: rows[i][4] == null ? BUYAD_DEFAULT_SHARE_TEXT : String(rows[i][4]), giftAmount: normalizeGift_(rows[i][5]), createdAt: rows[i][6] || '' };
     }
   }
   return null;
@@ -438,7 +438,8 @@ function saveReferralSettings_(identity, payload) {
     const current = findReferralByOwner_(identity.telegramId);
     if (!current) throw new Error('A referral link does not exist.');
     const sheet = referralSheet_();
-    sheet.getRange(current.row, 5, 1, 3).setValues([[shareText, gift, current.createdAt || new Date()]]);
+    sheet.getRange(current.row, 5).setValue(shareText);
+    sheet.getRange(current.row, 6).setValue(gift);
     sheet.getRange(current.row, 8).setValue(new Date());
     SpreadsheetApp.flush();
     return { saved: true, shareText: shareText, giftAmount: gift };
