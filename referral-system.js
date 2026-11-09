@@ -35,16 +35,39 @@
     const body = makeElement('div', 'referral-logs-modal');
     const output = makeElement('pre', 'referral-logs-output',
       referralLogs.length ? referralLogs.join('\n') : text('Логи пока пусты.', 'No logs yet.'));
-    output.style.maxHeight = '60vh';
-    output.style.overflowY = 'auto';
-    output.style.whiteSpace = 'pre-wrap';
-    output.style.overflowWrap = 'anywhere';
-    output.style.fontSize = '12px';
-    output.style.lineHeight = '1.5';
-    output.style.margin = '0';
+    output.setAttribute('tabindex', '0');
+    output.setAttribute('aria-label', text('Текст логов. Можно выделить и скопировать.', 'Log text. Select and copy.'));
+    Object.assign(output.style, {
+      maxHeight: '60vh',
+      overflowY: 'auto',
+      overflowX: 'auto',
+      whiteSpace: 'pre-wrap',
+      overflowWrap: 'anywhere',
+      wordBreak: 'normal',
+      fontSize: '12px',
+      lineHeight: '1.5',
+      margin: '0',
+      padding: '12px',
+      userSelect: 'text',
+      WebkitUserSelect: 'text',
+      cursor: 'text',
+      touchAction: 'pan-y'
+    });
     body.appendChild(output);
 
-    const actions = [{ text: text('Закрыть', 'Close'), class: 'btn btn--primary btn--full' }];
+    const actions = [
+      {
+        text: text('Скопировать логи', 'Copy logs'),
+        class: 'btn btn--primary btn--full',
+        onClick: () => {
+          const logText = referralLogs.join('\n');
+          copyText(logText).then(ok => showToast(ok
+            ? text('Логи скопированы', 'Logs copied')
+            : text('Не удалось скопировать логи', 'Could not copy logs')));
+        }
+      },
+      { text: text('Закрыть', 'Close'), class: 'btn btn--ghost btn--full' }
+    ];
     if (typeof window.openModal === 'function') {
       window.openModal(title, body, actions);
       return;
@@ -65,7 +88,12 @@
     });
     panel.appendChild(makeElement('h3', 'modal__title', title));
     panel.appendChild(body);
-    panel.appendChild(button(text('Закрыть', 'Close'), 'btn btn--primary btn--full', () => overlay.remove()));
+    panel.appendChild(button(text('Скопировать логи', 'Copy logs'), 'btn btn--primary btn--full', () => {
+      copyText(referralLogs.join('\n')).then(ok => showToast(ok
+        ? text('Логи скопированы', 'Logs copied')
+        : text('Не удалось скопировать логи', 'Could not copy logs')));
+    }));
+    panel.appendChild(button(text('Закрыть', 'Close'), 'btn btn--ghost btn--full', () => overlay.remove()));
     overlay.appendChild(panel);
     overlay.addEventListener('click', event => {
       if (event.target === overlay) overlay.remove();
