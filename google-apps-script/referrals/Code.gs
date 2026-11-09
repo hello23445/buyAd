@@ -29,26 +29,12 @@ function setReferralSystemEnabled_(enabled) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const properties = PropertiesService.getScriptProperties();
-    if (enabled === true) {
-      properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'true');
-      return;
-    }
-
-    // Disable globally before touching rows; actions re-check the flag under this lock.
-    properties.setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', 'false');
-    const sheet = referralSheet_();
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return;
-
-    const rowCount = lastRow - 1;
-    sheet.getRange(2, 4, rowCount, 1).setValues(
-      Array.from({ length: rowCount }, function () { return [false]; })
+    // The global flag blocks every referral action and link while preserving
+    // each owner's individual enabled/disabled preference for later restoration.
+    PropertiesService.getScriptProperties().setProperty(
+      'BUYAD_REFERRAL_SYSTEM_ENABLED',
+      enabled === true ? 'true' : 'false'
     );
-    sheet.getRange(2, 8, rowCount, 1).setValues(
-      Array.from({ length: rowCount }, function () { return [new Date()]; })
-    );
-    SpreadsheetApp.flush();
   } finally {
     lock.releaseLock();
   }
@@ -142,6 +128,9 @@ function dispatchReferralAction_(action, identity, payload) {
       requireReferralAdmin_(identity);
       setReferralSystemEnabled_(payload.enabled === true);
       return { systemEnabled: isReferralSystemEnabled_() };
+    case 'getGlobalStatus':
+      requireReferralAdmin_(identity);
+      return { systemEnabled: isReferralSystemEnabled_() };
     case 'getState':
       return getReferralState_(identity);
     case 'getStats':
@@ -201,7 +190,7 @@ function verifyTelegramInitData_(initData, userToken) {
 
   return {
     telegramId: telegramId,
-    startParam: String(values.start_param || ''),
+    startParam: String(values.start_param || values.startapp || ''),
     userToken: String(userToken || '').slice(0, 120)
   };
 }
