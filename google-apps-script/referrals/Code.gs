@@ -15,6 +15,31 @@ const BUYAD_DEFAULT_SHARE_TEXT = 'В этом боте можно быстро �
 const BUYAD_REFERRAL_BONUS = 60;
 const BUYAD_CREATE_COST = 25;
 const BUYAD_MAX_GIFT = 50;
+const BUYAD_ADMIN_ROLE_URL = 'https://raw.githubusercontent.com/hello23445/buyAd/main/admin.js';
+
+function isReferralSystemEnabled_() {
+  return PropertiesService.getScriptProperties().getProperty('BUYAD_REFERRAL_SYSTEM_ENABLED') !== 'false';
+}
+
+function requireReferralSystemEnabled_() {
+  if (!isReferralSystemEnabled_()) throw new Error('Referral system is globally disabled.');
+}
+
+function requireReferralAdmin_(identity) {
+  const token = String(identity && identity.userToken || '');
+  if (!token) throw new Error('Administrator access required.');
+  try {
+    const response = UrlFetchApp.fetch(BUYAD_ADMIN_ROLE_URL + '?v=' + Date.now(), { muteHttpExceptions: true, followRedirects: true });
+    if (response.getResponseCode() !== 200) throw new Error('Admin registry unavailable');
+    const source = response.getContentText();
+    const pattern = /\"admin_level\"\\s*:\\s*(\\d+)[\\s\\S]{0,300}?\"admin_token\"\\s*:\\s*\"([^\"]+)\"/g;
+    let match;
+    while ((match = pattern.exec(source)) !== null) {
+      if (match[2] === token && Number(match[1]) >= 4) return Number(match[1]);
+    }
+  } catch (_) {}
+  throw new Error('Administrator level 4 or higher is required.');
+}
 
 function doGet(e) {
   const query = (e && e.parameter) || {};
@@ -69,6 +94,9 @@ function publicError_(error) {
     'The referral visit was already processed.',
     'No first-visit record was found.',
     'Referral settings are invalid.',
+    'Referral system is globally disabled.',
+    'Administrator access required.',
+    'Administrator level 4 or higher is required.',
     'Could not verify the account restriction status. Try again later.',
     'The referral service is not configured. Add TELEGRAM_BOT_TOKEN in Apps Script project properties.',
     'Could not update the Google Sheets balance. Please try again.'
@@ -81,6 +109,10 @@ function dispatchReferralAction_(action, identity, payload) {
   switch (action) {
     case 'registerVisit':
       return registerReferralVisit_(identity);
+    case 'setGlobalEnabled':
+      requireReferralAdmin_(identity);
+      PropertiesService.getScriptProperties().setProperty('BUYAD_REFERRAL_SYSTEM_ENABLED', payload.enabled === true ? 'true' : 'false');
+      return { systemEnabled: isReferralSystemEnabled_() };
     case 'getState':
       return getReferralState_(identity);
     case 'getStats':
@@ -123,7 +155,7 @@ function verifyTelegramInitData_(initData, userToken) {
     .map(function (key) { return key + '=' + values[key]; })
     .join('\n');
 
-  const secretKey = Utilities.computeHmacSha256Signature(botToken, 'WebAppData');
+  const secretKey = Utilities.computeHmacSha256Signature('WebAppData', botToken);
   const calculatedHash = bytesToHex_(Utilities.computeHmacSha256Signature(Utilities.newBlob(checkString).getBytes(), secretKey));
   if (!constantTimeEquals_(receivedHash, calculatedHash)) throw new Error('Telegram authorization is missing or invalid.');
 
@@ -274,6 +306,7 @@ function normalizeGift_(value) {
 }
 
 function registerReferralVisit_(identity) {
+  if (!isReferralSystemEnabled_()) return { firstVisit: false, isNew: false, referralCode: '', systemEnabled: false };
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -373,6 +406,9 @@ function loadAdminRestrictionConfig_() {
 }
 
 function getReferralState_(identity) {
+  if (!isReferralSystemEnabled_()) {
+    return { systemEnabled: false, telegramIdFound: !!findUserRow_(identity.telegramId), balance: null, eligible: false, eligibilityReason: 'Реферальная система отключена администратором.', stats: null, referral: null };
+  }
   const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
   const row = findUserRow_(identity.telegramId);
   const balance = row ? userBalance_(row) : null;
@@ -405,6 +441,7 @@ function getReferralState_(identity) {
 
 
 function getReferralStats_(identity, period, manualRefresh) {
+  requireReferralSystemEnabled_();
   const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
   if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
   const referral = findReferralByOwner_(identity.telegramId);
@@ -462,6 +499,7 @@ function getReferralStats_(identity, period, manualRefresh) {
 }
 
 function createReferral_(identity) {
+  requireReferralSystemEnabled_();
   const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
   if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
 
@@ -508,6 +546,7 @@ function createReferral_(identity) {
 }
 
 function saveReferralSettings_(identity, payload) {
+  requireReferralSystemEnabled_();
   const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
   if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
   const referral = findReferralByOwner_(identity.telegramId);
@@ -534,6 +573,7 @@ function saveReferralSettings_(identity, payload) {
 }
 
 function setReferralEnabled_(identity, enabled) {
+  requireReferralSystemEnabled_();
   if (enabled) {
     const eligibility = isUserEligible_(identity.telegramId, identity.userToken);
     if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
@@ -554,6 +594,7 @@ function setReferralEnabled_(identity, enabled) {
 }
 
 function claimReferral_(identity) {
+  if (!isReferralSystemEnabled_()) return { claimed: false, giftReceived: 0, showGift: false, systemEnabled: false };
   const visits = visitsSheet_();
   const visitRow = findVisitRow_(identity.telegramId);
   if (!visitRow) throw new Error('No first-visit record was found.');
