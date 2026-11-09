@@ -31,8 +31,8 @@
     console.info('[BuyAd referrals]', line);
   }
   function showReferralLogs() {
-    alert(text('Диагностика реферальной системы\\n\\n', 'Referral diagnostics\\n\\n') +
-      (referralLogs.length ? referralLogs.join('\\n') : text('Логи пока пусты.', 'No logs yet.')));
+    alert(text('Диагностика реферальной системы\n\n', 'Referral diagnostics\n\n') +
+      (referralLogs.length ? referralLogs.join('\n') : text('Логи пока пусты.', 'No logs yet.')));
   }
   function addReferralLogsButton(host) {
     if (!host) return;
@@ -53,7 +53,8 @@
     );
   }
 
-  function api(action, payload = {}) {\n    referralLog('Запрос: ' + action, { endpointConfigured: !!serviceUrl(), telegramInitDataPresent: !!telegram()?.initData, telegramIdPresent: !!telegramId() });
+  function api(action, payload = {}) {
+    referralLog('Запрос: ' + action, { endpointConfigured: !!serviceUrl(), telegramInitDataPresent: !!telegram()?.initData, telegramIdPresent: !!telegramId() });
     const webApp = telegram();
     const endpoint = serviceUrl();
     if (!endpoint) {
@@ -82,7 +83,8 @@
         if (settled) return;
         settled = true;
         cleanup();
-        const error = text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.');\n        referralLog('Тайм-аут запроса: ' + action, error);\n        reject(new Error(error));
+        const error = text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.');
+        referralLog('Тайм-аут запроса: ' + action, error);\n        reject(new Error(error));
       }, 12000);
 
       window[callbackName] = response => {
@@ -99,7 +101,8 @@
         if (settled) return;
         settled = true;
         cleanup();
-        const error = text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.');\n        referralLog('Ошибка загрузки JSONP-скрипта: ' + action, { message: error, endpoint: serviceUrl() });\n        reject(new Error(error));
+        const error = text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.');
+        referralLog('Ошибка загрузки JSONP-скрипта: ' + action, { message: error, endpoint: serviceUrl() });\n        reject(new Error(error));
       };
 
       try {
