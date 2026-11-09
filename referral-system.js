@@ -472,6 +472,7 @@
     const host = content();
     if (!host) return;
     host.innerHTML = '';
+    addReferralLogsButton(host);
 
     if (!state.eligible) {
       const notice = makeElement('div', 'card referral-warning');
@@ -546,7 +547,9 @@
       renderReferralState(state);
       return state;
     } catch (error) {
+      referralLog('Не удалось загрузить состояние реферальной системы', { name: error?.name, message: error?.message, stack: error?.stack });
       setPageMessage(error.message, 'is-error');
+      addReferralLogsButton(host);
       throw error;
     }
   }
