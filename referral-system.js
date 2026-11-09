@@ -788,6 +788,12 @@
     return result;
   };
 
+  window.BuyAdReferralGetGlobalStatus = async function () {
+    const result = await api('getGlobalStatus');
+    referralLog('Проверен глобальный статус реферальной системы', { enabled: result.systemEnabled });
+    return result;
+  };
+
   window.BuyAdReferralBootstrap = function () {
     if (bootstrapPromise) return bootstrapPromise;
     if (!telegramId() || !telegram()?.initData || !serviceUrl()) return Promise.resolve(null);
