@@ -84,7 +84,8 @@
         settled = true;
         cleanup();
         const error = text('Сервер не ответил. Проверьте подключение и попробуйте ещё раз.', 'The server did not respond. Check your connection and try again.');
-        referralLog('Тайм-аут запроса: ' + action, error);\n        reject(new Error(error));
+        referralLog('Тайм-аут запроса: ' + action, error);
+        reject(new Error(error));
       }, 12000);
 
       window[callbackName] = response => {
@@ -92,9 +93,11 @@
         settled = true;
         cleanup();
         if (!response || response.success !== true) {
+          referralLog('Ошибка ответа сервера: ' + action, response || 'Пустой ответ');
           reject(new Error(localizeServerError(response?.error || 'Referral request failed.')));
           return;
         }
+        referralLog('Успешный ответ: ' + action);
         resolve(response);
       };
       script.onerror = () => {
@@ -102,7 +105,8 @@
         settled = true;
         cleanup();
         const error = text('Не удалось связаться с сервером рефералов.', 'Could not contact the referral server.');
-        referralLog('Ошибка загрузки JSONP-скрипта: ' + action, { message: error, endpoint: serviceUrl() });\n        reject(new Error(error));
+        referralLog('Ошибка загрузки JSONP-скрипта: ' + action, { message: error, endpoint: serviceUrl() });
+        reject(new Error(error));
       };
 
       try {
