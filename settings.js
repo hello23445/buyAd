@@ -15,4 +15,4 @@ const DELETE_REJECTED_ADS_GAS_URL = 'https://script.google.com/macros/s/AKfycbye
 
 // URL deployed as the Google Apps Script Web App for the referral system.
 // See google-apps-script/referrals/SETUP.md before enabling referrals.
-const REFERRAL_GAS_URL = '';
+const REFERRAL_GAS_URL = 'https://script.google.com/macros/s/AKfycbwXQ8X4fXTWOaxqGLbHqVzDwztCeIWpbcczWQTewqjqnxWDLCGkUMhEYYRIyPH0wVTM1w/exec';
