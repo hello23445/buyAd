@@ -2296,3 +2296,5 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 @media (prefers-reduced-motion: reduce) {
   .referral-option-spinner { animation-duration: 1.8s; }
 }
+
+.referral-option-control { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 0 auto; }
