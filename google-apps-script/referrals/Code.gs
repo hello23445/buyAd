@@ -345,15 +345,15 @@ function registerReferralVisit_(identity) {
 
     if (existingRow) {
       const existing = visitsSheet_().getRange(existingRow, 1, 1, 8).getValues()[0];
-      // Telegram may open the Mini App once without start_param and deliver the
-      // referral deep-link on a subsequent launch. Upgrade only an unclaimed
-      // first-visit row for a genuinely new account; never overwrite a claim.
+      // Telegram may deliver start_param only on a subsequent launch. The
+      // first-visit row already records whether the account was new at the
+      // original visit, so a Users row created by initUser afterwards must not
+      // prevent attaching the referral code. Never overwrite an existing claim.
       if (
         referralCode &&
         existing[3] === true &&
         !existing[2] &&
-        String(existing[4] || '') !== 'claimed' &&
-        findUserRow_(identity.telegramId) === 0
+        String(existing[4] || '') !== 'claimed'
       ) {
         visitsSheet_().getRange(existingRow, 3, 1, 3).setValues([[referralCode, true, 'pending']]);
         SpreadsheetApp.flush();
