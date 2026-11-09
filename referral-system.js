@@ -509,6 +509,28 @@
     visibilityControl.append(visibilitySwitch, visibilitySpinner);
     visibilityCard.append(visibilityCopy, visibilityControl);
     card.appendChild(visibilityCard);
+    visibilityInput.addEventListener('change', async () => {
+      const previousValue = referralState?.referral?.showText !== false;
+      const nextValue = visibilityInput.checked;
+      visibilityInput.disabled = true;
+      visibilitySpinner.hidden = false;
+      visibilityCard.classList.add('is-saving');
+      try {
+        const result = await api('setShowText', { enabled: nextValue });
+        if (result.saved !== true || result.showText !== nextValue) {
+          throw new Error(text('Не удалось применить настройку.', 'Could not apply this setting.'));
+        }
+        if (referralState?.referral) referralState.referral.showText = nextValue;
+        showToast(text('Настройка применена', 'Setting applied'));
+      } catch (error) {
+        visibilityInput.checked = previousValue;
+        showToast(error.message || text('Не удалось изменить настройку.', 'Could not update the setting.'));
+      } finally {
+        visibilityInput.disabled = false;
+        visibilitySpinner.hidden = true;
+        visibilityCard.classList.remove('is-saving');
+      }
+    });
 
     const messageField = makeElement('label', 'referral-field');
     const messageHeading = makeElement('div', 'referral-message-heading');
@@ -746,6 +768,26 @@
     }
   }
 
+  window.BuyAdRefreshReferralLanguage = function () {
+    if (!referralState || screen()?.hidden) return;
+    const host = content();
+    const messageValue = host?.querySelector('textarea')?.value;
+    const giftValue = host?.querySelector('input[type="range"]')?.value;
+    const scrollSnapshot = captureReferralScroll();
+    renderReferralState(referralState);
+    const message = host?.querySelector('textarea');
+    if (message && messageValue !== undefined) {
+      message.value = messageValue;
+      message.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    const range = host?.querySelector('input[type="range"]');
+    if (range && giftValue !== undefined) {
+      range.value = giftValue;
+      range.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    restoreReferralScroll(scrollSnapshot);
+  };
+
   async function openReferralScreen() {
     showScreen();
     if (!serviceUrl()) {
@@ -808,12 +850,6 @@
   function openGiftScreen(amount) {
     const gift = Math.max(0, Number(amount) || 0);
     if (gift <= 0 || giftOverlay) return;
-    const webApp = telegram();
-    try {
-      if (typeof webApp?.requestFullscreen === 'function') webApp.requestFullscreen();
-      else webApp?.expand?.();
-    } catch (_) { try { webApp?.expand?.(); } catch (_) {} }
-
     const overlay = makeElement('div', 'referral-gift-overlay');
     overlay.id = 'referral-gift-overlay';
     overlay.setAttribute('role', 'dialog');
@@ -845,13 +881,40 @@
     close.focus({ preventScroll: true });
   }
 
+  let rewardLoadingOverlay = null;
+  function showReferralRewardLoader() {
+    if (rewardLoadingOverlay) return;
+    const overlay = makeElement('div', 'referral-reward-loading');
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    const spinner = makeElement('div', 'spinner');
+    const label = makeElement('p', '', text('Начисляем награду…', 'Crediting your reward…'));
+    overlay.append(spinner, label);
+    Object.assign(overlay.style, {
+      position: 'fixed', inset: '0', zIndex: '20000', display: 'flex',
+      flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: '16px', padding: '24px', background: 'rgba(8, 13, 27, .94)',
+      color: 'var(--text-primary, #f4f6ff)', textAlign: 'center'
+    });
+    document.body.appendChild(overlay);
+    rewardLoadingOverlay = overlay;
+  }
+  function hideReferralRewardLoader() {
+    if (!rewardLoadingOverlay) return;
+    rewardLoadingOverlay.remove();
+    rewardLoadingOverlay = null;
+  }
+
   async function processGiftAfterConsent() {
     if (claimInProgress || !telegramId() || !serviceUrl()) return;
     if (window.__buyAdConsentAccessAllowed !== true) return;
     if (document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay:not([hidden])')) return;
     claimInProgress = true;
+    let pendingReward = false;
     try {
-      if (bootstrapPromise) await bootstrapPromise;
+      const visit = bootstrapPromise ? await bootstrapPromise : null;
+      pendingReward = visit?.referralPending === true || visit?.referralAccepted === true;
+      if (pendingReward) showReferralRewardLoader();
       const result = await api('claimReferral');
       if (result.showGift && Number(result.giftReceived) > 0) {
         openGiftScreen(result.giftReceived);
@@ -862,7 +925,9 @@
       }
     } catch (error) {
       console.warn('Referral reward check failed:', error);
+      if (pendingReward) showToast(text('Не удалось начислить награду. Проверьте подключение и попробуйте перезапустить приложение.', 'Could not credit the reward. Check your connection and restart the app.'));
     } finally {
+      hideReferralRewardLoader();
       claimInProgress = false;
     }
   }
@@ -907,7 +972,13 @@
   window.BuyAdReferralBootstrap = function () {
     if (bootstrapPromise) return bootstrapPromise;
     if (!telegramId() || !telegram()?.initData || !serviceUrl()) return Promise.resolve(null);
-    bootstrapPromise = api('registerVisit').catch(error => {
+    bootstrapPromise = api('registerVisit').then(response => {
+      referralLog('Проверка ожидающей награды', {
+        referralPending: response?.referralPending === true,
+        referralAccepted: response?.referralAccepted === true
+      });
+      return response;
+    }).catch(error => {
       console.warn('Referral first-visit registration failed:', error);
       return null;
     });
