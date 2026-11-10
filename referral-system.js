@@ -891,8 +891,20 @@
   }
 
   let rewardLoadingOverlay = null;
+  let rewardLoaderShownAt = 0;
+  function rewardLoaderSeenKey() {
+    return 'buyad_referral_reward_loader_seen_' + (telegramId() || 'unknown');
+  }
+  function hasShownReferralRewardLoader() {
+    try { return localStorage.getItem(rewardLoaderSeenKey()) === '1'; }
+    catch (_) { return false; }
+  }
+  function markReferralRewardLoaderShown() {
+    try { localStorage.setItem(rewardLoaderSeenKey(), '1'); } catch (_) {}
+  }
   function showReferralRewardLoader() {
-    if (rewardLoadingOverlay) return;
+    if (rewardLoadingOverlay || hasShownReferralRewardLoader()) return false;
+    rewardLoaderShownAt = Date.now();
     const overlay = makeElement('div', 'referral-reward-loading');
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
@@ -907,6 +919,11 @@
     });
     document.body.appendChild(overlay);
     rewardLoadingOverlay = overlay;
+    return true;
+  }
+  function waitForReferralRewardLoaderMinimum() {
+    const remaining = Math.max(0, 5000 - (Date.now() - rewardLoaderShownAt));
+    return new Promise(resolve => setTimeout(resolve, remaining));
   }
   function hideReferralRewardLoader() {
     if (!rewardLoadingOverlay) return;
@@ -947,14 +964,18 @@
     if (document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay:not([hidden])')) return;
     claimInProgress = true;
     let pendingReward = false;
+    let rewardLoaderWasShown = false;
     try {
       const visit = bootstrapPromise ? await bootstrapPromise : null;
       pendingReward = visit?.referralPending === true || visit?.referralAccepted === true;
-      if (pendingReward) showReferralRewardLoader();
+      if (pendingReward) rewardLoaderWasShown = showReferralRewardLoader();
       const result = await api('claimReferral');
       if (result.showGift && Number(result.giftReceived) > 0) {
-        // Keep the loading overlay above the app until the gift screen has
-        // been inserted and its visible state has been applied for a frame.
+        // Show the loader for at least five seconds, then reveal the reward screen.
+        if (rewardLoaderWasShown) {
+          await waitForReferralRewardLoaderMinimum();
+          markReferralRewardLoaderShown();
+        }
         openGiftScreen(result.giftReceived);
         await waitForGiftScreenVisible();
         hideReferralRewardLoader();
