@@ -4303,12 +4303,8 @@ async function updateVariable(action, value) {
 
     if (isArrayVariable) {
 
-        const escapedVariableName = variableName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\        const regex = new RegExp(
-            `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)(\\[[\s\\S]*?\\])(\s*;)`,
-            "m"
-        );');
         const regex = new RegExp(
-            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + escapedVariableName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)',
+            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)',
             'm'
         );
 
@@ -4408,9 +4404,9 @@ async function updateVariable(action, value) {
     else {
 
         const escapedVariableName = variableName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\        const regex = new RegExp(
-            `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)([^;]+)(\s*;)`,
-            "m"
-        );');
+            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)([^;]+)(\\s*;)',
+            'm'
+        ););
         const regex = new RegExp(
             '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + escapedVariableName + '\\s*=\\s*)([^;]+)(\\s*;)',
             'm'
