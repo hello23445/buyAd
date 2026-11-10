@@ -642,10 +642,16 @@ function saveReferralSettings_(identity, payload) {
     settingsRow[1] = gift;
     settingsRow[3] = new Date();
     settingsRow[5] = savedAt;
-    sheet.getRange(current.row, 4).setValue(enabled);
-    sheet.getRange(current.row, 5, 1, 6).setValues([settingsRow]);
+    // Write the enabled flag and all settings in one operation so a partial
+    // update cannot leave the toggle out of sync with the saved settings.
+    sheet.getRange(current.row, 4, 1, 7).setValues([[enabled].concat(settingsRow)]);
     SpreadsheetApp.flush();
-    return { saved: true, limited: false, shareText: shareText, giftAmount: gift, enabled: enabled, cooldownUntil: savedAt + 120000 };
+    const savedEnabled = sheet.getRange(current.row, 4).getValue() === true ||
+      String(sheet.getRange(current.row, 4).getDisplayValue()).toLowerCase() === 'true';
+    if (savedEnabled !== enabled) {
+      throw new Error('Could not verify the saved referral invitation setting. Please try again.');
+    }
+    return { saved: true, limited: false, shareText: shareText, giftAmount: gift, enabled: savedEnabled, cooldownUntil: savedAt + 120000 };
   } finally {
     lock.releaseLock();
   }
