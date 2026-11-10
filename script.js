@@ -4579,7 +4579,11 @@ $('admin-unban-create-edit').onclick = () => {
           [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId,
            admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId]
             .filter(Boolean).map(String).includes(String(value))) ? 'unbanAdmin' : 'restrictAds');
-        window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', value);
+        if (/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(value) || value.includes(':')) {
+          window.BuyAdWarnings?.recordAdminAction('punishment_removed', { targetIp: value, punishment: 'ads_restriction' });
+        } else {
+          window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', value);
+        }
       } catch (e) {
         alert(e.message || 'Ошибка при обновлении переменной');
       } finally {
