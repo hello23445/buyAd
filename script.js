@@ -4403,12 +4403,12 @@ async function updateVariable(action, value) {
 
     else {
 
-        const escapedVariableName = variableName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\        const regex = new RegExp(
+        const regex = new RegExp(
             '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)([^;]+)(\\s*;)',
             'm'
         ););
         const regex = new RegExp(
-            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + escapedVariableName + '\\s*=\\s*)([^;]+)(\\s*;)',
+            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)([^;]+)(\\s*;)',
             'm'
         );
 
