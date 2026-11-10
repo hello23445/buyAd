@@ -4553,23 +4553,41 @@ $('admin-ban-create-edit').onclick = () => {
 };
 
 $('admin-unban-create-edit').onclick = () => {
-  openAdminTokenModal('Разблокировать пользователю возможность создавать и редактировать рекламы', async token => {
-    if (!token) {
-      alert('Введите токен пользователя');
-      return;
-    }
-    try {
-      showPreloader();
-      if (!adminGuard('unrestrictAds', token)) return;
-      await updateVariable('UnBlockCreateAds', token);
-      recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'unbanAdmin' : 'restrictAds');
-      window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', token);
-    } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
-    } finally {
-      hidePreloader();
-    }
-  });
+  const body = document.createElement('div');
+  body.style.display = 'grid';
+  body.style.gap = '.65rem';
+  const label = document.createElement('label');
+  label.textContent = 'Telegram ID / IP-адрес / токен пользователя';
+  label.style.fontWeight = '600';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Введите Telegram ID, IP-адрес или токен';
+  input.className = 'admin-modal-control';
+  body.append(label, input);
+  openModal('Разблокировать пользователю возможность создавать и редактировать рекламу', body, [
+    { text: 'Разблокировать', onClick: async () => {
+      const value = input.value.trim();
+      if (!value) {
+        openModal('Не указан пользователь', 'Введите Telegram ID, IP-адрес или токен.');
+        return;
+      }
+      try {
+        if (!adminGuard('unrestrictAds', value)) return;
+        showPreloader();
+        await updateVariable('UnBlockCreateAds', [value]);
+        recordAdminAction((ADMINS || []).some(admin =>
+          [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId,
+           admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId]
+            .filter(Boolean).map(String).includes(String(value))) ? 'unbanAdmin' : 'restrictAds');
+        window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', value);
+      } catch (e) {
+        alert(e.message || 'Ошибка при обновлении переменной');
+      } finally {
+        hidePreloader();
+      }
+    }},
+    { text: 'Отмена', class: 'btn btn--ghost' }
+  ]);
 };
 
 $('admin-ban-ip').onclick = () => {
