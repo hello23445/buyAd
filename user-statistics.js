@@ -10,6 +10,9 @@
   let githubTokenPromise = null;
   let writeQueue = Promise.resolve();
   let lastResult = null;
+  let archiveCache = null;
+  let archiveCacheAt = 0;
+  let searchSequence = 0;
 
   const currentToken = () => String(localStorage.getItem('get_UserToken') || '');
   const currentTelegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
@@ -60,7 +63,8 @@
     return btoa(binary);
   }
 
-  async function readArchive() {
+  async function readArchive(options = {}) {
+    if (options.force !== true && archiveCache && Date.now() - archiveCacheAt < 20000) return archiveCache;
     const token = await getGithubToken();
     const response = await fetch(GITHUB_API, {
       headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token },
@@ -73,7 +77,9 @@
     catch (_) { throw new Error('Файл архива статистики содержит некорректный JSON.'); }
     if (!archive || typeof archive !== 'object') archive = {};
     if (!archive.users || typeof archive.users !== 'object') archive.users = {};
-    return { token, sha: file.sha, archive };
+    archiveCache = { token, sha: file.sha, archive };
+    archiveCacheAt = Date.now();
+    return archiveCache;
   }
 
   function mutateArchive(mutator, message) {
@@ -523,11 +529,13 @@
       parent.appendChild(makeElement('div', 'hint', 'За последние два месяца наказаний с зафиксированной датой нет.'));
       return;
     }
-    rows.forEach(row => {
-      const card = makeElement('article', 'card');
+    rows.forEach((row, index) => {
+      const card = makeElement('article', 'card punishment-history-entry');
       card.style.marginTop = '8px';
-      card.appendChild(makeElement('div', 'card__title', punishmentLabel(row.kind)));
-      appendField(card, 'Дата выдачи (МСК)', moscowDate(row.issuedAt));
+      card.appendChild(makeElement('div', 'card__title', '№' + (index + 1) + ' · ' + punishmentLabel(row.kind)));
+      const issued = makeElement('div', 'punishment-history-date', moscowDate(row.issuedAt));
+      issued.setAttribute('aria-label', 'Дата и время выдачи по Москве');
+      card.appendChild(issued);
       appendField(card, 'Администратор', row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName);
       appendField(card, 'Причина', row.reason || 'Не указана');
       if (row.expiresAt) appendField(card, 'Действует до (МСК)', moscowDate(row.expiresAt));
@@ -640,37 +648,41 @@
       return;
     }
     const button = document.getElementById('user-statistics-search');
+    const sequence = ++searchSequence;
     if (button) button.disabled = true;
-    setStatus('Загружаю данные из GitHub…');
+    setStatus('Загружаю сохранённую статистику…');
     try {
       const result = await readArchive();
+      if (sequence !== searchSequence) return;
       const found = findArchiveProfile(result.archive, query);
       if (!found) throw new Error('Пользователь не найден.');
-      const profile = found.user;
+      const profile = { ...found.user };
       profile.tokens = Array.isArray(profile.tokens) ? profile.tokens : [];
       if (/^\d{4,}$/.test(query)) profile.telegramId = query;
       if (!profile.telegramId && !/^\d{4,}$/.test(query)) profile.tokens = Array.from(new Set([...profile.tokens, query]));
-      const live = await loadLiveStats(profile);
-      await mutateArchive(archive => {
-        const target = getOrCreateUser(archive, {
-          telegramId: profile.telegramId || '',
-          token: profile.tokens[0] || '',
-          fallbackId: profile.fallbackId || ''
-        });
-        target.user.tokens = Array.from(new Set([...(target.user.tokens || []), ...profile.tokens].map(String)));
-        if (live.crystals != null) target.user.crystals = live.crystals;
-        if (live.adCount != null) {
-          target.user.adCount = live.adCount;
-          target.user.adCreatedCount = Math.max(Number(target.user.adCreatedCount || 0), Number(live.adCount));
-        }
-        target.user.statsUpdatedAt = nowIso();
-      }, 'Refresh user statistics snapshot');
-      renderProfile(profile, live);
-      setStatus('Данные обновлены. Время в карточке указано по Москве.');
-    } catch (error) {
-      setStatus(error.message || 'Не удалось получить статистику.', true);
-    } finally {
+
+      // Render the archived snapshot immediately. Live GAS requests run in background.
+      renderProfile(profile, { crystals: null, adCount: null });
+      setStatus('Сохранённые данные показаны. Обновляю актуальные показатели…');
       if (button) button.disabled = false;
+
+      loadLiveStats(profile).then(live => {
+        if (sequence !== searchSequence) return;
+        if (live.crystals != null) profile.crystals = live.crystals;
+        if (live.adCount != null) {
+          profile.adCount = live.adCount;
+          profile.adCreatedCount = Math.max(Number(profile.adCreatedCount || 0), Number(live.adCount));
+        }
+        renderProfile(profile, live);
+        setStatus('Статистика обновлена. Время в карточке указано по Москве.');
+      }).catch(error => {
+        if (sequence === searchSequence) setStatus('Показаны сохранённые данные; актуальная статистика временно недоступна.');
+        console.warn('Live user statistics unavailable:', error);
+      });
+    } catch (error) {
+      if (sequence === searchSequence) setStatus(error.message || 'Не удалось получить статистику.', true);
+    } finally {
+      if (sequence === searchSequence && button) button.disabled = false;
     }
   }
 
