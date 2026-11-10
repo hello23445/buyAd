@@ -693,7 +693,10 @@ function setReferralEnabled_(identity, enabled) {
     if (!current) throw new Error('A referral link does not exist.');
     referralSheet_().getRange(current.row, 4).setValue(enabled);
     referralSheet_().getRange(current.row, 8).setValue(new Date());
-    return { enabled: enabled };
+    SpreadsheetApp.flush();
+    const savedEnabled = referralSheet_().getRange(current.row, 4).getValue() === true;
+    if (savedEnabled !== enabled) throw new Error('Could not verify the saved referral setting.');
+    return { enabled: savedEnabled };
   } finally {
     lock.releaseLock();
   }
