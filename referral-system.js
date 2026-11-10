@@ -432,19 +432,19 @@
       makeElement('span', 'referral-toggle-hint', text('Выключите, чтобы временно перестать принимать новых участников.', 'Turn this off to temporarily stop accepting new members.'))
     );
     const toggleLabel = makeElement('label', 'referral-switch');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
+    const referralSwitchInput = document.createElement('input');
+    referralSwitchInput.type = 'checkbox';
     if (typeof referral.pendingEnabled !== 'boolean') {
       referral.pendingEnabled = referral.manuallyEnabled === true;
     }
-    checkbox.checked = referral.pendingEnabled;
+    referralSwitchInput.checked = referral.pendingEnabled;
     const slider = makeElement('span', 'referral-switch-slider');
-    toggleLabel.append(checkbox, slider);
+    toggleLabel.append(referralSwitchInput, slider);
     toggleRow.append(toggleCopy, toggleLabel);
     card.appendChild(toggleRow);
 
-    checkbox.addEventListener('change', () => {
-      if (referralState?.referral) referralState.referral.pendingEnabled = checkbox.checked;
+    referralSwitchInput.addEventListener('change', () => {
+      if (referralState?.referral) referralState.referral.pendingEnabled = referralSwitchInput.checked;
     });
     return card;
   }
