@@ -86,7 +86,7 @@
     const task = async () => {
       const token = await getGithubToken();
       for (let attempt = 0; attempt < 5; attempt++) {
-        const current = await readArchive();
+        const current = await readArchive({ force: true });
         const archive = current.archive;
         if (!archive.users || typeof archive.users !== 'object') archive.users = {};
         mutator(archive);
@@ -107,6 +107,8 @@
         });
         if (response.ok) {
           lastResult = archive;
+          archiveCache = null;
+          archiveCacheAt = 0;
           return archive;
         }
         if (response.status !== 409 && response.status !== 422) {
