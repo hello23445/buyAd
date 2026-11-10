@@ -434,7 +434,10 @@
     const toggleLabel = makeElement('label', 'referral-switch');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.checked = referral.manuallyEnabled === true;
+    if (typeof referral.pendingEnabled !== 'boolean') {
+      referral.pendingEnabled = referral.manuallyEnabled === true;
+    }
+    checkbox.checked = referral.pendingEnabled;
     const slider = makeElement('span', 'referral-switch-slider');
     toggleLabel.append(checkbox, slider);
     toggleRow.append(toggleCopy, toggleLabel);
