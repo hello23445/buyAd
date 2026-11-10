@@ -1307,14 +1307,63 @@ function getPunishmentAdminName(arrayName, value) {
   return entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
 }
 let cachedClientIp = '';
+function isIpAddressValue(value) {
+  const ip = String(value || '').trim();
+  if (!ip) return false;
+  const ipv4 = /^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+  const ipv6 = ip.includes(':') && /^[0-9a-f:]+$/i.test(ip);
+  return ipv4 || ipv6;
+}
+function inferCreateRestrictionType(entry) {
+  const explicit = String(entry && typeof entry === 'object' ? entry.type || '' : '').trim();
+  if (['token', 'telegramId', 'ip'].includes(explicit)) return explicit;
+  const value = punishmentEntryValue(entry);
+  if (isIpAddressValue(value)) return 'ip';
+  if (/^\\d{4,}$/.test(value)) return 'telegramId';
+  return 'token';
+}
+function getSavedUserAPIs() {
+  let stored = null;
+  try {
+    const raw = localStorage.getItem('userAPIs');
+    if (!raw) return [];
+    try { stored = JSON.parse(raw); } catch (_) { stored = raw; }
+  } catch (_) { return []; }
+  const found = new Set();
+  const collect = value => {
+    if (typeof value === 'string') {
+      value.split(/[\\s,;]+/).map(item => item.trim()).filter(isIpAddressValue)
+        .forEach(ip => found.add(ip.toLowerCase()));
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(collect);
+      return;
+    }
+    if (value && typeof value === 'object') {
+      Object.entries(value).forEach(([key, item]) => {
+        if (/^(ip|address|api|userapi)$/i.test(key) && typeof item === 'string') collect(item);
+        else if (typeof item === 'object') collect(item);
+        else if (typeof item === 'string' && isIpAddressValue(item)) collect(item);
+      });
+    }
+  };
+  collect(stored);
+  return Array.from(found);
+}
 function isTokenCreateBlocked() {
- const token=String(localStorage.getItem(LS.token)||'').trim();
- const telegramId=String(tg?.initDataUnsafe?.user?.id||'').trim();
- return runtimeArray('BlockCreateAds',[]).some(entry=>{
-  if(!entry||typeof entry!=='object') return punishmentEntryValue(entry)===token;
-  const type=String(entry.type||'token'), value=punishmentEntryValue(entry);
-  return (type==='token'&&value===token)||(type==='telegramId'&&value===telegramId)||(type==='ip'&&!!cachedClientIp&&value===cachedClientIp);
- });
+  const token = String(localStorage.getItem(LS.token) || '').trim();
+  const telegramId = String(tg?.initDataUnsafe?.user?.id || '').trim();
+  const savedIPs = new Set(getSavedUserAPIs());
+  return runtimeArray('BlockCreateAds', []).some(entry => {
+    const value = punishmentEntryValue(entry);
+    const type = inferCreateRestrictionType(entry);
+    if (!value) return false;
+    if (type === 'token') return value === token;
+    if (type === 'telegramId') return !!telegramId && value === telegramId;
+    if (type === 'ip') return savedIPs.has(value.toLowerCase());
+    return false;
+  });
 }
 
 function isTokenFullyBlocked() {
@@ -2821,8 +2870,8 @@ $('footer-remove').onclick = async () => {
 $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
 
-  if (isCreateAdsDisabledGlobally()) {
-    showFeatureBlockedModal('create');
+  if (editMode ? isEditingDisabledGlobally() : isCreateAdsDisabledGlobally()) {
+    showFeatureBlockedModal(editMode ? 'edit' : 'create');
     return;
   }
 
@@ -2888,6 +2937,13 @@ $('btn-create-ad').onclick = async () => {
     if (videoFile) {
       params.append('videoMimeType', videoFile.type);
       params.append('videoFilename', videoFile.name);
+    }
+
+    // Re-check restrictions immediately before sending the create/update request.
+    if (editMode ? isEditingDisabledGlobally() : isCreateAdsDisabledGlobally()) {
+      hidePreloader();
+      showFeatureBlockedModal(editMode ? 'edit' : 'create');
+      return;
     }
 
     const response = await fetch(`${url}?${params.toString()}`, {
@@ -4291,7 +4347,7 @@ async function updateVariable(action, value) {
 
             for (const item of valuesToAdd) {
                 if (isPunishmentArray) {
-                    const normalized = item && typeof item === "object" ? { value: String(item.value || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim(), ...(item.expiresAt ? { expiresAt: String(item.expiresAt) } : {}), ...(item.durationDays != null ? { durationDays: item.durationDays } : {}), ...(item.adminNameHidden != null ? { adminNameHidden: Boolean(item.adminNameHidden) } : {}) } : { value: String(item || "").trim(), reason: "", adminName: "" };
+                    const normalized = item && typeof item === "object" ? { ...(item.type ? { type: String(item.type) } : {}), value: String(item.value || item.token || item.ip || item.telegramId || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim(), ...(item.expiresAt ? { expiresAt: String(item.expiresAt) } : {}), ...(item.durationDays != null ? { durationDays: item.durationDays } : {}), ...(item.adminNameHidden != null ? { adminNameHidden: Boolean(item.adminNameHidden) } : {}), ...(item.issuedAt ? { issuedAt: String(item.issuedAt) } : {}) } : { value: String(item || "").trim(), reason: "", adminName: "" };
                     if (!normalized.value) continue;
                     const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value);
                     if (idx >= 0) oldArray[idx] = normalized; else oldArray.push(normalized);
