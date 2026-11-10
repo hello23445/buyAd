@@ -4406,10 +4406,6 @@ async function updateVariable(action, value) {
         const regex = new RegExp(
             '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)([^;]+)(\\s*;)',
             'm'
-        ););
-        const regex = new RegExp(
-            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + variableName + '\\s*=\\s*)([^;]+)(\\s*;)',
-            'm'
         );
 
         const match = content.match(regex);
