@@ -4303,9 +4303,13 @@ async function updateVariable(action, value) {
 
     if (isArrayVariable) {
 
-        const regex = new RegExp(
+        const escapedVariableName = variableName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\        const regex = new RegExp(
             `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)(\\[[\s\\S]*?\\])(\s*;)`,
             "m"
+        );');
+        const regex = new RegExp(
+            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + escapedVariableName + '\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)',
+            'm'
         );
 
         const match = content.match(regex);
@@ -4403,9 +4407,13 @@ async function updateVariable(action, value) {
 
     else {
 
-        const regex = new RegExp(
+        const escapedVariableName = variableName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\        const regex = new RegExp(
             `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)([^;]+)(\s*;)`,
             "m"
+        );');
+        const regex = new RegExp(
+            '(^\\s*(?:export\\s+)?(?:let|const|var)\\s+' + escapedVariableName + '\\s*=\\s*)([^;]+)(\\s*;)',
+            'm'
         );
 
         const match = content.match(regex);
