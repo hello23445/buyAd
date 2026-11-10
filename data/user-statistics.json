@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T16:44:05.506Z",
+  "updatedAt": "2026-11-10T16:44:14.614Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -24,8 +24,8 @@
       ],
       "firstSeenAt": "2026-11-05T09:55:18.950Z",
       "registeredAt": null,
-      "lastLoginAt": "2026-11-10T16:00:37.562Z",
-      "loginCount": 31,
+      "lastLoginAt": "2026-11-10T16:44:14.614Z",
+      "loginCount": 32,
       "punishments": [
         {
           "id": "warning:warn_1793397972535_0_l9uat",
