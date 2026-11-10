@@ -603,8 +603,13 @@
           return;
         }
         if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
-        if (result.enabled !== enabled) {
-          throw new Error(text('Сервер не подтвердил сохранение переключателя. Повторите попытку.', 'The server did not confirm the saved toggle. Please try again.'));
+
+        // Keep toggle persistence compatible with already deployed Apps Script
+        // versions: the dedicated setEnabled action exists independently of
+        // saveSettings and explicitly confirms the stored value.
+        const toggleResult = await api('setEnabled', { enabled });
+        if (toggleResult.enabled !== enabled) {
+          throw new Error(text('Сервер не подтвердил сохранение переключателя. Проверьте развёртывание Apps Script.', 'The server did not confirm the saved toggle. Check the Apps Script deployment.'));
         }
         if (referralState?.referral) {
           referralState.referral.manuallyEnabled = enabled;
