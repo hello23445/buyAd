@@ -320,7 +320,19 @@ function showFeatureBlockedModal(type) {
   const entry = findCreateRestrictionEntry() || findPunishmentEntry('BlockCreateAds', token);
   if (entry) {
     const durationText = formatPunishmentDuration(entry, lang);
+    const restrictionType = inferCreateRestrictionType(entry);
     body += lang === 'ru' ? '\n\nОграничение действует: ' + durationText + '.' : '\n\nRestriction duration: ' + durationText + '.';
+    if (restrictionType === 'ip') {
+      body += lang === 'ru'
+        ? '\nПричина: IP-адрес из localStorage userAPIs находится в списке ограничений (' + punishmentEntryValue(entry) + ').'
+        : '\nReason: an IP address from localStorage userAPIs is restricted (' + punishmentEntryValue(entry) + ').';
+    } else if (restrictionType === 'telegramId') {
+      body += lang === 'ru' ? '\nОграничение установлено по вашему Telegram ID.' : '\nRestriction is set for your Telegram ID.';
+    } else {
+      body += lang === 'ru' ? '\nОграничение установлено по токену аккаунта.' : '\nRestriction is set for your account token.';
+    }
+    const reason = entry && typeof entry === 'object' ? String(entry.reason || '').trim() : '';
+    if (reason) body += lang === 'ru' ? '\nПричина блокировки: ' + reason : '\nBlock reason: ' + reason;
     const adminName = entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
     const nameHidden = entry && typeof entry === 'object' && entry.adminNameHidden === true;
     if (adminName && !nameHidden) body += lang === 'ru' ? '\nАдминистратор: ' + adminName : '\nAdministrator: ' + adminName;
