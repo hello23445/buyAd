@@ -1189,7 +1189,7 @@ let runtimeAdmin2Config = {
 };
 
 function parseExportArray(name, content) {
-  const re = new RegExp(`export\s+const\s+${name}\s*=\s*(\\[[\s\\S]*?\\])\s*;`);
+  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;`);
   const match = content.match(re);
   if (!match) return [''];
   try {
@@ -1200,7 +1200,7 @@ function parseExportArray(name, content) {
 }
 
 function parseExportValue(name, content) {
-  const re = new RegExp(`export\s+const\s+${name}\s*=\s*(['"])(.*?)\\1\s*;`);
+  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(['"])(.*?)\\1\\s*;`);
   const match = content.match(re);
   return match ? match[2] : '';
 }
