@@ -431,7 +431,7 @@
       makeElement('span', 'referral-toggle-title', text('Принимать новые приглашения', 'Accept new referrals')),
       makeElement('span', 'referral-toggle-hint', text('Выключите, чтобы временно перестать принимать новых участников.', 'Turn this off to temporarily stop accepting new members.'))
     );
-    const toggleLabel = makeElement('label', 'referral-switch');
+    const toggleLabel = makeElement('label', 'referral-switch referral-accept-toggle');
     const referralSwitchInput = document.createElement('input');
     referralSwitchInput.type = 'checkbox';
     if (typeof referral.pendingEnabled !== 'boolean') {
@@ -589,7 +589,7 @@
 
     const saveButton = button(text('Сохранить изменения', 'Save changes'), 'btn btn--primary btn--full referral-save-btn', async event => {
       const target = event.currentTarget;
-      const enabledInput = content()?.querySelector('.referral-switch input[type="checkbox"]');
+      const enabledInput = content()?.querySelector('.referral-accept-toggle input[type="checkbox"]');
       target.disabled = true;
       if (enabledInput) enabledInput.disabled = true;
       target.textContent = text('Сохранение…', 'Saving…');
