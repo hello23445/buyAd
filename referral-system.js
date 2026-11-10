@@ -914,6 +914,33 @@
     rewardLoadingOverlay = null;
   }
 
+  function waitForGiftScreenVisible() {
+    const overlay = giftOverlay;
+    if (!overlay) return Promise.resolve();
+    return new Promise(resolve => {
+      let finished = false;
+      let timeoutId = null;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        if (timeoutId !== null) clearTimeout(timeoutId);
+        overlay.removeEventListener('transitionend', onTransitionEnd);
+        resolve();
+      };
+      const onTransitionEnd = event => {
+        if (event.target === overlay && event.propertyName === 'opacity') finish();
+      };
+      overlay.addEventListener('transitionend', onTransitionEnd);
+      // The gift screen fades in for 240 ms. Keep the loader above it until
+      // that transition completes; the timeout is a safety fallback.
+      timeoutId = setTimeout(finish, 500);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!overlay.isConnected) finish();
+        else if (getComputedStyle(overlay).transitionDuration === '0s') finish();
+      }));
+    });
+  }
+
   async function processGiftAfterConsent() {
     if (claimInProgress || !telegramId() || !serviceUrl()) return;
     if (window.__buyAdConsentAccessAllowed !== true) return;
@@ -929,7 +956,7 @@
         // Keep the loading overlay above the app until the gift screen has
         // been inserted and its visible state has been applied for a frame.
         openGiftScreen(result.giftReceived);
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await waitForGiftScreenVisible();
         hideReferralRewardLoader();
 
         // These background updates must not delay showing the gift screen.
