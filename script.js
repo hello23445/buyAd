@@ -1312,7 +1312,7 @@ let cachedClientIp = '';
 function isIpAddressValue(value) {
   const ip = String(value || '').trim();
   if (!ip) return false;
-  const ipv4 = /^(?:\d{1,3}\\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+  const ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
   const ipv6 = ip.includes(':') && /^[0-9a-f:]+$/i.test(ip);
   return ipv4 || ipv6;
 }
