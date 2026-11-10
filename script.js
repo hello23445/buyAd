@@ -316,23 +316,14 @@ function showFeatureBlockedModal(type) {
   let body = type === 'edit'
     ? (i18nLang.editDisabled || 'Возможность редактировать рекламу временно отключена.')
     : (i18nLang.createDisabled || 'Возможность создавать рекламу временно отключена.');
-  const token = localStorage.getItem(LS.token);
-  const entry = findCreateRestrictionEntry() || findPunishmentEntry('BlockCreateAds', token);
+  const entry = findCreateRestrictionEntry();
   if (entry) {
     const durationText = formatPunishmentDuration(entry, lang);
-    const restrictionType = inferCreateRestrictionType(entry);
-    body += lang === 'ru' ? '\n\nОграничение действует: ' + durationText + '.' : '\n\nRestriction duration: ' + durationText + '.';
-    if (restrictionType === 'ip') {
-      body += lang === 'ru'
-        ? '\nПричина: IP-адрес из localStorage userAPIs находится в списке ограничений (' + punishmentEntryValue(entry) + ').'
-        : '\nReason: an IP address from localStorage userAPIs is restricted (' + punishmentEntryValue(entry) + ').';
-    } else if (restrictionType === 'telegramId') {
-      body += lang === 'ru' ? '\nОграничение установлено по вашему Telegram ID.' : '\nRestriction is set for your Telegram ID.';
-    } else {
-      body += lang === 'ru' ? '\nОграничение установлено по токену аккаунта.' : '\nRestriction is set for your account token.';
-    }
+    body += lang === 'ru'
+      ? '\n\nСрок ограничения: ' + durationText + '.'
+      : '\n\nRestriction duration: ' + durationText + '.';
     const reason = entry && typeof entry === 'object' ? String(entry.reason || '').trim() : '';
-    if (reason) body += lang === 'ru' ? '\nПричина блокировки: ' + reason : '\nBlock reason: ' + reason;
+    if (reason) body += lang === 'ru' ? '\nПричина: ' + reason : '\nReason: ' + reason;
     const adminName = entry && typeof entry === 'object' ? String(entry.adminName || '').trim() : '';
     const nameHidden = entry && typeof entry === 'object' && entry.adminNameHidden === true;
     if (adminName && !nameHidden) body += lang === 'ru' ? '\nАдминистратор: ' + adminName : '\nAdministrator: ' + adminName;
@@ -340,7 +331,6 @@ function showFeatureBlockedModal(type) {
   const okText = i18nLang.ok || i18nLang.yes || 'ОК';
   openModal(title, body, [{ text: okText, class: 'btn btn--primary', onClick: () => {} }]);
 }
-
 
 function openSupportChat() {
   const url = 'https://t.me/Clickerstart_bot';
@@ -1199,7 +1189,7 @@ let runtimeAdmin2Config = {
 };
 
 function parseExportArray(name, content) {
-  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;`);
+  const re = new RegExp(`export\s+const\s+${name}\s*=\s*(\\[[\s\\S]*?\\])\s*;`);
   const match = content.match(re);
   if (!match) return [''];
   try {
@@ -1210,7 +1200,7 @@ function parseExportArray(name, content) {
 }
 
 function parseExportValue(name, content) {
-  const re = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*(['"])(.*?)\\1\\s*;`);
+  const re = new RegExp(`export\s+const\s+${name}\s*=\s*(['"])(.*?)\\1\s*;`);
   const match = content.match(re);
   return match ? match[2] : '';
 }
@@ -1322,7 +1312,7 @@ let cachedClientIp = '';
 function isIpAddressValue(value) {
   const ip = String(value || '').trim();
   if (!ip) return false;
-  const ipv4 = /^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+  const ipv4 = /^(?:\d{1,3}\\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
   const ipv6 = ip.includes(':') && /^[0-9a-f:]+$/i.test(ip);
   return ipv4 || ipv6;
 }
@@ -1331,7 +1321,7 @@ function inferCreateRestrictionType(entry) {
   if (['token', 'telegramId', 'ip'].includes(explicit)) return explicit;
   const value = punishmentEntryValue(entry);
   if (isIpAddressValue(value)) return 'ip';
-  if (/^\\d{4,}$/.test(value)) return 'telegramId';
+  if (/^\d{4,}$/.test(value)) return 'telegramId';
   return 'token';
 }
 function getSavedUserAPIs() {
@@ -1344,7 +1334,7 @@ function getSavedUserAPIs() {
   const found = new Set();
   const collect = value => {
     if (typeof value === 'string') {
-      value.split(/[\\s,;]+/).map(item => item.trim()).filter(isIpAddressValue)
+      value.split(/[\s,;]+/).map(item => item.trim()).filter(isIpAddressValue)
         .forEach(ip => found.add(ip.toLowerCase()));
       return;
     }
@@ -1365,12 +1355,17 @@ function getSavedUserAPIs() {
 }
 function findCreateRestrictionEntry() {
   const token = String(localStorage.getItem(LS.token) || '').trim();
-  const telegramId = String(tg?.initDataUnsafe?.user?.id || '').trim();
-  const savedIPs = new Set(getSavedUserAPIs());
+  const telegramId = String(
+    window.Telegram?.WebApp?.initDataUnsafe?.user?.id ||
+    tg?.initDataUnsafe?.user?.id || ''
+  ).trim();
+  const savedIPs = new Set(getSavedUserAPIs().map(ip => String(ip).trim().toLowerCase()));
+  if (cachedClientIp) savedIPs.add(String(cachedClientIp).trim().toLowerCase());
+
   return runtimeArray('BlockCreateAds', []).find(entry => {
     const value = punishmentEntryValue(entry);
-    const type = inferCreateRestrictionType(entry);
     if (!value) return false;
+    const type = inferCreateRestrictionType(entry);
     if (type === 'token') return !!token && value === token;
     if (type === 'telegramId') return !!telegramId && value === telegramId;
     if (type === 'ip') return savedIPs.has(value.toLowerCase());
@@ -1409,8 +1404,7 @@ async function isIpBlocked() {
   if (!ip) return false;
   return !!findPunishmentEntry('BlockedUsersIPadresses', ip);
 }
-function getSavedUserAPIs() { return []; }
-function saveUserAPI() { return []; }
+function saveUserAPI() { return getSavedUserAPIs(); }
 async function recordCurrentIpHistory(trigger) {
   try {
     const ip = await getClientIp();
@@ -4310,7 +4304,7 @@ async function updateVariable(action, value) {
     if (isArrayVariable) {
 
         const regex = new RegExp(
-            `(^\\s*(?:export\\s+)?(?:let|const|var)\\s+${variableName}\\s*=\\s*)(\\[[\\s\\S]*?\\])(\\s*;)`,
+            `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)(\\[[\s\\S]*?\\])(\s*;)`,
             "m"
         );
 
@@ -4410,7 +4404,7 @@ async function updateVariable(action, value) {
     else {
 
         const regex = new RegExp(
-            `(^\\s*(?:export\\s+)?(?:let|const|var)\\s+${variableName}\\s*=\\s*)([^;]+)(\\s*;)`,
+            `(^\s*(?:export\s+)?(?:let|const|var)\s+${variableName}\s*=\s*)([^;]+)(\s*;)`,
             "m"
         );
 
@@ -4666,12 +4660,51 @@ $('admin-ban-create-edit').onclick = () => {
     option.textContent = days + ' ' + (days === 1 ? 'день' : [2,3,4].includes(days) ? 'дня' : 'дней');
     duration.appendChild(option);
   });
+  const custom = document.createElement('option');
+  custom.value = 'custom';
+  custom.textContent = 'Указать вручную';
+  duration.appendChild(custom);
   const forever = document.createElement('option');
   forever.value = 'forever';
   forever.textContent = 'Навсегда (админ 3-го уровня и выше)';
   forever.disabled = Number(getCurrentAdmin()?.admin_level) < 3;
   duration.appendChild(forever);
-  body.append(reasonLabel, reason, durationLabel, duration);
+
+  const customDurationWrap = document.createElement('div');
+  customDurationWrap.style.display = 'none';
+  customDurationWrap.style.gap = '.4rem';
+  const customDurationLabel = document.createElement('label');
+  customDurationLabel.textContent = 'Укажите срок в днях';
+  customDurationLabel.style.fontWeight = '600';
+  const customDuration = document.createElement('input');
+  customDuration.type = 'number';
+  customDuration.min = '1';
+  customDuration.step = '1';
+  customDuration.placeholder = 'Количество дней';
+  customDuration.className = 'admin-modal-control';
+  customDurationWrap.append(customDurationLabel, customDuration);
+  duration.addEventListener('change', () => {
+    customDurationWrap.style.display = duration.value === 'custom' ? 'grid' : 'none';
+    if (duration.value !== 'custom') customDuration.value = '';
+  });
+
+  let hideName = null;
+  if (Number(getCurrentAdmin()?.admin_level) >= 5) {
+    const hideNameLabel = document.createElement('label');
+    hideNameLabel.style.display = 'flex';
+    hideNameLabel.style.alignItems = 'center';
+    hideNameLabel.style.gap = '.55rem';
+    const hideNameInput = document.createElement('input');
+    hideNameInput.type = 'checkbox';
+    hideNameInput.checked = false;
+    const hideNameText = document.createElement('span');
+    hideNameText.textContent = 'Скрыть моё имя при блокировке';
+    hideNameLabel.append(hideNameInput, hideNameText);
+    hideName = hideNameInput;
+    body.append(reasonLabel, reason, durationLabel, duration, customDurationWrap, hideNameLabel);
+  } else {
+    body.append(reasonLabel, reason, durationLabel, duration, customDurationWrap);
+  }
 
   openModal('Заблокировать пользователю возможность создавать и редактировать рекламу', body, [
     { text: 'Заблокировать', onClick: async () => {
@@ -4682,14 +4715,26 @@ $('admin-ban-create-edit').onclick = () => {
         return;
       }
       if (!adminGuard('restrictAds', value)) return;
-      const durationDays = duration.value === 'forever' ? null : Number(duration.value);
+      let durationDays;
+      if (duration.value === 'forever') {
+        durationDays = null;
+      } else if (duration.value === 'custom') {
+        durationDays = Number(customDuration.value);
+        if (!Number.isInteger(durationDays) || durationDays < 1) {
+          openModal('Некорректный срок', 'Укажите целое количество дней — не менее 1.');
+          return;
+        }
+      } else {
+        durationDays = Number(duration.value);
+      }
       const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      const isNameHidden = !!hideName?.checked;
       const entry = {
         type: type.value,
         value,
         reason: reason.value.trim(),
-        adminName: getAdminDisplayName(),
-        adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true',
+        adminName: isNameHidden ? '' : getAdminDisplayName(),
+        adminNameHidden: isNameHidden,
         durationDays,
         issuedAt: new Date().toISOString(),
         expiresAt: expiresAt || null
