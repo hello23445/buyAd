@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T15:47:21.308Z",
+  "updatedAt": "2026-11-10T15:47:23.916Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -98,6 +98,19 @@
           "adminName": "",
           "adminNameHidden": true,
           "adminLevel": 0
+        },
+        {
+          "id": "ads_restriction:8085105056:1794325643916",
+          "kind": "ads_restriction",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-10T15:47:23.916Z",
+          "expiresAt": "2026-11-25T15:37:16.681Z",
+          "durationDays": 15,
+          "reason": "2.8",
+          "adminName": "",
+          "adminNameHidden": true,
+          "adminLevel": 5
         }
       ],
       "lastSeenToken": "GoYy3n2oRheOiByJ",
