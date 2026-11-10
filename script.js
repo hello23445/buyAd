@@ -317,7 +317,7 @@ function showFeatureBlockedModal(type) {
     ? (i18nLang.editDisabled || 'Возможность редактировать рекламу временно отключена.')
     : (i18nLang.createDisabled || 'Возможность создавать рекламу временно отключена.');
   const token = localStorage.getItem(LS.token);
-  const entry = findPunishmentEntry('BlockCreateAds', token);
+  const entry = findCreateRestrictionEntry() || findPunishmentEntry('BlockCreateAds', token);
   if (entry) {
     const durationText = formatPunishmentDuration(entry, lang);
     body += lang === 'ru' ? '\n\nОграничение действует: ' + durationText + '.' : '\n\nRestriction duration: ' + durationText + '.';
@@ -1351,19 +1351,22 @@ function getSavedUserAPIs() {
   collect(stored);
   return Array.from(found);
 }
-function isTokenCreateBlocked() {
+function findCreateRestrictionEntry() {
   const token = String(localStorage.getItem(LS.token) || '').trim();
   const telegramId = String(tg?.initDataUnsafe?.user?.id || '').trim();
   const savedIPs = new Set(getSavedUserAPIs());
-  return runtimeArray('BlockCreateAds', []).some(entry => {
+  return runtimeArray('BlockCreateAds', []).find(entry => {
     const value = punishmentEntryValue(entry);
     const type = inferCreateRestrictionType(entry);
     if (!value) return false;
-    if (type === 'token') return value === token;
+    if (type === 'token') return !!token && value === token;
     if (type === 'telegramId') return !!telegramId && value === telegramId;
     if (type === 'ip') return savedIPs.has(value.toLowerCase());
     return false;
-  });
+  }) || null;
+}
+function isTokenCreateBlocked() {
+  return !!findCreateRestrictionEntry();
 }
 
 function isTokenFullyBlocked() {
