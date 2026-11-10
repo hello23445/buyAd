@@ -592,7 +592,8 @@
       target.disabled = true;
       target.textContent = text('Сохранение…', 'Saving…');
       try {
-        const enabled = referralState?.referral?.pendingEnabled ?? referralState?.referral?.manuallyEnabled ?? false;
+        const enabledInput = content()?.querySelector('.referral-switch input[type="checkbox"]');
+        const enabled = enabledInput ? enabledInput.checked : (referralState?.referral?.pendingEnabled ?? referralState?.referral?.manuallyEnabled ?? false);
         const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value), enabled });
         if (result.limited) {
           const until = Date.now() + Math.max(0, Number(result.retryAfter) || 0) * 1000;
@@ -602,7 +603,7 @@
         }
         if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
         if (referralState?.referral) {
-          referralState.referral.manuallyEnabled = enabled;
+          referralState.referral.manuallyEnabled = result.enabled === true;
           referralState.referral.pendingEnabled = undefined;
         }
         await loadState();
