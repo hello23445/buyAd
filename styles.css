@@ -2300,3 +2300,11 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 }
 
 .referral-option-control { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 0 auto; }
+
+
+/* Referral link title: stronger hierarchy and clear spacing below. */
+.referral-link-heading { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.referral-link-hint { margin-top: 0; }
+
+/* Make punishment issue timestamps immediately scannable. */
+.punishment-history-date { display:inline-block; margin:0 0 12px; padding:7px 10px; border-radius:9px; font-size:14px; font-weight:800; letter-spacing:.01em; background:rgba(91,124,255,.12); border:1px solid rgba(91,124,255,.24); }
