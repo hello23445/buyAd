@@ -4364,7 +4364,7 @@ async function updateVariable(action, value) {
                 if (isPunishmentArray) {
                     const normalized = item && typeof item === "object" ? { ...(item.type ? { type: String(item.type) } : {}), value: String(item.value || item.token || item.ip || item.telegramId || "").trim(), reason: String(item.reason || "").trim(), adminName: String(item.adminName || "").trim(), ...(item.expiresAt ? { expiresAt: String(item.expiresAt) } : {}), ...(item.durationDays != null ? { durationDays: item.durationDays } : {}), ...(item.adminNameHidden != null ? { adminNameHidden: Boolean(item.adminNameHidden) } : {}), ...(item.issuedAt ? { issuedAt: String(item.issuedAt) } : {}) } : { value: String(item || "").trim(), reason: "", adminName: "" };
                     if (!normalized.value) continue;
-                    const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value);
+                    const idx = oldArray.findIndex(entry => entryValue(entry) === normalized.value && (variableName !== "BlockCreateAds" || (String(entry?.type || inferCreateRestrictionType(entry)) === String(normalized.type || inferCreateRestrictionType(normalized)))));
                     if (idx >= 0) oldArray[idx] = normalized; else oldArray.push(normalized);
                 } else if (item !== "" && !oldArray.includes(item)) oldArray.push(item);
             }
@@ -4387,8 +4387,8 @@ async function updateVariable(action, value) {
                     ? value
                     : [value];
 
-            const normalizedValues = valuesToRemove.map(item => item && typeof item === "object" ? entryValue(item) : String(item || "").trim());
-            oldArray = oldArray.filter(item => !normalizedValues.includes(entryValue(item)));
+            const normalizedValues = valuesToRemove.map(item => item && typeof item === "object" ? { value: entryValue(item), type: item.type ? String(item.type) : '' } : { value: String(item || '').trim(), type: '' });
+            oldArray = oldArray.filter(item => !normalizedValues.some(target => target.value === entryValue(item) && (variableName !== "BlockCreateAds" || !target.type || String(item?.type || inferCreateRestrictionType(item)) === target.type)));
         }
 
         // Если массив пустой — оставляем [""]
@@ -4594,69 +4594,152 @@ $('admin-unblock-user').onclick = () => {
 };
 
 
-$('admin-ban-create-edit').onclick = () => {
- const body=document.createElement('div'); body.style.display='grid'; body.style.gap='.65rem';
- const label=document.createElement('label');label.textContent='Telegram ID / IP-адрес / токен пользователя';label.style.fontWeight='600';
- const input=document.createElement('input');input.type='text';input.placeholder='Введите Telegram ID, IP-адрес или токен';input.className='admin-modal-control';
- const reasonLabel=document.createElement('label');reasonLabel.textContent='Причина блокировки';reasonLabel.style.fontWeight='600';
- const reason=document.createElement('textarea');reason.rows=3;reason.placeholder='Укажите причину блокировки';reason.className='admin-modal-control';
- const durationLabel=document.createElement('label');durationLabel.textContent='Срок блокировки';durationLabel.style.fontWeight='600';
- const duration=document.createElement('select');duration.className='admin-modal-control';
- [1,2,4,5,10,15,30,40,50,60].forEach(days=>{const o=document.createElement('option');o.value=String(days);o.textContent=days+' '+(days===1?'день':[2,3,4].includes(days)?'дня':'дней');duration.appendChild(o);});
- const forever=document.createElement('option');forever.value='forever';forever.textContent='Навсегда (админ 3-го уровня и выше)';forever.disabled=Number(getCurrentAdmin()?.admin_level)<3;duration.appendChild(forever);
- body.append(label,input,reasonLabel,reason,durationLabel,duration);
- openModal('Заблокировать пользователю возможность создавать и редактировать рекламу',body,[
- {text:'Заблокировать',onClick:async()=>{
-  const value=input.value.trim();
-  if(!value){openModal('Не указан пользователь','Введите Telegram ID, IP-адрес или токен.');return;}
-  const type=/^\d+$/.test(value)?'telegramId':(/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)||value.includes(':')?'ip':'token');
-  if(!adminGuard('restrictAds',value))return;
-  const durationDays=duration.value==='forever'?null:Number(duration.value);
-  const expiresAt=durationDays==null?'':new Date(Date.now()+durationDays*86400000).toISOString();
-  try{showPreloader();const entry={type,value,reason:reason.value.trim(),adminName:getAdminDisplayName(),adminNameHidden:localStorage.getItem('hideAdminNameOnBan')==='true',durationDays,issuedAt:new Date().toISOString(),expiresAt:expiresAt||null};
-   const current=runtimeArray('BlockCreateAds',[]).filter(x=>punishmentEntryValue(x)!==value);
-   await updateVariable('BlockCreateAds',[...current,entry]);recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(value))) ? 'banAdmin' : 'restrictAds');
-   window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction',value,entry.reason,durationDays,expiresAt);
-  }catch(error){alert(error.message||'Ошибка при обновлении переменной');}finally{hidePreloader();}
- }},
- {text:'Отмена',class:'btn btn--ghost'}
- ]);
-};
-
-$('admin-unban-create-edit').onclick = () => {
+function createAdsRestrictionTargetFields(actionLabel) {
   const body = document.createElement('div');
   body.style.display = 'grid';
   body.style.gap = '.65rem';
-  const label = document.createElement('label');
-  label.textContent = 'Telegram ID / IP-адрес / токен пользователя';
-  label.style.fontWeight = '600';
+
+  const typeLabel = document.createElement('label');
+  typeLabel.textContent = 'Тип идентификатора';
+  typeLabel.style.fontWeight = '600';
+  const type = document.createElement('select');
+  type.className = 'admin-modal-control';
+  [
+    ['', 'Выберите тип идентификатора'],
+    ['token', 'По токену'],
+    ['telegramId', 'По Telegram ID'],
+    ['ip', 'По IP-адресу']
+  ].forEach(([value, text]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    type.appendChild(option);
+  });
+
+  const valueLabel = document.createElement('label');
+  valueLabel.textContent = 'Идентификатор пользователя';
+  valueLabel.style.fontWeight = '600';
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = 'Введите Telegram ID, IP-адрес или токен';
+  input.placeholder = 'Сначала выберите тип идентификатора';
   input.className = 'admin-modal-control';
-  body.append(label, input);
+  input.disabled = true;
+  type.addEventListener('change', () => {
+    input.disabled = !type.value;
+    input.value = '';
+    input.placeholder = type.value === 'token' ? 'Введите токен пользователя'
+      : type.value === 'telegramId' ? 'Введите Telegram ID'
+      : type.value === 'ip' ? 'Введите IPv4 или IPv6' : 'Сначала выберите тип идентификатора';
+    input.inputMode = type.value === 'telegramId' ? 'numeric' : 'text';
+  });
+
+  body.append(typeLabel, type, valueLabel, input);
+  return { body, type, input };
+}
+
+function validateCreateAdsRestrictionTarget(type, value) {
+  if (!type) return 'Выберите тип идентификатора.';
+  if (!value) return 'Введите идентификатор пользователя.';
+  if (type === 'telegramId' && !/^\\d+$/.test(value)) return 'Telegram ID должен содержать только цифры.';
+  if (type === 'ip' && !isIpAddressValue(value)) return 'Введите корректный IPv4 или IPv6 адрес.';
+  return '';
+}
+
+$('admin-ban-create-edit').onclick = () => {
+  const fields = createAdsRestrictionTargetFields('block');
+  const { body, type, input } = fields;
+  const reasonLabel = document.createElement('label');
+  reasonLabel.textContent = 'Причина блокировки';
+  reasonLabel.style.fontWeight = '600';
+  const reason = document.createElement('textarea');
+  reason.rows = 3;
+  reason.placeholder = 'Укажите причину блокировки';
+  reason.className = 'admin-modal-control';
+  const durationLabel = document.createElement('label');
+  durationLabel.textContent = 'Срок блокировки';
+  durationLabel.style.fontWeight = '600';
+  const duration = document.createElement('select');
+  duration.className = 'admin-modal-control';
+  [1,2,4,5,10,15,30,40,50,60].forEach(days => {
+    const option = document.createElement('option');
+    option.value = String(days);
+    option.textContent = days + ' ' + (days === 1 ? 'день' : [2,3,4].includes(days) ? 'дня' : 'дней');
+    duration.appendChild(option);
+  });
+  const forever = document.createElement('option');
+  forever.value = 'forever';
+  forever.textContent = 'Навсегда (админ 3-го уровня и выше)';
+  forever.disabled = Number(getCurrentAdmin()?.admin_level) < 3;
+  duration.appendChild(forever);
+  body.append(reasonLabel, reason, durationLabel, duration);
+
+  openModal('Заблокировать пользователю возможность создавать и редактировать рекламу', body, [
+    { text: 'Заблокировать', onClick: async () => {
+      const value = input.value.trim();
+      const validationError = validateCreateAdsRestrictionTarget(type.value, value);
+      if (validationError) {
+        openModal('Проверьте данные', validationError);
+        return;
+      }
+      if (!adminGuard('restrictAds', value)) return;
+      const durationDays = duration.value === 'forever' ? null : Number(duration.value);
+      const expiresAt = durationDays == null ? '' : new Date(Date.now() + durationDays * 86400000).toISOString();
+      const entry = {
+        type: type.value,
+        value,
+        reason: reason.value.trim(),
+        adminName: getAdminDisplayName(),
+        adminNameHidden: localStorage.getItem('hideAdminNameOnBan') === 'true',
+        durationDays,
+        issuedAt: new Date().toISOString(),
+        expiresAt: expiresAt || null
+      };
+      try {
+        showPreloader();
+        const current = runtimeArray('BlockCreateAds', []).filter(item =>
+          !(inferCreateRestrictionType(item) === entry.type && punishmentEntryValue(item) === value)
+        );
+        await updateVariable('BlockCreateAds', [...current, entry]);
+        recordAdminAction((ADMINS || []).some(admin =>
+          [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId,
+           admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId]
+            .filter(Boolean).map(String).includes(String(value))) ? 'banAdmin' : 'restrictAds');
+        window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', value, entry.reason, durationDays, expiresAt);
+      } catch (error) {
+        alert(error.message || 'Ошибка при обновлении переменной');
+      } finally {
+        hidePreloader();
+      }
+    }},
+    { text: 'Отмена', class: 'btn btn--ghost' }
+  ]);
+};
+
+$('admin-unban-create-edit').onclick = () => {
+  const { body, type, input } = createAdsRestrictionTargetFields('unblock');
   openModal('Разблокировать пользователю возможность создавать и редактировать рекламу', body, [
     { text: 'Разблокировать', onClick: async () => {
       const value = input.value.trim();
-      if (!value) {
-        openModal('Не указан пользователь', 'Введите Telegram ID, IP-адрес или токен.');
+      const validationError = validateCreateAdsRestrictionTarget(type.value, value);
+      if (validationError) {
+        openModal('Проверьте данные', validationError);
         return;
       }
       try {
         if (!adminGuard('unrestrictAds', value)) return;
         showPreloader();
-        await updateVariable('UnBlockCreateAds', [value]);
+        await updateVariable('UnBlockCreateAds', [{ type: type.value, value }]);
         recordAdminAction((ADMINS || []).some(admin =>
           [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId,
            admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId]
             .filter(Boolean).map(String).includes(String(value))) ? 'unbanAdmin' : 'restrictAds');
-        if (/^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(value) || value.includes(':')) {
+        if (type.value === 'ip') {
           window.BuyAdWarnings?.recordAdminAction('punishment_removed', { targetIp: value, punishment: 'ads_restriction' });
         } else {
           window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', value);
         }
-      } catch (e) {
-        alert(e.message || 'Ошибка при обновлении переменной');
+      } catch (error) {
+        alert(error.message || 'Ошибка при обновлении переменной');
       } finally {
         hidePreloader();
       }
