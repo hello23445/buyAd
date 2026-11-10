@@ -315,9 +315,20 @@
     }, 2200);
   }
 
+  function currentInvitationText(referral = referralState?.referral) {
+    if (!referral || referral.showText === false) return '';
+    const editor = content()?.querySelector('.referral-settings-card textarea');
+    const value = editor && editor.isConnected
+      ? editor.value
+      : (referral.shareText == null || String(referral.shareText).trim() === '' ? defaultShareText() : referral.shareText);
+    return String(value || '').trim();
+  }
+
   function shareText() {
-    const message = referralState?.referral?.showText === false ? '' : String(referralState?.referral?.shareText || defaultShareText()).trim();
-    return message ? message + '\n' + referralState.referral.url : referralState?.referral?.url || '';
+    const referral = referralState?.referral;
+    if (!referral) return '';
+    const message = currentInvitationText(referral);
+    return message ? message + '\n' + referral.url : referral.url;
   }
 
   function openShareDialog() {
@@ -330,7 +341,7 @@
         text: text('Поделиться в Telegram', 'Share in Telegram'),
         class: 'btn btn--primary btn--full',
         onClick: () => {
-          const shareMessage = referral.showText === false ? '' : String(referral.shareText || defaultShareText()).trim();
+          const shareMessage = currentInvitationText(referral);
           const url = 'https://telegram.me/share/url?url=' + encodeURIComponent(referral.url) +
             (shareMessage ? '&text=' + encodeURIComponent(shareMessage) : '');
           window.open(url, '_blank', 'noopener,noreferrer');
@@ -612,6 +623,8 @@
           throw new Error(text('Сервер не подтвердил сохранение переключателя. Проверьте развёртывание Apps Script.', 'The server did not confirm the saved toggle. Check the Apps Script deployment.'));
         }
         if (referralState?.referral) {
+          referralState.referral.shareText = message.value;
+          referralState.referral.giftAmount = Number(range.value);
           referralState.referral.manuallyEnabled = enabled;
           referralState.referral.pendingEnabled = undefined;
         }
