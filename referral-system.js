@@ -926,8 +926,14 @@
       if (pendingReward) showReferralRewardLoader();
       const result = await api('claimReferral');
       if (result.showGift && Number(result.giftReceived) > 0) {
+        // Keep the loading overlay above the app until the gift screen has
+        // been inserted and its visible state has been applied for a frame.
         openGiftScreen(result.giftReceived);
-        await api('markGiftSeen').catch(error => console.warn('Could not mark referral gift as seen:', error));
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        hideReferralRewardLoader();
+
+        // These background updates must not delay showing the gift screen.
+        api('markGiftSeen').catch(error => console.warn('Could not mark referral gift as seen:', error));
         if (typeof window.BuyAdRefreshCrystals === 'function') {
           window.BuyAdRefreshCrystals().catch(error => console.warn('Could not refresh crystals:', error));
         }
