@@ -4640,7 +4640,7 @@ function createAdsRestrictionTargetFields(actionLabel) {
 function validateCreateAdsRestrictionTarget(type, value) {
   if (!type) return 'Выберите тип идентификатора.';
   if (!value) return 'Введите идентификатор пользователя.';
-  if (type === 'telegramId' && !/^\\d+$/.test(value)) return 'Telegram ID должен содержать только цифры.';
+  if (type === 'telegramId' && !/^\d+$/.test(value)) return 'Telegram ID должен содержать только цифры.';
   if (type === 'ip' && !isIpAddressValue(value)) return 'Введите корректный IPv4 или IPv6 адрес.';
   return '';
 }
