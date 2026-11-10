@@ -890,47 +890,6 @@
     close.focus({ preventScroll: true });
   }
 
-  let rewardLoadingOverlay = null;
-  let rewardLoaderShownAt = 0;
-  function rewardLoaderSeenKey() {
-    return 'buyad_referral_reward_loader_seen_' + (telegramId() || 'unknown');
-  }
-  function hasShownReferralRewardLoader() {
-    try { return localStorage.getItem(rewardLoaderSeenKey()) === '1'; }
-    catch (_) { return false; }
-  }
-  function markReferralRewardLoaderShown() {
-    try { localStorage.setItem(rewardLoaderSeenKey(), '1'); } catch (_) {}
-  }
-  function showReferralRewardLoader() {
-    if (rewardLoadingOverlay || hasShownReferralRewardLoader()) return false;
-    rewardLoaderShownAt = Date.now();
-    const overlay = makeElement('div', 'referral-reward-loading');
-    overlay.setAttribute('role', 'status');
-    overlay.setAttribute('aria-live', 'polite');
-    const spinner = makeElement('div', 'spinner');
-    const label = makeElement('p', '', text('Начисляем награду…', 'Crediting your reward…'));
-    overlay.append(spinner, label);
-    Object.assign(overlay.style, {
-      position: 'fixed', inset: '0', zIndex: '20000', display: 'flex',
-      flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: '16px', padding: '24px', background: 'rgba(8, 13, 27, .94)',
-      color: 'var(--text-primary, #f4f6ff)', textAlign: 'center'
-    });
-    document.body.appendChild(overlay);
-    rewardLoadingOverlay = overlay;
-    return true;
-  }
-  function waitForReferralRewardLoaderMinimum() {
-    const remaining = Math.max(0, 5000 - (Date.now() - rewardLoaderShownAt));
-    return new Promise(resolve => setTimeout(resolve, remaining));
-  }
-  function hideReferralRewardLoader() {
-    if (!rewardLoadingOverlay) return;
-    rewardLoadingOverlay.remove();
-    rewardLoadingOverlay = null;
-  }
-
   function waitForGiftScreenVisible() {
     const overlay = giftOverlay;
     if (!overlay) return Promise.resolve();
@@ -964,21 +923,13 @@
     if (document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay:not([hidden])')) return;
     claimInProgress = true;
     let pendingReward = false;
-    let rewardLoaderWasShown = false;
     try {
       const visit = bootstrapPromise ? await bootstrapPromise : null;
       pendingReward = visit?.referralPending === true || visit?.referralAccepted === true;
-      if (pendingReward) rewardLoaderWasShown = showReferralRewardLoader();
       const result = await api('claimReferral');
       if (result.showGift && Number(result.giftReceived) > 0) {
-        // Show the loader for at least five seconds, then reveal the reward screen.
-        if (rewardLoaderWasShown) {
-          await waitForReferralRewardLoaderMinimum();
-          markReferralRewardLoaderShown();
-        }
         openGiftScreen(result.giftReceived);
         await waitForGiftScreenVisible();
-        hideReferralRewardLoader();
 
         // These background updates must not delay showing the gift screen.
         api('markGiftSeen').catch(error => console.warn('Could not mark referral gift as seen:', error));
@@ -990,7 +941,6 @@
       console.warn('Referral reward check failed:', error);
       if (pendingReward) showToast(text('Не удалось начислить награду. Проверьте подключение и попробуйте перезапустить приложение.', 'Could not credit the reward. Check your connection and restart the app.'));
     } finally {
-      hideReferralRewardLoader();
       claimInProgress = false;
     }
   }
