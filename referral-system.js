@@ -589,10 +589,11 @@
 
     const saveButton = button(text('Сохранить изменения', 'Save changes'), 'btn btn--primary btn--full referral-save-btn', async event => {
       const target = event.currentTarget;
+      const enabledInput = content()?.querySelector('.referral-switch input[type="checkbox"]');
       target.disabled = true;
+      if (enabledInput) enabledInput.disabled = true;
       target.textContent = text('Сохранение…', 'Saving…');
       try {
-        const enabledInput = content()?.querySelector('.referral-switch input[type="checkbox"]');
         const enabled = enabledInput ? enabledInput.checked : (referralState?.referral?.pendingEnabled ?? referralState?.referral?.manuallyEnabled ?? false);
         const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value), enabled });
         if (result.limited) {
@@ -602,8 +603,11 @@
           return;
         }
         if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
+        if (result.enabled !== enabled) {
+          throw new Error(text('Сервер не подтвердил сохранение переключателя. Повторите попытку.', 'The server did not confirm the saved toggle. Please try again.'));
+        }
         if (referralState?.referral) {
-          referralState.referral.manuallyEnabled = result.enabled === true;
+          referralState.referral.manuallyEnabled = enabled;
           referralState.referral.pendingEnabled = undefined;
         }
         await loadState();
@@ -611,6 +615,7 @@
       } catch (error) {
         showToast(error.message);
       } finally {
+        if (enabledInput?.isConnected) enabledInput.disabled = false;
         if (target.isConnected && target.textContent === text('Сохранение…', 'Saving…')) {
           target.disabled = false;
           target.textContent = text('Сохранить изменения', 'Save changes');
