@@ -589,7 +589,8 @@
       target.disabled = true;
       target.textContent = text('Сохранение…', 'Saving…');
       try {
-        const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value), enabled: checkbox.checked });
+        const enabled = referralState?.referral?.pendingEnabled ?? referralState?.referral?.manuallyEnabled ?? false;
+        const result = await api('saveSettings', { shareText: message.value, giftAmount: Number(range.value), enabled });
         if (result.limited) {
           const until = Date.now() + Math.max(0, Number(result.retryAfter) || 0) * 1000;
           applySaveCooldown(target, until);
@@ -597,7 +598,10 @@
           return;
         }
         if (result.saved !== true) throw new Error(text('Не удалось сохранить настройки.', 'Could not save settings.'));
-        if (referralState?.referral) referralState.referral.manuallyEnabled = checkbox.checked;
+        if (referralState?.referral) {
+          referralState.referral.manuallyEnabled = enabled;
+          referralState.referral.pendingEnabled = undefined;
+        }
         await loadState();
         showToast(text('Настройки сохранены', 'Settings saved'));
       } catch (error) {
