@@ -620,6 +620,7 @@ function saveReferralSettings_(identity, payload) {
   if (!eligibility.eligible) throw new Error('Referral access is disabled while your account has an active warning or ban.');
   const shareText = String(payload.shareText == null ? BUYAD_DEFAULT_SHARE_TEXT : payload.shareText).slice(0, 500);
   const gift = Number(payload.giftAmount);
+  const enabled = payload.enabled === true;
   if (!Number.isInteger(gift) || gift < 0 || gift > BUYAD_MAX_GIFT) throw new Error('Referral settings are invalid.');
 
   const lock = LockService.getScriptLock();
@@ -641,9 +642,10 @@ function saveReferralSettings_(identity, payload) {
     settingsRow[1] = gift;
     settingsRow[3] = new Date();
     settingsRow[5] = savedAt;
+    sheet.getRange(current.row, 4).setValue(enabled);
     sheet.getRange(current.row, 5, 1, 6).setValues([settingsRow]);
     SpreadsheetApp.flush();
-    return { saved: true, limited: false, shareText: shareText, giftAmount: gift, cooldownUntil: savedAt + 120000 };
+    return { saved: true, limited: false, shareText: shareText, giftAmount: gift, enabled: enabled, cooldownUntil: savedAt + 120000 };
   } finally {
     lock.releaseLock();
   }
