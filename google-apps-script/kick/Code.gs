@@ -277,7 +277,7 @@ function matchingReloadEvents_(identity,payload) {
     const active=row[10]===true||String(row[10]).toLowerCase()==='true';
     if(!active) return;
     const at=Number(row[5] instanceof Date?row[5].getTime():row[5]),duration=Number(row[6])||5;
-    if(!Number.isFinite(at)||now>at+duration*1000) return;
+    if(!Number.isFinite(at)||now>at+Math.max(duration*1000,15000)) return;
     const type=String(row[1]||'');
     let tokens=[];try{tokens=JSON.parse(String(row[3]||'[]')).map(String);}catch(_){}
     const telegram=String(row[4]||'');
