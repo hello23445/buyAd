@@ -33,10 +33,13 @@ The backend checks the admin level in the live admin.js registry and also checks
 
 Each admin who will use /kick must open the Mini App at least once so their token-to-Telegram-ID association is present in the statistics archive. If the backend reports that it cannot confirm the association, have that admin open the app, wait for the statistics archive to update, and retry.
 
-- Only level 2+ admins can kick.
+- Only level 2+ admins can kick, kick all archived users, or schedule targeted/global reloads.
+- `/kick_all` snapshots users currently present in `data/user-statistics.json` and writes their kick records to `KickedUsers`.
+- `/reload`, `/reload_time`, `/reload_all`, and `/reload_all_time` append independent events to `ReloadEvents`; a manual reload does not edit or cancel scheduled events.
+- IP-targeted reloads store an HMAC fingerprint of the IP address. The script uses `IP_HASH_SECRET` if set, or the private `TELEGRAM_BOT_TOKEN` as the HMAC key if not.
 - Hiding the admin name is accepted only for level 5 when the live registry grants hideNameOnBan.
 - A kick remains active until the record is changed or removed in the KickedUsers sheet.
-- The Mini App checks the kick status on entry and periodically while open. The kicked screen displays the reason and admin name (or “Скрыто”).
+- The Mini App checks kick and reload status on entry and every 5 seconds while open. Upcoming reload events show a countdown in the main menu; when due, the app displays a restart screen for the configured number of seconds and then reloads. The kicked screen displays the reason and admin name (or “Скрыто”).
 
 ## 4. Updating the backend
 
