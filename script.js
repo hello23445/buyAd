@@ -5222,6 +5222,13 @@ document.addEventListener('click', (e) => {
   function commandExpiry(days) {
     return days == null ? null : new Date(Date.now() + days * 86400000).toISOString();
   }
+  function commandTargetIsAdmin(identifier) {
+    const value = String(identifier || '').trim();
+    return (typeof ADMINS !== 'undefined' ? ADMINS : []).some(item =>
+      [item.admin_token,item.adminToken,item.token,item.telegram_id,item.telegramId,item.admin_telegram_id,item.adminTelegramId,item.user_id,item.userId]
+        .filter(Boolean).map(String).includes(value)
+    );
+  }
   function findAdminByNameOrToken(value) {
     const normalized = String(value || '').replace(/_/g, ' ').trim().toLowerCase();
     return (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item =>
@@ -5309,7 +5316,7 @@ document.addEventListener('click', (e) => {
         await commandRunWithLoader(async () => {
           await updateVariable(arrayName, { value:identifier, reason, adminName:hidden ? '' : getAdminDisplayName(), adminNameHidden:hidden, durationDays:days, issuedAt:new Date().toISOString(), expiresAt:expiry });
           const actionName = command === '/tban' ? 'banToken' : command === '/sban' ? 'banIp' : 'banTelegramId';
-          recordAdminAction(actionName);
+          recordAdminAction(commandTargetIsAdmin(identifier) ? 'banAdmin' : actionName);
           if (command === '/sban') window.BuyAdWarnings?.recordAdminAction('ip_banned', { targetIp:identifier, reason, durationDays:days, expiresAt:expiry });
           else window.BuyAdWarnings?.recordPunishmentIssued('account_ban', identifier, reason, days, expiry);
         });
@@ -5326,7 +5333,7 @@ document.addEventListener('click', (e) => {
         const actionName = command === '/untban' ? 'UnBanForever' : command === '/unsban' ? 'UnBlockedUsersIPadresses' : 'UnBlockedUsersTelegramID';
         await commandRunWithLoader(async () => {
           await updateVariable(actionName, identifier);
-          recordAdminAction(command === '/unsban' ? 'unbanIp' : command === '/untg_ban' ? 'unbanTelegramId' : 'unbanToken');
+          recordAdminAction(command === '/unsban' ? 'banIp' : commandTargetIsAdmin(identifier) ? 'unbanAdmin' : command === '/untg_ban' ? 'unbanTelegramId' : 'unbanToken');
           window.BuyAdWarnings?.recordPunishmentRemoved(command === '/unsban' ? 'ip_ban' : 'account_ban', identifier);
         });
         commandMessage('Блокировка снята', 'Ограничение для ' + identifier + ' снято.');
@@ -5348,14 +5355,14 @@ document.addEventListener('click', (e) => {
           await commandRunWithLoader(async () => {
             const current = runtimeArray('BlockCreateAds', []).filter(item => !(inferCreateRestrictionType(item) === type && punishmentEntryValue(item) === identifier));
             await updateVariable('BlockCreateAds', [...current, entry]);
-            recordAdminAction('restrictAds');
+            recordAdminAction(commandTargetIsAdmin(identifier) ? 'banAdmin' : 'restrictAds');
             window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', identifier, reason, days, expiry);
           });
           commandMessage('Ограничение выдано', 'Пользователь: ' + identifier + '\nТип: ' + type + '\nПричина: ' + reason + '\nСрок: ' + (days == null ? 'навсегда' : days + ' дн.') + '\nИмя администратора: ' + (hidden ? 'скрыто' : 'отображается'));
         } else {
           await commandRunWithLoader(async () => {
             await updateVariable('UnBlockCreateAds', [{ type, value:identifier }]);
-            recordAdminAction('unrestrictAds');
+            recordAdminAction(commandTargetIsAdmin(identifier) ? 'unbanAdmin' : 'unrestrictAds');
             if (type === 'ip') window.BuyAdWarnings?.recordAdminAction('punishment_removed', { targetIp:identifier, punishment:'ads_restriction' });
             else window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', identifier);
           });
