@@ -2357,6 +2357,7 @@ body.theme-dark #main-admin-command-input { background:#172033; border-color:#39
   font-size: 13px;
   font-weight: 650;
   line-height: 1.45;
+  white-space: pre-line;
 }
 .remote-reload-banner[hidden], .remote-reload-screen[hidden] { display:none !important; }
 .remote-reload-screen {
