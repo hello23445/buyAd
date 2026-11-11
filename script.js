@@ -5171,14 +5171,14 @@ document.addEventListener('click', (e) => {
     '/add_admin': '/add_admin Имя_Админа Токен_нового_админа Уровень_админа(1-5) — Добавляет администратора.',
     '/change_admin': '/change_admin Имя_Админа/токен_админа Уровень_Админа — Изменяет уровень и стандартные права администратора.',
     '/delete_admin': '/delete_admin Имя_Админа/токен_админа — Удаляет администратора.',
-    '/tban': '/tban Токен Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по токену.',
+    '/tban': '/tban Токен Причина Срок(1-60 или -1 навсегда) no/yes — no скрывает имя администратора, yes показывает.',
     '/untban': '/untban Токен — Снимает блокировку по токену.',
-    '/sban': '/sban IP-адрес Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по IP.',
+    '/sban': '/sban IP-адрес Причина Срок(1-60 или -1 навсегда) no/yes — no скрывает имя администратора, yes показывает.',
     '/unsban': '/unsban IP-адрес — Снимает блокировку по IP.',
     '/search_ip': '/search_ip IP-адрес — Ищет аккаунты по IP.',
-    '/tg_ban': '/tg_ban Telegram_ID Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по Telegram ID.',
+    '/tg_ban': '/tg_ban Telegram_ID Причина Срок(1-60 или -1 навсегда) no/yes — no скрывает имя администратора, yes показывает.',
     '/untg_ban': '/untg_ban Telegram_ID — Снимает блокировку по Telegram ID.',
-    '/cblock': '/cblock Тип(1 токен, 2 Telegram ID, 3 IP) Идентификатор Причина Срок(1-60 или -1 навсегда) no/yes — Запрещает создавать и редактировать рекламу.',
+    '/cblock': '/cblock Тип(1 токен, 2 Telegram ID, 3 IP) Идентификатор Причина Срок(1-60 или -1 навсегда) no/yes — no скрывает имя администратора, yes показывает.',
     '/uncblock': '/uncblock Тип(1 токен, 2 Telegram ID, 3 IP) Идентификатор — Снимает запрет на создание и редактирование рекламы.',
     '/cban': '/cban число(1 отключить, 2 включить) — Управляет созданием рекламы для всех.',
     '/rban': '/rban число(1 отключить, 2 включить) — Управляет редактированием рекламы для всех.',
@@ -5186,7 +5186,7 @@ document.addEventListener('click', (e) => {
     '/referals': '/referals число(1 отключить, 2 включить) — Управляет реферальной системой.',
     '/close_app': '/close_app число(1 закрыть, 2 открыть) — Закрывает или открывает приложение.',
     '/gases': '/gases число(1 отключить, 2 включить) — Управляет обращениями к GAS.',
-    '/warn': '/warn Telegram_ID/Токен Причина Количество(1-3) no/yes — Выдаёт предупреждение.',
+    '/warn': '/warn Telegram_ID/Токен Причина Количество(1-3) no/yes — no скрывает имя администратора, yes показывает.',
     '/unwarn': '/unwarn Telegram_ID/Токен — Снимает предупреждения.',
     '/stats': '/stats Telegram_ID/Токен — Открывает статистику пользователя.',
     '/alist': '/alist Telegram_ID/Токен — Показывает список наказаний пользователя.',
@@ -5194,8 +5194,8 @@ document.addEventListener('click', (e) => {
     '/tcopy': '/tcopy — Копирует ваш токен пользователя.',
     '/tdcopy': '/tdcopy — Копирует ваш Telegram ID.',
     '/icopy': '/icopy — Определяет и копирует ваш IP-адрес.',
-    '/kick': '/kick Telegram_ID/Токен_пользователя Причина no/yes — Отключает пользователя от приложения. Причина может быть пропущена; yes скрывает имя админа.',
-    '/kick_all': '/kick_all Причина no/yes — Отключает всех пользователей приложения. yes скрывает имя администратора.',
+    '/kick': '/kick Telegram_ID/Токен_пользователя Причина no/yes — Отключает пользователя от приложения. no скрывает имя администратора, yes показывает.',
+    '/kick_all': '/kick_all Причина no/yes — Отключает всех пользователей приложения. no скрывает имя администратора, yes показывает.',
     '/reload': '/reload Telegram_ID/Токен/IP-адрес_пользователя — Немедленно перезапускает приложение у выбранных пользователей.',
     '/reload_time': '/reload_time Telegram_ID/Токен/IP-адрес_пользователя Время(в минутах) Время(в секундах) — Планирует перезапуск для выбранных пользователей.',
     '/reload_all': '/reload_all — Немедленно перезапускает приложение у всех пользователей.',
@@ -5233,7 +5233,7 @@ document.addEventListener('click', (e) => {
   }
   function commandHideName(flag) {
     if (!['no','yes'].includes(String(flag || '').toLowerCase())) throw new Error('Последний параметр должен быть no или yes.');
-    const hidden = String(flag).toLowerCase() === 'yes';
+    const hidden = String(flag).toLowerCase() === 'no';
     if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) {
       throw new Error('Скрывать имя при блокировке может только администратор 5-го уровня с соответствующим правом.');
     }
@@ -5494,7 +5494,7 @@ document.addEventListener('click', (e) => {
     hideLabel.textContent = 'Отображение имени администратора';
     const hideSelect = document.createElement('select');
     hideSelect.className = 'textarea';
-    hideSelect.innerHTML = '<option value="no">Показывать имя</option><option value="yes">Скрыть имя (только 5-й уровень)</option>';
+    hideSelect.innerHTML = '<option value="no">Скрыть имя (только 5-й уровень)</option><option value="yes">Показывать имя</option>';
     hideLabel.appendChild(hideSelect);
     body.append(targetLabel, reasonLabel, hideLabel);
     openModal('Кикнуть пользователя', body, [
@@ -5569,7 +5569,7 @@ document.addEventListener('click', (e) => {
         if (!identifier || !['no','yes'].includes(flag)) return commandError(command);
         if (!/^\d+$/.test(identifier) && !/^[A-Za-z0-9_-]{8,64}$/.test(identifier)) throw new Error('Укажите корректный Telegram ID или токен пользователя.');
         if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Кикать пользователей могут только администраторы 2-го уровня и выше.');
-        const hidden = flag === 'yes';
+        const hidden = flag === 'no';
         if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя при кике может только администратор 5-го уровня с соответствующим правом.');
         await commandRunWithLoader(async () => {
           const result = await kickGasRequest('kick', { target:identifier, reason, hideAdminName:hidden, adminToken:String(localStorage.getItem(LS.token) || '') });
@@ -5795,7 +5795,7 @@ document.addEventListener('click', (e) => {
         const target = args[0], flag = args[args.length-1], amount = Number(args[args.length-2]), reason = commandReason(1, -2);
         if (!reason || !Number.isInteger(amount) || amount < 1 || amount > 3) return commandError(command, 'Количество предупреждений должно быть от 1 до 3, а причина не должна быть пустой.');
         if (!['no','yes'].includes(flag.toLowerCase())) return commandError(command);
-        const hidden = flag.toLowerCase() === 'yes';
+        const hidden = flag.toLowerCase() === 'no';
         if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
         if (typeof window.BuyAdWarnings?.issueWarning !== 'function') throw new Error('Модуль предупреждений не готов. Повторите попытку позже.');
         const hideKey = 'buyAdHideWarningIssuerName', oldValue = localStorage.getItem(hideKey);
