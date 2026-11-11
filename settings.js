@@ -16,3 +16,6 @@ const DELETE_REJECTED_ADS_GAS_URL = 'https://script.google.com/macros/s/AKfycbye
 // URL deployed as the Google Apps Script Web App for the referral system.
 // See google-apps-script/referrals/SETUP.md before enabling referrals.
 const REFERRAL_GAS_URL = 'https://script.google.com/macros/s/AKfycbwXQ8X4fXTWOaxqGLbHqVzDwztCeIWpbcczWQTewqjqnxWDLCGkUMhEYYRIyPH0wVTM1w/exec';
+
+// Private spreadsheet-backed punishment data service.
+const GAS_PRIVATE_DATA_URL = 'https://script.google.com/macros/s/AKfycbyqxJtOEWzODw0BlDBx1rs3-KiuS8IPy0TaEV4Ginv9QtymwxVNg5GAjjCPw-pGVzZ_/exec';
