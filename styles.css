@@ -2308,3 +2308,21 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 
 /* Make punishment issue timestamps immediately scannable. */
 .punishment-history-date { display:inline-block; margin:0 0 12px; padding:7px 10px; border-radius:9px; font-size:14px; font-weight:800; letter-spacing:.01em; background:rgba(91,124,255,.12); border:1px solid rgba(91,124,255,.24); }
+
+
+/* Local admin command chat */
+.main-admin-command-card { padding: 12px; }
+.main-admin-command-row { display:flex; align-items:center; gap:9px; min-width:0; }
+#main-admin-command-input { flex:1 1 auto; width:100%; min-width:0; min-height:46px; box-sizing:border-box; padding:11px 13px; border:1px solid var(--divider,rgba(128,128,128,.35)); border-radius:13px; background:var(--card-bg,transparent); color:inherit; font:inherit; }
+.main-admin-command-send { flex:0 0 46px; width:46px; min-width:46px; height:46px; min-height:46px; padding:0; border-radius:13px; }
+#main-admin-command-status { margin:9px 2px 0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.admin-main-command-toggle-row { display:flex; align-items:center; gap:10px; cursor:pointer; }
+.admin-main-command-switch { position:relative; display:inline-flex; flex:0 0 48px; width:48px; height:28px; margin-left:auto; }
+.admin-main-command-switch input { position:absolute; width:1px; height:1px; opacity:0; }
+.admin-main-command-slider { position:absolute; inset:0; border-radius:999px; background:#858b98; transition:background .18s ease; }
+.admin-main-command-slider::before { content:''; position:absolute; width:22px; height:22px; left:3px; top:3px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.22); transition:transform .18s ease; }
+.admin-main-command-switch input:checked + .admin-main-command-slider { background:#278b68; }
+.admin-main-command-switch input:checked + .admin-main-command-slider::before { transform:translateX(20px); }
+.admin-main-command-switch input:focus-visible + .admin-main-command-slider { outline:2px solid #7894ff; outline-offset:3px; }
+body.theme-light #main-admin-command-input { background:#fff; border-color:#cbd2e0; color:#20283a; }
+body.theme-dark #main-admin-command-input { background:#172033; border-color:#39445c; color:#f3f5ff; }
