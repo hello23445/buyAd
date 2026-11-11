@@ -131,7 +131,7 @@ function requireKickAdmin_(identity, payload) {
   const nameMatch = block.match(/"admin_name"\s*:\s*"([^"]*)"/);
   const level = Number(levelMatch && levelMatch[1] || 0);
   if (level < 2) throw new Error('Kicking users is available only to administrators of level 2 or higher.');
-  const kickPermission = block.match(/"kickUser"\\s*:\\s*(true|false)/);
+  const kickPermission = block.match(/"kickUser"\s*:\s*(true|false)/);
   if (kickPermission && kickPermission[1] !== 'true') throw new Error('Your administrator registry does not grant the kickUser permission.');
   const users = loadUserArchive_();
   let boundTelegramId = '';
