@@ -5840,14 +5840,14 @@ document.addEventListener('click', (e) => {
         const message = rows.length ? rows.map((item, index) => {
           const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
           const issued = item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана';
-          const removed = item.removedAt ? '\\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
+          const removed = item.removedAt ? '\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
           return (index + 1) + '. ' + (labels[item.kind] || 'Наказание') +
-            '\\nПричина: ' + (item.reason || 'Не указана') +
-            '\\nДата выдачи: ' + issued +
-            '\\nОкончание: ' + end +
+            '\nПричина: ' + (item.reason || 'Не указана') +
+            '\nДата выдачи: ' + issued +
+            '\nОкончание: ' + end +
             removed +
-            '\\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
-        }).join('\\n\\n') : 'За последние два месяца наказаний с зафиксированной датой нет.';
+            '\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
+        }).join('\n\n') : 'За последние два месяца наказаний с зафиксированной датой нет.';
         commandMessage('Список наказаний', message);
         return;
       }
