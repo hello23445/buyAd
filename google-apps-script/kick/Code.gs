@@ -207,8 +207,9 @@ function reloadSheet_() {
   return sheet;
 }
 function hashIp_(ip) {
-  const secret = PropertiesService.getScriptProperties().getProperty('IP_HASH_SECRET');
-  if (!secret) throw new Error('IP reload matching is not configured: add IP_HASH_SECRET in Script Properties.');
+  const props = PropertiesService.getScriptProperties();
+  const secret = props.getProperty('IP_HASH_SECRET') || props.getProperty('TELEGRAM_BOT_TOKEN');
+  if (!secret) throw new Error('IP reload matching requires TELEGRAM_BOT_TOKEN in Script Properties.');
   const value = String(ip || '').trim().toLowerCase();
   if (!value || value.length > 64) throw new Error('Invalid IP address.');
   return bytesToHex_(Utilities.computeHmacSha256Signature(value, secret));
