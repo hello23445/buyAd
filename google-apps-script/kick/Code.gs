@@ -30,8 +30,9 @@ function doGet(e) {
   } catch (error) {
     result = { success: false, error: String(error && error.message || error || 'Kick request failed.').slice(0, 300) };
   }
+  const safeCallback = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(callback) ? callback : 'invalidCallback';
   return ContentService
-    .createTextOutput(callback + '(' + JSON.stringify(result) + ');')
+    .createTextOutput(safeCallback + '(' + JSON.stringify(result) + ');')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
