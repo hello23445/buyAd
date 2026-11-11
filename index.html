@@ -64,6 +64,14 @@
       </div>
     </section>
 
+    <div id="remote-reload-screen" class="remote-reload-screen" hidden role="alertdialog" aria-modal="true">
+      <div class="remote-reload-panel">
+        <div class="remote-reload-spinner" aria-hidden="true"></div>
+        <div id="remote-reload-title" class="remote-reload-title">Приложение перезапускается</div>
+        <div id="remote-reload-detail" class="remote-reload-detail">Подождите несколько секунд.</div>
+      </div>
+    </div>
+
     <!-- FIRST ENTRY: LANGUAGE PICKER -->
     <section id="screen-first" class="screen screen--center" hidden>
       <div class="card card--wide">
@@ -137,6 +145,8 @@
             </div>
           </div>
         </div>
+
+        <div id="remote-reload-banner" class="remote-reload-banner" hidden role="status" aria-live="polite"></div>
 
         <div id="main-admin-command-card" class="card main-admin-command-card" hidden>
           <div id="main-admin-command-hints" class="main-admin-command-hints" hidden></div>
