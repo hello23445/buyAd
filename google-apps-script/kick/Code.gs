@@ -7,6 +7,7 @@
  */
 const BUYAD_KICK_SPREADSHEET_ID = '1pNPa_d4XwUiZzrLVNl4YENBezSAOOUsKQpmpyQIEZIo';
 const BUYAD_KICK_SHEET_NAME = 'KickedUsers';
+const BUYAD_RELOAD_SHEET_NAME = 'ReloadEvents';
 const BUYAD_KICK_ADMIN_URL = 'https://raw.githubusercontent.com/hello23445/buyAd/main/admin.js';
 const BUYAD_KICK_ARCHIVE_URL = 'https://raw.githubusercontent.com/hello23445/buyAd/main/data/user-statistics.json';
 
@@ -20,9 +21,13 @@ function doGet(e) {
     const payload = query.payload ? JSON.parse(query.payload) : {};
     const identity = verifyTelegramInitData_(String(query.initData || ''), String(payload.userToken || ''));
     if (action === 'checkKick') {
-      result = checkKick_(identity);
+      result = checkKick_(identity, payload);
     } else if (action === 'kick') {
       result = kickUser_(identity, payload);
+    } else if (action === 'kickAll') {
+      result = kickAll_(identity, payload);
+    } else if (action === 'createReload') {
+      result = createReloadEvent_(identity, payload);
     } else {
       throw new Error('Unknown kick action.');
     }
@@ -192,7 +197,98 @@ function kickUser_(identity, payload) {
   return { kicked: true, telegramId: telegramId, reason: reason, adminName: hideName ? '' : admin.name, adminNameHidden: hideName };
 }
 
-function checkKick_(identity) {
+
+function reloadSheet_() {
+  const book = spreadsheet_();
+  let sheet = book.getSheetByName(BUYAD_RELOAD_SHEET_NAME);
+  if (!sheet) sheet = book.insertSheet(BUYAD_RELOAD_SHEET_NAME);
+  const headers = ['event_id','target_type','target_value','target_tokens_json','target_telegram_id','scheduled_at','duration_seconds','admin_name','admin_name_hidden','created_at','active'];
+  if (sheet.getLastRow() === 0) sheet.getRange(1,1,1,headers.length).setValues([headers]);
+  return sheet;
+}
+function hashIp_(ip) {
+  const secret = PropertiesService.getScriptProperties().getProperty('IP_HASH_SECRET');
+  if (!secret) throw new Error('IP reload matching is not configured: add IP_HASH_SECRET in Script Properties.');
+  const value = String(ip || '').trim().toLowerCase();
+  if (!value || value.length > 64) throw new Error('Invalid IP address.');
+  return bytesToHex_(Utilities.computeHmacSha256Signature(value, secret));
+}
+function kickAll_(identity, payload) {
+  const admin = requireKickAdmin_(identity, payload);
+  const hidden = payload.hideAdminName === true;
+  if (hidden && !admin.canHideName) throw new Error('Only a level 5 administrator with hide-name permission can hide their name.');
+  const reason = String(payload.reason || '').trim().slice(0,500) || 'Не указана';
+  const users = loadUserArchive_();
+  const profiles = Object.keys(users).map(key => users[key] || {}).filter(p => String(p.telegramId || '').trim() || (Array.isArray(p.tokens) && p.tokens.length));
+  const sheet = kickSheet_();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  let count = 0;
+  try {
+    const last = sheet.getLastRow();
+    const existing = last >= 2 ? sheet.getRange(2,1,last-1,8).getValues() : [];
+    profiles.forEach(profile => {
+      const telegramId = String(profile.telegramId || '');
+      const tokens = Array.from(new Set((Array.isArray(profile.tokens) ? profile.tokens : []).map(String).filter(Boolean)));
+      let row = 0;
+      for (let i=0;i<existing.length;i++) {
+        let oldTokens=[]; try { oldTokens=JSON.parse(String(existing[i][1] || '[]')); } catch (_) {}
+        if ((telegramId && String(existing[i][0] || '') === telegramId) || tokens.some(token => oldTokens.indexOf(token)>=0)) { row=i+2; break; }
+      }
+      const values=[telegramId,JSON.stringify(tokens),reason,hidden?'':admin.name,hidden,identity.userToken,new Date(),true];
+      if(row) sheet.getRange(row,1,1,values.length).setValues([values]); else sheet.appendRow(values);
+      count++;
+    });
+  } finally { lock.releaseLock(); }
+  return { kicked:true, kickedCount:count, reason:reason, adminName:hidden?'':admin.name, adminNameHidden:hidden };
+}
+function createReloadEvent_(identity, payload) {
+  const admin=requireKickAdmin_(identity,payload);
+  const type=String(payload.targetType || '');
+  const target=String(payload.target || '').trim();
+  const scheduledAt=Number(payload.scheduledAt || Date.now());
+  const duration=Number(payload.durationSeconds || 5);
+  if(!Number.isFinite(scheduledAt)||scheduledAt<Date.now()-30000||scheduledAt>Date.now()+86400000) throw new Error('Reload time must be between now and 24 hours from now.');
+  if(!Number.isInteger(duration)||duration<1||duration>300) throw new Error('Restart duration must be between 1 and 300 seconds.');
+  let targetValue='',tokens=[],telegramId='';
+  if(type==='all') {
+    // Every authenticated app session matches.
+  } else if(type==='ip') {
+    targetValue=hashIp_(target);
+  } else if(type==='telegram') {
+    if(!/^\\d+$/.test(target)) throw new Error('Telegram ID must contain digits only.');
+    const profile=profileForIdentifier_(target); telegramId=profile.telegramId||target; tokens=profile.tokens||[];
+  } else if(type==='token') {
+    if(!/^[A-Za-z0-9_-]{8,120}$/.test(target)) throw new Error('Invalid user token.');
+    const profile=profileForIdentifier_(target); telegramId=profile.telegramId||''; tokens=Array.from(new Set((profile.tokens||[]).concat([target])));
+  } else throw new Error('Unknown reload target type.');
+  const sheet=reloadSheet_(), eventId=Utilities.getUuid();
+  sheet.appendRow([eventId,type,targetValue,JSON.stringify(tokens),telegramId,scheduledAt,duration,admin.name,false,new Date(),true]);
+  return {created:true,eventId:eventId,scheduledAt:scheduledAt,durationSeconds:duration};
+}
+function matchingReloadEvents_(identity,payload) {
+  const sheet=reloadSheet_(),last=sheet.getLastRow();
+  if(last<2) return [];
+  const ip=String(payload.clientIp||'').trim();
+  const ipHash=ip?hashIp_(ip):'';
+  const now=Date.now(),rows=sheet.getRange(2,1,last-1,11).getValues(),matches=[];
+  rows.forEach(row=>{
+    const active=row[10]===true||String(row[10]).toLowerCase()==='true';
+    if(!active) return;
+    const at=Number(row[5] instanceof Date?row[5].getTime():row[5]),duration=Number(row[6])||5;
+    if(!Number.isFinite(at)||now>at+duration*1000) return;
+    const type=String(row[1]||'');
+    let tokens=[];try{tokens=JSON.parse(String(row[3]||'[]')).map(String);}catch(_){}
+    const telegram=String(row[4]||'');
+    const match=type==='all'||(type==='telegram'&&telegram===identity.telegramId)||
+      (type==='token'&&(tokens.indexOf(identity.userToken)>=0||telegram===identity.telegramId))||
+      (type==='ip'&&ipHash&&String(row[2]||'')===ipHash);
+    if(match) matches.push({eventId:String(row[0]||''),scheduledAt:at,durationSeconds:duration,adminName:String(row[7]||''),adminNameHidden:row[8]===true||String(row[8]).toLowerCase()==='true'});
+  });
+  return matches.sort((a,b)=>a.scheduledAt-b.scheduledAt);
+}
+
+function checkKick_(identity, payload = {}) {
   const sheet = kickSheet_();
   const last = sheet.getLastRow();
   if (last < 2) return { kicked: false };
@@ -214,5 +310,5 @@ function checkKick_(identity) {
       };
     }
   }
-  return { kicked: false };
+  return { kicked: false, reloadEvents: matchingReloadEvents_(identity, payload) };
 }
