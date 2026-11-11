@@ -264,6 +264,7 @@ function kickAll_(identity, payload) {
 }
 function createReloadEvent_(identity, payload) {
   const admin=requireKickAdmin_(identity,payload);
+  if (Number(admin.level) < 4) throw new Error('Application restart is available only to administrators of level 4 or higher.');
   const type=String(payload.targetType || '');
   const target=String(payload.target || '').trim();
   const scheduledAt=Number(payload.scheduledAt || Date.now());
