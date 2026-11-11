@@ -5340,10 +5340,10 @@ document.addEventListener('click', (e) => {
       '/stats': permission('viewUserStatistics'), '/alist': permission('viewUserStatistics'),
       '/kick': level >= 2 && permission('kickUser'),
       '/kick_all': level >= 2 && permission('kickUser'),
-      '/reload': level >= 2 && permission('kickUser'),
-      '/reload_time': level >= 2 && permission('kickUser'),
-      '/reload_all': level >= 2 && permission('kickUser'),
-      '/reload_all_time': level >= 2 && permission('kickUser')
+      '/reload': level >= 4 && permission('kickUser'),
+      '/reload_time': level >= 4 && permission('kickUser'),
+      '/reload_all': level >= 4 && permission('kickUser'),
+      '/reload_all_time': level >= 4 && permission('kickUser')
     };
     return checks[command] === true;
   }
@@ -5643,7 +5643,7 @@ document.addEventListener('click', (e) => {
       if (command === '/reload' || command === '/reload_time') {
         const scheduled = command === '/reload_time';
         if (args.length !== (scheduled ? 3 : 1)) return commandError(command);
-        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложения пользователей могут администраторы 2-го уровня и выше.');
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 4 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложения могут только администраторы 4-го уровня и выше с соответствующим разрешением.');
         const identifier = args[0].trim();
         let targetType = 'token';
         if (/^\\d+$/.test(identifier)) targetType = 'telegram';
@@ -5671,7 +5671,7 @@ document.addEventListener('click', (e) => {
       if (command === '/reload_all' || command === '/reload_all_time') {
         const scheduled = command === '/reload_all_time';
         if (args.length !== (scheduled ? 2 : 0)) return commandError(command);
-        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложение у всех могут администраторы 2-го уровня и выше.');
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 4 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложение могут только администраторы 4-го уровня и выше с соответствующим разрешением.');
         let minutes = 0, seconds = 5;
         if (scheduled) {
           minutes = Number(args[0]); seconds = Number(args[1]);
@@ -5939,11 +5939,13 @@ document.addEventListener('click', (e) => {
     const raw = String(input.value || '').trim();
     hints.innerHTML = '';
     const first = raw.startsWith('/') ? raw.split(/\s+/)[0].toLowerCase() : '';
-    const exact = !!first && Object.prototype.hasOwnProperty.call(commandSpecs, first);
-    structureBox.hidden = !exact;
-    structureBox.textContent = exact ? commandDescription(commandSpecs[first]).structure : '';
+    const knownExact = !!first && Object.prototype.hasOwnProperty.call(commandSpecs, first);
+    const exactAllowed = knownExact && commandAllowedForCurrentAdmin(first);
+    structureBox.hidden = !exactAllowed;
+    structureBox.textContent = exactAllowed ? commandDescription(commandSpecs[first]).structure : '';
     if (!first) { hints.hidden = true; return; }
-    const matches = exact ? [first] : Object.keys(commandSpecs).filter(command => command.startsWith(first)).slice(0, 8);
+    const matches = (knownExact ? (exactAllowed ? [first] : []) : Object.keys(commandSpecs)
+      .filter(command => command.startsWith(first) && commandAllowedForCurrentAdmin(command))).slice(0, 8);
     matches.forEach(command => {
       const details = commandDescription(commandSpecs[command]);
       const item = document.createElement('button');
