@@ -220,7 +220,26 @@ function kickAll_(identity, payload) {
   if (hidden && !admin.canHideName) throw new Error('Only a level 5 administrator with hide-name permission can hide their name.');
   const reason = String(payload.reason || '').trim().slice(0,500) || 'Не указана';
   const users = loadUserArchive_();
-  const profiles = Object.keys(users).map(key => users[key] || {}).filter(p => String(p.telegramId || '').trim() || (Array.isArray(p.tokens) && p.tokens.length));
+  const profilesById = {};
+  Object.keys(users).forEach(key => {
+    const profile = users[key] || {};
+    const id = String(profile.telegramId || '').trim();
+    if (!id) return;
+    profilesById[id] = { telegramId:id, tokens:Array.from(new Set((Array.isArray(profile.tokens) ? profile.tokens : []).map(String).filter(Boolean))) };
+  });
+  // Merge the live Users sheet so mass kick covers every registered app account.
+  const usersSheet = spreadsheet_().getSheetByName('Users');
+  if (usersSheet && usersSheet.getLastRow() > 0) {
+    const liveRows = usersSheet.getRange(1, 1, usersSheet.getLastRow(), 2).getDisplayValues();
+    liveRows.forEach(row => {
+      const id = String(row[0] || '').trim();
+      if (!/^\\d+$/.test(id)) return;
+      if (!profilesById[id]) profilesById[id] = { telegramId:id, tokens:[] };
+      const token = String(row[1] || '').trim();
+      if (token && profilesById[id].tokens.indexOf(token) < 0) profilesById[id].tokens.push(token);
+    });
+  }
+  const profiles = Object.keys(profilesById).map(id => profilesById[id]);
   const sheet = kickSheet_();
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
