@@ -5590,6 +5590,7 @@ document.addEventListener('click', (e) => {
         return;
       }
       if (command === '/warn') {
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2) throw new Error('Выдавать предупреждения могут администраторы 2-го уровня и выше.');
         if (args.length < 4) return commandError(command);
         const target = args[0], flag = args[args.length-1], amount = Number(args[args.length-2]), reason = args.slice(1,-2).join(' ').trim();
         if (!reason || !Number.isInteger(amount) || amount < 1 || amount > 3) return commandError(command, 'Количество предупреждений должно быть от 1 до 3, а причина не должна быть пустой.');
@@ -5607,6 +5608,7 @@ document.addEventListener('click', (e) => {
         return;
       }
       if (command === '/unwarn') {
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2) throw new Error('Снимать предупреждения могут администраторы 2-го уровня и выше.');
         if (args.length !== 1) return commandError(command);
         if (typeof window.BuyAdWarnings?.removeWarnings !== 'function') throw new Error('Модуль предупреждений не готов. Повторите попытку позже.');
         const result = await window.BuyAdWarnings.removeWarnings(args[0]);
