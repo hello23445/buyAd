@@ -5386,7 +5386,8 @@ document.addEventListener('click', (e) => {
   }
   function showKickedScreen(data) {
     const reason = String(data?.reason || '').trim() || 'Не указана';
-    const adminName = data?.adminNameHidden === true ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
+    const adminNameHidden = data?.adminNameHidden === true || String(data?.adminNameHidden || '').toLowerCase() === 'true';
+    const adminName = adminNameHidden ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
     if ($('kicked-screen-reason')) $('kicked-screen-reason').textContent = 'Причина: ' + reason + '.';
     if ($('kicked-screen-admin')) $('kicked-screen-admin').textContent = 'Админ: ' + adminName + '.';
     hideAllScreens();
