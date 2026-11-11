@@ -5455,6 +5455,16 @@ document.addEventListener('click', (e) => {
     ]);
     setTimeout(() => target.focus(), 0);
   }
+  function confirmMassCommand(title, body, confirmText) {
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = value => { if (settled) return; settled = true; resolve(value); };
+      openModal(title, body, [
+        { text:'Отмена', class:'btn btn--ghost', onClick:() => finish(false) },
+        { text:confirmText || 'Подтвердить', class:'btn btn--danger', onClick:() => finish(true) }
+      ], { onClose:() => finish(false) });
+    });
+  }
   async function commandRunWithLoader(fn) {
     showPreloader();
     try { await fn(); }
@@ -5516,7 +5526,7 @@ document.addEventListener('click', (e) => {
         if (!['no','yes'].includes(flag)) return commandError(command);
         const hidden = flag === 'yes';
         if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
-        const confirmed = await confirmAdminMenuAction('Отключить всех пользователей?', 'Будут отключены все пользователи из архива аккаунтов, включая ваш аккаунт.', 'Отключить всех', true);
+        const confirmed = await confirmMassCommand('Отключить всех пользователей?', 'Будут отключены все пользователи из архива аккаунтов, включая ваш аккаунт.', 'Отключить всех', true);
         if (!confirmed) { commandMessage('Отменено', 'Массовое отключение отменено.'); return; }
         await commandRunWithLoader(async () => {
           const result = await kickGasRequest('kickAll', { reason, hideAdminName:hidden, adminToken:String(localStorage.getItem(LS.token) || '') });
@@ -5555,7 +5565,7 @@ document.addEventListener('click', (e) => {
           minutes = Number(args[0]); seconds = Number(args[1]);
           if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440 || !Number.isInteger(seconds) || seconds < 1 || seconds > 300) return commandError(command, 'Минуты: от 1 до 1440. Длительность перезапуска: от 1 до 300 секунд.');
         }
-        const confirmed = await confirmAdminMenuAction(scheduled ? 'Запланировать перезапуск для всех?' : 'Перезапустить приложение у всех?', scheduled ? 'У всех появится обратный отсчёт на ' + minutes + ' мин., затем экран перезапуска продлится ' + seconds + ' сек.' : 'Приложение будет перезапущено у всех пользователей на 5 секунд.', scheduled ? 'Запланировать' : 'Перезапустить', true);
+        const confirmed = await confirmMassCommand(scheduled ? 'Запланировать перезапуск для всех?' : 'Перезапустить приложение у всех?', scheduled ? 'У всех появится обратный отсчёт на ' + minutes + ' мин., затем экран перезапуска продлится ' + seconds + ' сек.' : 'Приложение будет перезапущено у всех пользователей на 5 секунд.', scheduled ? 'Запланировать' : 'Перезапустить', true);
         if (!confirmed) { commandMessage('Отменено', 'Массовый перезапуск отменён.'); return; }
         await commandRunWithLoader(async () => {
           const result = await kickGasRequest('createReload', { targetType:'all', scheduledAt:Date.now() + minutes * 60000, durationSeconds:seconds, adminToken:String(localStorage.getItem(LS.token) || '') });
