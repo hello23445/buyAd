@@ -5341,7 +5341,7 @@ document.addEventListener('click', (e) => {
       }
       if (command === '/cblock' || command === '/uncblock') {
         const min = command === '/cblock' ? 5 : 3;
-        if (args.length !== min) return commandError(command);
+        if (command === '/cblock' ? args.length < min : args.length !== min) return commandError(command);
         const typeCode = args[0], type = ({'1':'token','2':'telegramId','3':'ip'})[typeCode], identifier = args[1];
         if (!type) throw new Error('Тип идентификатора должен быть 1, 2 или 3.');
         if (type === 'ip' && !isIpAddressValue(identifier)) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
