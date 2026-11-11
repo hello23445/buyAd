@@ -882,13 +882,29 @@
     updateButtonVisibility();
   }
 
+  async function getPunishmentHistoryByIdentifier(query) {
+    if (!hasAccess()) throw new Error('Просмотр списка наказаний доступен только администраторам с соответствующим правом.');
+    const value = String(query || '').trim();
+    if (!value) return null;
+    const result = await readArchive();
+    const found = findArchiveProfile(result.archive, value);
+    if (!found) return null;
+    const profile = { ...found.user };
+    profile.telegramId = String(profile.telegramId || (/^\\d{4,}$/.test(value) ? value : ''));
+    profile.tokens = Array.isArray(profile.tokens) ? profile.tokens.map(String) : [];
+    profile.ipAddresses = Array.isArray(profile.ipAddresses) ? profile.ipAddresses.map(String) : [];
+    if (!profile.telegramId && !/^\\d{4,}$/.test(value)) profile.tokens = Array.from(new Set([...profile.tokens, value]));
+    return { profile, punishments: buildPunishmentHistory(profile) };
+  }
+
   window.BuyAdUserStatistics = {
     recordLogin,
     recordPunishment,
     syncWarnings,
     updateButtonVisibility,
     searchUser,
-    getProfileByIdentifier
+    getProfileByIdentifier,
+    getPunishmentHistoryByIdentifier
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
