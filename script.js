@@ -5295,7 +5295,7 @@ document.addEventListener('click', (e) => {
         return;
       }
       if (['/tban','/sban','/tg_ban'].includes(command)) {
-        if (args.length < 5) return commandError(command);
+        if (args.length < 4) return commandError(command);
         const identifier = args[0], flag = args[args.length-1], days = commandDuration(args[args.length-2]);
         const reason = args.slice(1,-2).join(' ').trim();
         if (!reason) return commandError(command, 'Укажите причину блокировки.');
