@@ -55,6 +55,15 @@
 
   <!-- MAIN LAYOUT -->
   <main class="app" id="app">
+    <!-- USER KICK SCREEN -->
+    <section id="screen-kicked" class="screen screen--center" hidden>
+      <div class="card card--wide kicked-screen-card">
+        <div class="card__title">Вы были отключены из сервера.</div>
+        <div id="kicked-screen-reason" class="card__subtitle">Причина: Не указана.</div>
+        <div id="kicked-screen-admin" class="hint">Админ: Не указан.</div>
+      </div>
+    </section>
+
     <!-- FIRST ENTRY: LANGUAGE PICKER -->
     <section id="screen-first" class="screen screen--center" hidden>
       <div class="card card--wide">
@@ -130,6 +139,7 @@
         </div>
 
         <div id="main-admin-command-card" class="card main-admin-command-card" hidden>
+          <div id="main-admin-command-hints" class="main-admin-command-hints" hidden></div>
           <div class="main-admin-command-row">
             <input id="main-admin-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Введите команду администратора" aria-label="Команда администратора">
             <button id="main-admin-command-send" class="btn btn--primary main-admin-command-send" type="button" aria-label="Отправить команду"><i class="fa-solid fa-paper-plane"></i></button>
@@ -777,6 +787,16 @@
             </button>
 
             <div class="admin-main-command-heading">Другое</div>
+            <button id="admin-kick-user" class="menu__item" type="button" hidden>
+              <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
+              <span class="menu__text">Кикнуть пользователя</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
+            <button id="admin-available-commands" class="menu__item" type="button" hidden>
+              <span class="menu__icon"><i class="fa-solid fa-terminal"></i></span>
+              <span class="menu__text">Доступные мне команды</span>
+              <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
+            </button>
             <label id="admin-main-command-toggle-row" class="admin-main-command-toggle-row" for="admin-main-command-toggle">
               <span class="menu__icon"><i class="fa-solid fa-terminal"></i></span>
               <span class="menu__text">Добавить чат в главное меню</span>
