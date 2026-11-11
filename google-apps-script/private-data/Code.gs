@@ -24,7 +24,7 @@ function doGet(e) {
     const user = verifyTelegramInitData_(initData);
     const action = String(p.action || '');
     if (action === 'getMyRestrictions') {
-      result = { ok: true, data: getMyRestrictions_(user, String(p.userToken || '')) };
+      result = { ok: true, data: getMyRestrictions_(user, String(p.userToken || ''), String(p.userIp || '')) };
     } else if (action === 'getAdminData') {
       const admin = requireAdmin_(user);
       result = { ok: true, admin: publicAdmin_(admin), data: readAllData_() };
@@ -74,22 +74,25 @@ function verifyTelegramInitData_(initData) {
   return { id: String(user.id), username: String(user.username || '') };
 }
 
-function getMyRestrictions_(user, userToken) {
+function getMyRestrictions_(user, userToken, userIp) {
   const all = readAllData_();
-  const match = entry => {
+  const match = (entry, listName) => {
     if (!entry || typeof entry !== 'object') {
       const value = entryValue_(entry);
-      return !!value && ((userToken && value === userToken) || value === user.id);
+      return !!value && ((userToken && value === userToken) || value === user.id ||
+        (listName === 'BlockedUsersIPadresses' && userIp && value === userIp));
     }
     return !!(
       (userToken && (String(entry.token || '') === userToken || String(entry.value || '') === userToken)) ||
       String(entry.telegramId || '') === user.id ||
-      String(entry.value || '') === user.id
+      String(entry.value || '') === user.id ||
+      (listName === 'BlockedUsersIPadresses' && userIp &&
+        (String(entry.ip || '') === userIp || String(entry.value || '') === userIp))
     );
   };
   const result = {};
   Object.keys(COLS).forEach(name => {
-    result[name] = (all[name] || []).filter(match);
+    result[name] = (all[name] || []).filter(entry => match(entry, name));
   });
   return result;
 }
