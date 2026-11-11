@@ -5957,17 +5957,17 @@ document.addEventListener('click', (e) => {
   function getSimilarAdminCommands(query) {
     const needle = String(query || '').toLowerCase();
     if (!needle || needle === '/') return [];
+    const search = needle.replace(/^\\//, '');
     const commands = Object.keys(commandSpecs).filter(command => commandAllowedForCurrentAdmin(command));
-    const exact = commands.includes(needle);
-    if (exact) return [needle];
     const ranked = commands.map(command => {
       const name = command.slice(1);
-      const search = needle.replace(/^\//, '');
       const distance = commandEditDistance(search, name);
       let score = 0;
-      if (command.startsWith(needle)) score = 1000 - command.length;
-      else if (command.includes(needle) || name.includes(search)) score = 800 - Math.abs(name.length - search.length);
-      else if (name.startsWith(search) || search.startsWith(name)) score = 700 - distance;
+      // Точное совпадение ставим первым, но не скрываем родственные команды.
+      if (command === needle) score = 2000;
+      else if (command.startsWith(needle)) score = 1500 - command.length;
+      else if (command.includes(needle) || name.includes(search)) score = 1100 - Math.abs(name.length - search.length);
+      else if (name.startsWith(search) || search.startsWith(name)) score = 900 - distance;
       else if (distance <= Math.max(1, Math.floor(Math.max(search.length, name.length) * 0.4))) score = 500 - distance * 10;
       return { command, score, distance };
     }).filter(item => item.score > 0);
