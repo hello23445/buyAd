@@ -5325,7 +5325,7 @@ document.addEventListener('click', (e) => {
     const level = Number(admin.admin_level);
     const permission = name => adminHasPermission(name);
     const checks = {
-      '/all': true, '/tcopy': true, '/tdcopy': true, '/icopy': true, '/chat_off': true,
+      '/all': true, '/tcopy': true, '/tdcopy': true, '/icopy': level >= 5, '/chat_off': true,
       '/c': permission('reviewAds'), '/relist': permission('viewRestricted'),
       '/add_admin': canManageAdminRegistry(), '/change_admin': canManageAdminRegistry(), '/delete_admin': canManageAdminRegistry(),
       '/tban': permission('banToken'), '/untban': permission('unban'),
