@@ -2326,3 +2326,6 @@ body.modal-scroll-locked, body.preloader-scroll-locked { overflow:hidden !import
 .admin-main-command-switch input:focus-visible + .admin-main-command-slider { outline:2px solid #7894ff; outline-offset:3px; }
 body.theme-light #main-admin-command-input { background:#fff; border-color:#cbd2e0; color:#20283a; }
 body.theme-dark #main-admin-command-input { background:#172033; border-color:#39445c; color:#f3f5ff; }
+
+#main-admin-command-card[hidden] { display:none !important; }
+.admin-main-command-heading { margin-top:18px; padding:10px 14px 7px; color:var(--hint-color,#8993a8); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
