@@ -5584,7 +5584,7 @@ document.addEventListener('click', (e) => {
         const flag = String(args[args.length - 1] || '').toLowerCase();
         const reason = commandReason(0, -1) || 'Не указана';
         if (!['no','yes'].includes(flag)) return commandError(command);
-        const hidden = flag === 'yes';
+        const hidden = flag === 'no';
         if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
         const confirmed = await confirmMassCommand('Отключить всех пользователей?', 'Будут отключены все пользователи из архива аккаунтов, включая ваш аккаунт.', 'Отключить всех', true);
         if (!confirmed) { commandMessage('Отменено', 'Массовое отключение отменено.'); return; }
