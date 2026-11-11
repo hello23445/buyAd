@@ -5386,7 +5386,7 @@ document.addEventListener('click', (e) => {
   }
   function showKickedScreen(data) {
     const reason = String(data?.reason || '').trim() || 'Не указана';
-    const adminName = data?.adminNameHidden ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
+    const adminName = data?.adminNameHidden === true ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
     if ($('kicked-screen-reason')) $('kicked-screen-reason').textContent = 'Причина: ' + reason + '.';
     if ($('kicked-screen-admin')) $('kicked-screen-admin').textContent = 'Админ: ' + adminName + '.';
     hideAllScreens();
@@ -5523,7 +5523,7 @@ document.addEventListener('click', (e) => {
     try { await fn(); }
     finally { hidePreloader(); }
   }
-  async function runAdminCommand(raw) {
+  async function runAdminCommandInternal(raw) {
     const text = String(raw || '').trim();
     if (!text) return;
     const parts = text.match(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\S+/g) || [];
@@ -5854,6 +5854,20 @@ document.addEventListener('click', (e) => {
     } catch (error) {
       window.__buyAdCommandFailed = true;
       commandMessage('Команда не выполнена', error?.message || 'Не удалось выполнить команду.', true);
+    }
+  }
+  let adminCommandInFlight = false;
+  async function runAdminCommand(raw) {
+    // Ignore duplicate taps/Enter presses while the previous command is still running.
+    if (adminCommandInFlight) return;
+    adminCommandInFlight = true;
+    const sendButton = $('main-admin-command-send');
+    if (sendButton) sendButton.disabled = true;
+    try {
+      return await runAdminCommandInternal(raw);
+    } finally {
+      adminCommandInFlight = false;
+      if (sendButton) sendButton.disabled = false;
     }
   }
   function renderAdminCommandHints() {
