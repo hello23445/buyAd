@@ -5266,6 +5266,59 @@ document.addEventListener('click', (e) => {
     const pieces = String(spec || '').split(' — ');
     return { structure: pieces[0] || '', description: pieces.slice(1).join(' — ') || '' };
   }
+  function renderAvailableCommandsDialog() {
+    const groups = [
+      { title:'Проверка и работа с пользователями', commands:['/c','/relist','/stats','/alist','/warn','/unwarn'] },
+      { title:'Блокировки и ограничения', commands:['/tban','/untban','/sban','/unsban','/tg_ban','/untg_ban','/cblock','/uncblock'] },
+      { title:'Управление приложением', commands:['/cban','/rban','/payments','/referals','/close_app','/gases'] },
+      { title:'Администраторы', commands:['/add_admin','/change_admin','/delete_admin'] },
+      { title:'Отключение и перезапуск', commands:['/kick','/kick_all','/reload','/reload_time','/reload_all','/reload_all_time'] },
+      { title:'Мои данные и настройки', commands:['/tcopy','/tdcopy','/icopy','/chat_off'] }
+    ];
+    const root = document.createElement('div');
+    root.className = 'available-commands-list';
+    const intro = document.createElement('p');
+    intro.className = 'available-commands-intro';
+    intro.textContent = 'Показаны только команды, доступные с вашим текущим уровнем и разрешениями. Нажмите на команду, чтобы подставить её в поле ввода.';
+    root.appendChild(intro);
+    groups.forEach(group => {
+      const available = group.commands.filter(command => commandAllowedForCurrentAdmin(command));
+      if (!available.length) return;
+      const section = document.createElement('section');
+      section.className = 'available-commands-section';
+      const heading = document.createElement('h3');
+      heading.textContent = group.title;
+      section.appendChild(heading);
+      available.forEach(command => {
+        const details = commandDescription(commandSpecs[command]);
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'available-command-item';
+        const name = document.createElement('span');
+        name.className = 'available-command-name';
+        name.textContent = command;
+        const structure = document.createElement('span');
+        structure.className = 'available-command-structure';
+        structure.textContent = details.structure;
+        const description = document.createElement('span');
+        description.className = 'available-command-description';
+        description.textContent = details.description;
+        item.append(name, structure, description);
+        item.addEventListener('click', () => {
+          const input = $('main-admin-command-input');
+          if (input) {
+            input.value = command + ' ';
+            input.focus();
+            renderAdminCommandHints();
+          }
+          closeModal();
+        });
+        section.appendChild(item);
+      });
+      root.appendChild(section);
+    });
+    openModal('Справочник команд', root);
+  }
   function commandAllowedForCurrentAdmin(command) {
     const admin = getCurrentAdmin();
     if (!admin || Number(admin.admin_level) < 1) return false;
@@ -5486,8 +5539,7 @@ document.addEventListener('click', (e) => {
       if (!getCurrentAdmin()) throw new Error('Команды доступны только администраторам.');
       if (command === '/all') {
         if (args.length) return commandError(command);
-        const available = getAvailableAdminCommands();
-        commandMessage('Доступные мне команды', available || 'Для вашего уровня нет доступных команд.');
+        renderAvailableCommandsDialog();
         return;
       }
       if (['/tcopy','/tdcopy','/icopy'].includes(command)) {
@@ -5801,19 +5853,15 @@ document.addEventListener('click', (e) => {
   function renderAdminCommandHints() {
     const input = $('main-admin-command-input');
     const hints = $('main-admin-command-hints');
-    if (!input || !hints) return;
+    const structureBox = $('main-admin-command-structure');
+    if (!input || !hints || !structureBox) return;
     const raw = String(input.value || '').trim();
     hints.innerHTML = '';
-    if (!raw.startsWith('/')) { hints.hidden = true; return; }
-    const first = raw.split(/\s+/)[0].toLowerCase();
-    const exact = Object.prototype.hasOwnProperty.call(commandSpecs, first);
-    if (exact) {
-      const details = commandDescription(commandSpecs[first]);
-      const structure = document.createElement('div');
-      structure.className = 'command-hint-structure';
-      structure.textContent = details.structure;
-      hints.appendChild(structure);
-    }
+    const first = raw.startsWith('/') ? raw.split(/\s+/)[0].toLowerCase() : '';
+    const exact = !!first && Object.prototype.hasOwnProperty.call(commandSpecs, first);
+    structureBox.hidden = !exact;
+    structureBox.textContent = exact ? commandDescription(commandSpecs[first]).structure : '';
+    if (!first) { hints.hidden = true; return; }
     const matches = exact ? [first] : Object.keys(commandSpecs).filter(command => command.startsWith(first)).slice(0, 8);
     matches.forEach(command => {
       const details = commandDescription(commandSpecs[command]);
@@ -5834,7 +5882,7 @@ document.addEventListener('click', (e) => {
       });
       hints.appendChild(item);
     });
-    hints.hidden = matches.length === 0 && !exact;
+    hints.hidden = matches.length === 0;
   }
   function syncAdminCommandChat() {
     const admin = getCurrentAdmin();
