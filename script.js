@@ -5155,3 +5155,344 @@ document.addEventListener('click', (e) => {
     document.activeElement?.blur();
   }
 });
+
+/* ========== LOCAL ADMIN COMMAND CHAT ========== */
+(() => {
+  'use strict';
+  const COMMAND_LOCAL_PREFIX = 'buyAdMainCommandChat:';
+  const commandKey = () => COMMAND_LOCAL_PREFIX + String(localStorage.getItem(LS.token) || '');
+  const enabledForCurrentAdmin = () => !!getCurrentAdmin() && localStorage.getItem(commandKey()) === 'true';
+  const commandSpecs = {
+    '/c': '/c — Открывает меню проверки рекламы.',
+    '/relist': '/relist — Открывает список ограниченных пользователей.',
+    '/add_admin': '/add_admin Имя_Админа Токен_нового_админа Уровень_админа(1-5) — Добавляет администратора.',
+    '/change_admin': '/change_admin Имя_Админа/токен_админа Уровень_Админа — Изменяет уровень и стандартные права администратора.',
+    '/delete_admin': '/delete_admin Имя_Админа/токен_админа — Удаляет администратора.',
+    '/tban': '/tban Токен Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по токену.',
+    '/untban': '/untban Токен — Снимает блокировку по токену.',
+    '/sban': '/sban IP-адрес Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по IP.',
+    '/unsban': '/unsban IP-адрес — Снимает блокировку по IP.',
+    '/search_ip': '/search_ip IP-адрес — Ищет аккаунты по IP.',
+    '/tg_ban': '/tg_ban Telegram_ID Причина Срок(1-60 или -1 навсегда) no/yes — Блокирует по Telegram ID.',
+    '/untg_ban': '/untg_ban Telegram_ID — Снимает блокировку по Telegram ID.',
+    '/cblock': '/cblock Тип(1 токен, 2 Telegram ID, 3 IP) Идентификатор Причина Срок(1-60 или -1 навсегда) no/yes — Запрещает создавать и редактировать рекламу.',
+    '/uncblock': '/uncblock Тип(1 токен, 2 Telegram ID, 3 IP) Идентификатор — Снимает запрет на создание и редактирование рекламы.',
+    '/cban': '/cban число(1 отключить, 2 включить) — Управляет созданием рекламы для всех.',
+    '/rban': '/rban число(1 отключить, 2 включить) — Управляет редактированием рекламы для всех.',
+    '/payments': '/payments число(1 отключить, 2 включить) — Управляет платежами.',
+    '/referals': '/referals число(1 отключить, 2 включить) — Управляет реферальной системой.',
+    '/close_app': '/close_app число(1 закрыть, 2 открыть) — Закрывает или открывает приложение.',
+    '/gases': '/gases число(1 отключить, 2 включить) — Управляет обращениями к GAS.',
+    '/warn': '/warn Telegram_ID/Токен Причина Количество(1-3) no/yes — Выдаёт предупреждение.',
+    '/unwarn': '/unwarn Telegram_ID/Токен — Снимает предупреждения.',
+    '/stats': '/stats Telegram_ID/Токен — Открывает статистику пользователя.',
+    '/alist': '/alist Telegram_ID/Токен — Показывает список наказаний пользователя.',
+    '/chat_off': '/chat_off — Убирает поле команд из главного меню.'
+  };
+  function commandMessage(title, message, isError = false) {
+    const status = $('main-admin-command-status');
+    if (status) {
+      status.hidden = false;
+      status.textContent = String(message || '');
+      status.style.color = isError ? '#e05b67' : '';
+    }
+    openModal(title, message);
+  }
+  function commandError(command, details) {
+    const structure = commandSpecs[command] || '/' + command + ' {структура}';
+    commandMessage('Неверная команда', (details ? details + '\n\n' : '') + 'Правильный формат:\n' + structure, true);
+  }
+  function requireCommandPermission(action, target) {
+    return adminGuard(action, target);
+  }
+  function commandHideName(flag) {
+    if (!['no','yes'].includes(String(flag || '').toLowerCase())) throw new Error('Последний параметр должен быть no или yes.');
+    const hidden = String(flag).toLowerCase() === 'yes';
+    if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) {
+      throw new Error('Скрывать имя при блокировке может только администратор 5-го уровня с соответствующим правом.');
+    }
+    return hidden;
+  }
+  function commandDuration(value) {
+    const days = Number(value);
+    if (!Number.isInteger(days) || (days !== -1 && (days < 1 || days > 60))) throw new Error('Срок должен быть целым числом от 1 до 60 или -1 для бессрочной блокировки.');
+    if (days === -1 && Number(getCurrentAdmin()?.admin_level || 0) < 3) throw new Error('Бессрочную блокировку могут выдавать только администраторы 3-го уровня и выше.');
+    return days === -1 ? null : days;
+  }
+  function commandExpiry(days) {
+    return days == null ? null : new Date(Date.now() + days * 86400000).toISOString();
+  }
+  function findAdminByNameOrToken(value) {
+    const normalized = String(value || '').replace(/_/g, ' ').trim().toLowerCase();
+    return (typeof ADMINS !== 'undefined' ? ADMINS : []).find(item =>
+      String(item.admin_token || '').toLowerCase() === String(value || '').trim().toLowerCase() ||
+      String(item.admin_name || '').trim().toLowerCase() === normalized
+    ) || null;
+  }
+  async function commandRunWithLoader(fn) {
+    showPreloader();
+    try { await fn(); }
+    finally { hidePreloader(); }
+  }
+  async function runAdminCommand(raw) {
+    const text = String(raw || '').trim();
+    if (!text) return;
+    const parts = text.split(/\s+/);
+    const command = parts[0].toLowerCase();
+    const args = parts.slice(1);
+    if (!Object.prototype.hasOwnProperty.call(commandSpecs, command)) {
+      commandMessage('Неизвестная команда', 'Команда ' + command + ' не найдена.\nВведите одну из поддерживаемых команд, например /c или /stats.', true);
+      return;
+    }
+    try {
+      if (!getCurrentAdmin()) throw new Error('Команды доступны только администраторам.');
+      if (command === '/chat_off') {
+        localStorage.setItem(commandKey(), 'false');
+        syncAdminCommandChat();
+        commandMessage('Чат отключён', 'Поле команд убрано из главного меню. Включить его снова можно в меню админов → Другое.');
+        return;
+      }
+      if (command === '/c' || command === '/relist') {
+        if (args.length) return commandError(command, 'Эта команда не принимает аргументы.');
+        const action = command === '/c' ? 'reviewAds' : 'viewRestricted';
+        if (!requireCommandPermission(action)) return;
+        const button = $(command === '/c' ? 'admin-check' : 'admin-restricted');
+        if (!button || button.hidden) throw new Error('Соответствующий раздел недоступен для вашего уровня прав.');
+        button.click();
+        return;
+      }
+      if (command === '/add_admin') {
+        if (args.length !== 3) return commandError(command);
+        if (!canManageAdminRegistry()) throw new Error('Добавлять администраторов может только главный администратор 5-го уровня.');
+        const name = args[0].replace(/_/g, ' ').trim(), token = args[1].trim(), level = Number(args[2]);
+        if (!name || !token || !Number.isInteger(level) || level < 1 || level > 5) return commandError(command, 'Проверьте имя, токен и уровень от 1 до 5.');
+        if (ADMINS.some(item => String(item.admin_token) === token)) throw new Error('Такой токен уже используется.');
+        await commandRunWithLoader(() => persistAdminRegistry([...ADMINS, { admin_name:name, admin_token:token, admin_level:level, permissions:getDefaultAdminPermissions(level), custom_permissions:true }], 'Add administrator using command chat'));
+        commandMessage('Администратор добавлен', 'Администратор «' + name + '» добавлен на ' + level + '-й уровень. Перезапустите приложение, чтобы применить изменения.');
+        return;
+      }
+      if (command === '/change_admin') {
+        if (args.length !== 2) return commandError(command);
+        if (!canManageAdminRegistry()) throw new Error('Изменять администраторов может только главный администратор 5-го уровня.');
+        const target = findAdminByNameOrToken(args[0]), level = Number(args[1]);
+        if (!target) throw new Error('Администратор с таким именем или токеном не найден.');
+        if (target.admin_token === getBaseAdminByToken()?.admin_token) throw new Error('Нельзя изменить уровень текущего главного администратора.');
+        if (!Number.isInteger(level) || level < 1 || level > 5) return commandError(command, 'Уровень должен быть от 1 до 5.');
+        const next = ADMINS.map(item => item.admin_token === target.admin_token ? { ...item, admin_level:level, permissions:getDefaultAdminPermissions(level), custom_permissions:true } : item);
+        await commandRunWithLoader(() => persistAdminRegistry(next, 'Change administrator level using command chat'));
+        commandMessage('Права изменены', 'Уровень администратора «' + target.admin_name + '» изменён на ' + level + '. Перезапустите приложение.');
+        return;
+      }
+      if (command === '/delete_admin') {
+        if (args.length !== 1) return commandError(command);
+        if (!canManageAdminRegistry()) throw new Error('Удалять администраторов может только главный администратор 5-го уровня.');
+        const target = findAdminByNameOrToken(args[0]);
+        if (!target) throw new Error('Администратор с таким именем или токеном не найден.');
+        if (target.admin_token === getBaseAdminByToken()?.admin_token) throw new Error('Нельзя удалить текущего главного администратора.');
+        if (ADMINS.length <= 1) throw new Error('В реестре должен остаться хотя бы один администратор.');
+        await commandRunWithLoader(() => persistAdminRegistry(ADMINS.filter(item => item.admin_token !== target.admin_token), 'Delete administrator using command chat'));
+        commandMessage('Администратор удалён', 'Администратор «' + target.admin_name + '» удалён. Перезапустите приложение.');
+        return;
+      }
+      if (['/tban','/sban','/tg_ban'].includes(command)) {
+        if (args.length < 5) return commandError(command);
+        const identifier = args[0], flag = args[args.length-1], days = commandDuration(args[args.length-2]);
+        const reason = args.slice(1,-2).join(' ').trim();
+        if (!reason) return commandError(command, 'Укажите причину блокировки.');
+        const hidden = commandHideName(flag);
+        const action = command === '/tban' ? 'banToken' : command === '/sban' ? 'banIp' : 'banTelegramId';
+        if (command === '/sban' && !isIpAddressValue(identifier)) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
+        if (command === '/tg_ban' && !/^\d+$/.test(identifier)) throw new Error('Telegram ID должен содержать только цифры.');
+        if (!requireCommandPermission(action, identifier)) return;
+        const arrayName = command === '/tban' ? 'BanForever' : command === '/sban' ? 'BlockedUsersIPadresses' : 'BlockedUsersTelegramID';
+        const expiry = commandExpiry(days);
+        await commandRunWithLoader(async () => {
+          await updateVariable(arrayName, { value:identifier, reason, adminName:hidden ? '' : getAdminDisplayName(), adminNameHidden:hidden, durationDays:days, issuedAt:new Date().toISOString(), expiresAt:expiry });
+          const actionName = command === '/tban' ? 'banToken' : command === '/sban' ? 'banIp' : 'banTelegramId';
+          recordAdminAction(actionName);
+          if (command === '/sban') window.BuyAdWarnings?.recordAdminAction('ip_banned', { targetIp:identifier, reason, durationDays:days, expiresAt:expiry });
+          else window.BuyAdWarnings?.recordPunishmentIssued('account_ban', identifier, reason, days, expiry);
+        });
+        commandMessage('Блокировка выдана', 'Идентификатор: ' + identifier + '\nПричина: ' + reason + '\nСрок: ' + (days == null ? 'навсегда' : days + ' дн.') + '\nИмя администратора: ' + (hidden ? 'скрыто' : 'отображается'));
+        return;
+      }
+      if (['/untban','/unsban','/untg_ban'].includes(command)) {
+        if (args.length !== 1) return commandError(command);
+        const identifier = args[0];
+        const action = command === '/untban' ? 'unbanToken' : command === '/unsban' ? 'unbanIp' : 'unbanTelegramId';
+        if (command === '/unsban' && !isIpAddressValue(identifier)) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
+        if (command === '/untg_ban' && !/^\d+$/.test(identifier)) throw new Error('Telegram ID должен содержать только цифры.');
+        if (!requireCommandPermission(action, identifier)) return;
+        const actionName = command === '/untban' ? 'UnBanForever' : command === '/unsban' ? 'UnBlockedUsersIPadresses' : 'UnBlockedUsersTelegramID';
+        await commandRunWithLoader(async () => {
+          await updateVariable(actionName, identifier);
+          recordAdminAction(command === '/unsban' ? 'unbanIp' : command === '/untg_ban' ? 'unbanTelegramId' : 'unbanToken');
+          window.BuyAdWarnings?.recordPunishmentRemoved(command === '/unsban' ? 'ip_ban' : 'account_ban', identifier);
+        });
+        commandMessage('Блокировка снята', 'Ограничение для ' + identifier + ' снято.');
+        return;
+      }
+      if (command === '/cblock' || command === '/uncblock') {
+        const min = command === '/cblock' ? 5 : 3;
+        if (args.length !== min) return commandError(command);
+        const typeCode = args[0], type = ({'1':'token','2':'telegramId','3':'ip'})[typeCode], identifier = args[1];
+        if (!type) throw new Error('Тип идентификатора должен быть 1, 2 или 3.');
+        if (type === 'ip' && !isIpAddressValue(identifier)) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
+        if (type === 'telegramId' && !/^\d+$/.test(identifier)) throw new Error('Telegram ID должен содержать только цифры.');
+        if (!requireCommandPermission(command === '/cblock' ? 'restrictAds' : 'unrestrictAds', identifier)) return;
+        if (command === '/cblock') {
+          const flag = args[args.length-1], days = commandDuration(args[args.length-2]), reason = args.slice(2,-2).join(' ').trim();
+          if (!reason) return commandError(command, 'Укажите причину ограничения.');
+          const hidden = commandHideName(flag), expiry = commandExpiry(days);
+          const entry = { type, value:identifier, reason, adminName:hidden ? '' : getAdminDisplayName(), adminNameHidden:hidden, durationDays:days, issuedAt:new Date().toISOString(), expiresAt:expiry };
+          await commandRunWithLoader(async () => {
+            const current = runtimeArray('BlockCreateAds', []).filter(item => !(inferCreateRestrictionType(item) === type && punishmentEntryValue(item) === identifier));
+            await updateVariable('BlockCreateAds', [...current, entry]);
+            recordAdminAction('restrictAds');
+            window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', identifier, reason, days, expiry);
+          });
+          commandMessage('Ограничение выдано', 'Пользователь: ' + identifier + '\nТип: ' + type + '\nПричина: ' + reason + '\nСрок: ' + (days == null ? 'навсегда' : days + ' дн.') + '\nИмя администратора: ' + (hidden ? 'скрыто' : 'отображается'));
+        } else {
+          await commandRunWithLoader(async () => {
+            await updateVariable('UnBlockCreateAds', [{ type, value:identifier }]);
+            recordAdminAction('unrestrictAds');
+            if (type === 'ip') window.BuyAdWarnings?.recordAdminAction('punishment_removed', { targetIp:identifier, punishment:'ads_restriction' });
+            else window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', identifier);
+          });
+          commandMessage('Ограничение снято', 'Запрет создания и редактирования рекламы для ' + identifier + ' снят.');
+        }
+        return;
+      }
+      if (['/cban','/rban','/payments','/referals','/close_app','/gases'].includes(command)) {
+        if (args.length !== 1 || !['1','2'].includes(args[0])) return commandError(command);
+        if (!requireCommandPermission('globalCreateToggle')) return;
+        const enabled = args[0] === '2';
+        const operations = {
+          '/cban': enabled ? ['UndisableCreateAds2','enabled'] : ['disableCreateAds2','disabled'],
+          '/rban': enabled ? ['UndisableEditingAds','enabled'] : ['disableEditingAds','disabled'],
+          '/payments': enabled ? ['UnPurchases2','enabled'] : ['Purchases2','no'],
+          '/close_app': enabled ? ['UnCloseApp','not_closed'] : ['CloseApp','closed'],
+          '/gases': enabled ? ['UnGASESES','true'] : ['GASESES','no']
+        };
+        if (command === '/referals') {
+          if (Number(getCurrentAdmin()?.admin_level || 0) < 4) throw new Error('Управлять реферальной системой могут администраторы 4-го и 5-го уровня.');
+          if (typeof window.BuyAdReferralSetGlobalEnabled !== 'function') throw new Error('Модуль реферальной системы не загружен.');
+          await commandRunWithLoader(async () => {
+            const result = await window.BuyAdReferralSetGlobalEnabled(enabled);
+            if (result?.systemEnabled !== enabled) throw new Error('Сервер не подтвердил изменение реферальной системы.');
+          });
+        } else {
+          const [action,value] = operations[command];
+          await commandRunWithLoader(() => updateVariable(action,value));
+        }
+        commandMessage('Настройка обновлена', command + ': ' + (enabled ? 'включено / открыто' : 'отключено / закрыто') + '.');
+        return;
+      }
+      if (command === '/search_ip') {
+        if (args.length !== 1) return commandError(command);
+        if (Number(getCurrentAdmin()?.admin_level || 0) !== 5) throw new Error('Поиск истории IP доступен только администратору 5-го уровня.');
+        if (!isIpAddressValue(args[0])) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
+        if (!adminGuard('viewOwnIp')) return;
+        const input = $('ip-history-search-input'), button = $('ip-history-search-submit');
+        if (!input || !button) throw new Error('Экран поиска IP не загружен.');
+        input.value = args[0]; $('admin-search-ip-history')?.click(); button.click();
+        return;
+      }
+      if (command === '/warn') {
+        if (args.length < 4) return commandError(command);
+        const target = args[0], flag = args[args.length-1], amount = Number(args[args.length-2]), reason = args.slice(1,-2).join(' ').trim();
+        if (!reason || !Number.isInteger(amount) || amount < 1 || amount > 3) return commandError(command, 'Количество предупреждений должно быть от 1 до 3, а причина не должна быть пустой.');
+        if (!['no','yes'].includes(flag.toLowerCase())) return commandError(command);
+        const hidden = flag.toLowerCase() === 'yes';
+        if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
+        if (typeof window.BuyAdWarnings?.issueWarning !== 'function') throw new Error('Модуль предупреждений не готов. Повторите попытку позже.');
+        const hideKey = 'buyAdHideWarningIssuerName', oldValue = localStorage.getItem(hideKey);
+        localStorage.setItem(hideKey, hidden ? 'true' : 'false');
+        let result;
+        try { result = await window.BuyAdWarnings.issueWarning(target, reason, amount); }
+        finally { if (oldValue == null) localStorage.removeItem(hideKey); else localStorage.setItem(hideKey, oldValue); }
+        if (result?.error) throw new Error(result.error);
+        commandMessage('Предупреждение выдано', result?.message || 'Предупреждение сохранено.');
+        return;
+      }
+      if (command === '/unwarn') {
+        if (args.length !== 1) return commandError(command);
+        if (typeof window.BuyAdWarnings?.removeWarnings !== 'function') throw new Error('Модуль предупреждений не готов. Повторите попытку позже.');
+        const result = await window.BuyAdWarnings.removeWarnings(args[0]);
+        if (result?.error) throw new Error(result.error);
+        commandMessage('Предупреждения сняты', result?.message || 'Предупреждения сняты.');
+        return;
+      }
+      if (command === '/stats') {
+        if (args.length !== 1) return commandError(command);
+        if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр статистики доступен администраторам с соответствующим правом.');
+        const input = $('user-statistics-query'), button = $('user-statistics-search');
+        if (!input || !button) throw new Error('Раздел статистики ещё не загружен.');
+        input.value = args[0]; $('admin-user-statistics')?.click(); button.click();
+        return;
+      }
+      if (command === '/alist') {
+        if (args.length !== 1) return commandError(command);
+        if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр списка наказаний доступен администраторам с соответствующим правом.');
+        const target = args[0], isTelegram = /^\d+$/.test(target);
+        const groups = [
+          ['Блокировка по токену', runtimeArray('BanForever',[])],
+          ['Блокировка по Telegram ID', runtimeArray('BlockedUsersTelegramID',[])],
+          ['Блокировка по IP', runtimeArray('BlockedUsersIPadresses',[])],
+          ['Запрет создания/редактирования рекламы', runtimeArray('BlockCreateAds',[])]
+        ];
+        const rows = [];
+        groups.forEach(([label,list]) => list.forEach(item => {
+          const value = punishmentEntryValue(item);
+          if (value === target || (isTelegram && String(item?.telegramId || '') === target)) rows.push({label,item});
+        }));
+        const warnings = window.BuyAdWarnings?.warningsFor?.(isTelegram ? '' : target, isTelegram ? target : '') || [];
+        warnings.forEach(item => rows.push({label:'Предупреждение',item}));
+        const message = rows.length ? rows.map((row,i) => {
+          const item = row.item || {};
+          const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
+          return (i+1)+'. '+row.label+'\nПричина: '+(item.reason || 'Не указана')+'\nДата: '+(item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана')+'\nОкончание: '+end+'\nАдминистратор: '+(item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
+        }).join('\n\n') : 'Наказания для указанного пользователя не найдены.';
+        commandMessage('Список наказаний', message);
+        return;
+      }
+    } catch (error) {
+      commandMessage('Команда не выполнена', error?.message || 'Не удалось выполнить команду.', true);
+    }
+  }
+  function syncAdminCommandChat() {
+    const admin = getCurrentAdmin();
+    const toggle = $('admin-main-command-toggle');
+    const row = $('admin-main-command-toggle-row');
+    const card = $('main-admin-command-card');
+    const enabled = !!admin && enabledForCurrentAdmin();
+    if (toggle) toggle.checked = enabled;
+    if (row) row.hidden = !admin || Number(admin.admin_level) < 1;
+    if (card) card.hidden = !enabled;
+  }
+  function installAdminCommandChat() {
+    const toggle = $('admin-main-command-toggle');
+    const input = $('main-admin-command-input');
+    const send = $('main-admin-command-send');
+    if (toggle) toggle.addEventListener('change', () => {
+      if (!getCurrentAdmin()) { toggle.checked = false; return; }
+      localStorage.setItem(commandKey(), toggle.checked ? 'true' : 'false');
+      syncAdminCommandChat();
+    });
+    const submit = async () => {
+      const value = String(input?.value || '').trim();
+      if (!value) return;
+      if (!enabledForCurrentAdmin()) { syncAdminCommandChat(); return; }
+      if (input) input.value = '';
+      await runAdminCommand(value);
+    };
+    send?.addEventListener('click', submit);
+    input?.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); submit(); }
+    });
+    syncAdminCommandChat();
+  }
+  window.BuyAdAdminCommandChat = { run: runAdminCommand, refresh: syncAdminCommandChat };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installAdminCommandChat, { once:true });
+  else installAdminCommandChat();
+})();
