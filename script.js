@@ -5658,7 +5658,14 @@ document.addEventListener('click', (e) => {
           const result = await kickGasRequest('createReload', { targetType, target:identifier, scheduledAt:Date.now() + minutes * 60000, durationSeconds:seconds, adminToken:String(localStorage.getItem(LS.token) || '') });
           if (result.created !== true) throw new Error('GAS не подтвердил создание перезапуска.');
         });
-        commandMessage(scheduled ? 'Перезапуск запланирован' : 'Перезапуск запущен', scheduled ? 'Обратный отсчёт: ' + minutes + ' мин.\nДлительность экрана перезапуска: ' + seconds + ' сек.' : 'Перезапуск начнётся сразу и продлится 5 секунд.');
+        const reloadLang = localStorage.getItem(LS.lang) || 'ru';
+        const reloadText = i18n[reloadLang] || i18n.ru;
+        commandMessage(
+          scheduled ? reloadText.reloadScheduledTitle : reloadText.reloadStartedTitle,
+          scheduled
+            ? (reloadText.reloadScheduledDescription || '').replace('{minutes}', String(minutes)).replace('{seconds}', String(seconds))
+            : reloadText.reloadStartedDescription
+        );
         return;
       }
       if (command === '/reload_all' || command === '/reload_all_time') {
@@ -5670,13 +5677,24 @@ document.addEventListener('click', (e) => {
           minutes = Number(args[0]); seconds = Number(args[1]);
           if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440 || !Number.isInteger(seconds) || seconds < 1 || seconds > 300) return commandError(command, 'Минуты: от 1 до 1440. Длительность перезапуска: от 1 до 300 секунд.');
         }
-        const confirmed = await confirmMassCommand(scheduled ? 'Запланировать перезапуск для всех?' : 'Перезапустить приложение у всех?', scheduled ? 'У всех появится обратный отсчёт на ' + minutes + ' мин., затем экран перезапуска продлится ' + seconds + ' сек.' : 'Приложение будет перезапущено у всех пользователей на 5 секунд.', scheduled ? 'Запланировать' : 'Перезапустить', true);
-        if (!confirmed) { commandMessage('Отменено', 'Массовый перезапуск отменён.'); return; }
+        const reloadLang = localStorage.getItem(LS.lang) || 'ru';
+        const reloadText = i18n[reloadLang] || i18n.ru;
+        const confirmTitle = scheduled ? reloadText.reloadAllConfirmTitleScheduled : reloadText.reloadAllConfirmTitleNow;
+        const confirmText = scheduled
+          ? (reloadText.reloadAllConfirmTextScheduled || '').replace('{minutes}', String(minutes)).replace('{seconds}', String(seconds))
+          : reloadText.reloadAllConfirmTextNow;
+        const confirmed = await confirmMassCommand(confirmTitle, confirmText, scheduled ? reloadText.reloadAllConfirmButtonScheduled : reloadText.reloadAllConfirmButtonNow, true);
+        if (!confirmed) { commandMessage(reloadText.reloadCancelTitle, reloadText.reloadAllCancelText); return; }
         await commandRunWithLoader(async () => {
           const result = await kickGasRequest('createReload', { targetType:'all', scheduledAt:Date.now() + minutes * 60000, durationSeconds:seconds, adminToken:String(localStorage.getItem(LS.token) || '') });
           if (result.created !== true) throw new Error('GAS не подтвердил создание перезапуска.');
         });
-        commandMessage(scheduled ? 'Перезапуск запланирован' : 'Перезапуск запущен', scheduled ? 'У всех обратный отсчёт: ' + minutes + ' мин.\nДлительность перезапуска: ' + seconds + ' сек.' : 'Приложение перезапустится у всех через 5 секунд.');
+        commandMessage(
+          scheduled ? reloadText.reloadScheduledTitle : reloadText.reloadStartedTitle,
+          scheduled
+            ? (reloadText.reloadAllScheduledDescription || '').replace('{minutes}', String(minutes)).replace('{seconds}', String(seconds))
+            : reloadText.reloadAllStartedDescription
+        );
         return;
       }
       if (command === '/chat_off') {
