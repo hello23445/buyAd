@@ -5386,7 +5386,7 @@ document.addEventListener('click', (e) => {
     updateRemoteReloadBanner(list);
     const now = Date.now();
     const due = list.filter(event => Number(event.scheduledAt) <= now &&
-      now <= Number(event.scheduledAt) + Math.max(1, Number(event.durationSeconds) || 5) * 1000)
+      now <= Number(event.scheduledAt) + Math.max(Math.max(1, Number(event.durationSeconds) || 5) * 1000, 15000))
       .filter(event => !consumedReloadEvents().includes(String(event.eventId || '')))
       .sort((a,b) => Number(a.scheduledAt) - Number(b.scheduledAt));
     if (due.length) return showRemoteRestart(due[0]);
