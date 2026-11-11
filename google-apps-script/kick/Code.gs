@@ -292,8 +292,7 @@ function matchingReloadEvents_(identity,payload) {
 function checkKick_(identity, payload = {}) {
   const sheet = kickSheet_();
   const last = sheet.getLastRow();
-  if (last < 2) return { kicked: false };
-  const rows = sheet.getRange(2, 1, last - 1, 8).getValues();
+  const rows = last >= 2 ? sheet.getRange(2, 1, last - 1, 8).getValues() : [];
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i];
     const active = row[7] === true || String(row[7]).toLowerCase() === 'true';
