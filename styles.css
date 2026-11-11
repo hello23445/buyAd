@@ -2342,3 +2342,52 @@ body.theme-dark #main-admin-command-input { background:#172033; border-color:#39
 .kicked-screen-card .card__title { line-height:1.35; }
 .kicked-screen-card .card__subtitle { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
 .kicked-screen-card .hint { overflow-wrap:anywhere; }
+
+
+/* Scheduled remote reload UI */
+.remote-reload-banner {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(230, 164, 65, .38);
+  border-radius: 13px;
+  background: rgba(230, 164, 65, .10);
+  color: var(--text-color, #e7eaf2);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+.remote-reload-banner[hidden], .remote-reload-screen[hidden] { display:none !important; }
+.remote-reload-screen {
+  position: fixed;
+  z-index: 100000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 13, 24, .94);
+  color: #f5f7ff;
+  text-align: center;
+}
+.remote-reload-panel {
+  width: min(100%, 340px);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 28px 22px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 20px;
+  background: rgba(25, 33, 52, .96);
+  box-shadow: 0 18px 60px rgba(0,0,0,.28);
+}
+.remote-reload-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(255,255,255,.2);
+  border-top-color: #91a8ff;
+  border-radius: 50%;
+  animation: buyad-reload-spin .8s linear infinite;
+}
+.remote-reload-title { font-size: 18px; font-weight: 800; line-height: 1.3; }
+.remote-reload-detail { color: rgba(245,247,255,.76); font-size: 13px; line-height: 1.55; white-space: pre-line; }
+body.remote-reload-lock { overflow: hidden !important; }
+@keyframes buyad-reload-spin { to { transform: rotate(360deg); } }
