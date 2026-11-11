@@ -129,6 +129,14 @@
           </div>
         </div>
 
+        <div id="main-admin-command-card" class="card main-admin-command-card" hidden>
+          <div class="main-admin-command-row">
+            <input id="main-admin-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Введите команду администратора" aria-label="Команда администратора">
+            <button id="main-admin-command-send" class="btn btn--primary main-admin-command-send" type="button" aria-label="Отправить команду"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+          <div id="main-admin-command-status" class="hint" role="status" aria-live="polite" hidden></div>
+        </div>
+
         <div class="card">
           <div class="menu">
             <button id="nav-create" class="menu__item" type="button">
@@ -767,6 +775,13 @@
               <span class="menu__text" data-i18n="adminEnableGas">Включить обращение к GAS</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
+
+            <div class="menu__group">Другое</div>
+            <label id="admin-main-command-toggle-row" class="menu__item admin-main-command-toggle-row" for="admin-main-command-toggle">
+              <span class="menu__icon"><i class="fa-solid fa-terminal"></i></span>
+              <span class="menu__text">Добавить чат в главное меню</span>
+              <span class="admin-main-command-switch"><input id="admin-main-command-toggle" type="checkbox" aria-label="Добавить чат в главное меню"><span class="admin-main-command-slider"></span></span>
+            </label>
           </div>
         </div>
         <div id="admin-ip-info-card" class="card" hidden>
