@@ -5819,28 +5819,87 @@ document.addEventListener('click', (e) => {
       if (command === '/alist') {
         if (args.length !== 1) return commandError(command);
         if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр списка наказаний доступен администраторам с соответствующим правом.');
-        const target = args[0], isTelegram = /^\d+$/.test(target);
+        const target = args[0];
         const profile = await window.BuyAdUserStatistics?.getProfileByIdentifier?.(target);
-        const identifiers = new Set([target, String(profile?.telegramId || ''), ...(profile?.tokens || [])].filter(Boolean).map(String));
-        const groups = [
-          ['Блокировка по токену', runtimeArray('BanForever',[])],
-          ['Блокировка по Telegram ID', runtimeArray('BlockedUsersTelegramID',[])],
-          ['Блокировка по IP', runtimeArray('BlockedUsersIPadresses',[])],
-          ['Запрет создания/редактирования рекламы', runtimeArray('BlockCreateAds',[])]
-        ];
+        if (!profile) throw new Error('Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.');
+        const identifiers = new Set([
+          target,
+          String(profile.telegramId || ''),
+          ...(Array.isArray(profile.tokens) ? profile.tokens : []),
+          ...(Array.isArray(profile.ipAddresses) ? profile.ipAddresses : [])
+        ].filter(Boolean).map(String));
         const rows = [];
-        groups.forEach(([label,list]) => list.forEach(item => {
+        const addRow = (label, item) => {
+          if (!item || typeof item !== 'object') return;
+          rows.push({ label, item });
+        };
+
+        // История из архива статистики — тот же источник, который использует экран «Статистика».
+        (Array.isArray(profile.punishments) ? profile.punishments : []).forEach(item => {
+          const identifier = String(item?.identifier || item?.value || '').trim();
+          if (!identifier || identifiers.has(identifier)) {
+            const labels = {
+              account_ban: 'Блокировка аккаунта',
+              telegram_ban: 'Блокировка по Telegram ID',
+              ip_ban: 'Блокировка по IP',
+              ads_restriction: 'Запрет создания/редактирования рекламы',
+              warning: 'Предупреждение'
+            };
+            addRow(labels[item?.kind] || 'Наказание', item);
+          }
+        });
+
+        // Дополняем архив актуальными ограничениями из admin2.js, включая привязанные IP.
+        const liveGroups = [
+          ['Блокировка по токену', runtimeArray('BanForever', [])],
+          ['Блокировка по Telegram ID', runtimeArray('BlockedUsersTelegramID', [])],
+          ['Блокировка по IP', runtimeArray('BlockedUsersIPadresses', [])],
+          ['Запрет создания/редактирования рекламы', runtimeArray('BlockCreateAds', [])]
+        ];
+        liveGroups.forEach(([label, list]) => list.forEach(item => {
           const value = punishmentEntryValue(item);
-          if (identifiers.has(value) || (isTelegram && String(item?.telegramId || '') === target)) rows.push({label,item});
+          if (identifiers.has(value)) addRow(label, item && typeof item === 'object' ? item : { value });
         }));
-        const warningTargets = new Set([target, String(profile?.telegramId || ''), ...(profile?.tokens || [])].filter(Boolean).map(String));
-        const warnings = Array.from(warningTargets).flatMap(value => window.BuyAdWarnings?.warningsFor?.(/^\d+$/.test(value) ? '' : value, /^\d+$/.test(value) ? value : '') || []);
-        const uniqueWarnings = Array.from(new Map(warnings.map(item => [String(item.id || item.issuedAt || JSON.stringify(item)), item])).values());
-        uniqueWarnings.forEach(item => rows.push({label:'Предупреждение',item}));
-        const message = rows.length ? rows.map((row,i) => {
+
+        const warningTargets = new Set([
+          target,
+          String(profile.telegramId || ''),
+          ...(Array.isArray(profile.tokens) ? profile.tokens : [])
+        ].filter(Boolean).map(String));
+        const warnings = Array.from(warningTargets).flatMap(value =>
+          window.BuyAdWarnings?.warningsFor?.(/^\d+$/.test(value) ? '' : value, /^\d+$/.test(value) ? value : '') || []
+        );
+        warnings.forEach(item => addRow('Предупреждение', item));
+
+        // Убираем повторы, которые встречаются одновременно в архиве и активных массивах.
+        const uniqueRows = Array.from(new Map(rows.map(row => {
+          const item = row.item || {};
+          const key = [
+            row.label,
+            item.id || '',
+            item.kind || '',
+            item.identifier || punishmentEntryValue(item),
+            item.issuedAt || '',
+            item.reason || ''
+          ].join('|');
+          return [key, row];
+        })).values());
+        uniqueRows.sort((a, b) => {
+          const ta = Date.parse(a.item?.issuedAt || '') || 0;
+          const tb = Date.parse(b.item?.issuedAt || '') || 0;
+          return tb - ta;
+        });
+        const message = uniqueRows.length ? uniqueRows.map((row, i) => {
           const item = row.item || {};
           const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
-          return (i+1)+'. '+row.label+'\nПричина: '+(item.reason || 'Не указана')+'\nДата: '+(item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана')+'\nОкончание: '+end+'\nАдминистратор: '+(item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
+          const issued = item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана';
+          const removed = item.removedAt ? '\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
+          return (i + 1) + '. ' + row.label +
+            '\nПричина: ' + (item.reason || 'Не указана') +
+            '\nДата выдачи: ' + issued +
+            '\nОкончание: ' + end +
+            removed +
+            '\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
         }).join('\n\n') : 'Наказания для указанного пользователя не найдены.';
         commandMessage('Список наказаний', message);
         return;
