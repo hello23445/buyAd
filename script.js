@@ -1190,7 +1190,12 @@ $('admin-clear-localstorage')?.addEventListener('click', async () => {
         userToken: String(localStorage.getItem(LS.token) || ''),
         callback: callbackName
       });
-      if (params && Object.keys(params).length) query.set('payload', JSON.stringify(params));
+      if (params && params.userIp) query.set('userIp', String(params.userIp));
+      if (params && Object.keys(params).some(key => key !== 'userIp')) {
+        const payload = { ...params };
+        delete payload.userIp;
+        query.set('payload', JSON.stringify(payload));
+      }
       const script = document.createElement('script');
       let settled = false;
       const finish = (error, result) => {
@@ -1250,7 +1255,7 @@ async function loadAdmin2Config() {
 
     let serverResponse = await window.BuyAdPrivateData.call('getAdminData');
     if (!serverResponse || serverResponse.ok !== true) {
-      serverResponse = await window.BuyAdPrivateData.call('getMyRestrictions');
+      serverResponse = await window.BuyAdPrivateData.call('getMyRestrictions', { userIp: await getClientIp() || '' });
     }
     if (!serverResponse || serverResponse.ok !== true || !serverResponse.data) {
       throw new Error(serverResponse?.error || 'Приватный сервер не вернул данные ограничений.');
