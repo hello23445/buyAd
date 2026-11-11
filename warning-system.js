@@ -1162,6 +1162,8 @@
 
   window.BuyAdWarnings = {
     warningsFor,
+    issueWarning,
+    removeWarnings,
     refresh,
     updateAdminButtonVisibility,
     recordAdminAction,
