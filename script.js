@@ -5526,9 +5526,17 @@ document.addEventListener('click', (e) => {
   async function runAdminCommand(raw) {
     const text = String(raw || '').trim();
     if (!text) return;
-    const parts = text.split(/\s+/);
-    const command = parts[0].toLowerCase();
-    const args = parts.slice(1);
+    const parts = text.match(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\S+/g) || [];
+    const unquote = value => {
+      const token = String(value || '');
+      if (token.length >= 2 && ((token[0] === '"' && token[token.length - 1] === '"') || (token[0] === "'" && token[token.length - 1] === "'"))) {
+        return token.slice(1, -1).replace(/\\(["'\\])/g, '$1');
+      }
+      return token;
+    };
+    const command = unquote(parts[0] || '').toLowerCase();
+    const args = parts.slice(1).map(unquote);
+    const commandReason = (from, to) => args.slice(from, to).join(' ').replace(/\s+/g, ' ').trim();
     window.__buyAdCommandFailed = false;
     if (!Object.prototype.hasOwnProperty.call(commandSpecs, command)) {
       window.__buyAdCommandFailed = true;
@@ -5557,7 +5565,7 @@ document.addEventListener('click', (e) => {
         if (args.length < 2) return commandError(command);
         const identifier = String(args[0] || '').trim();
         const flag = String(args[args.length - 1] || '').toLowerCase();
-        const reason = args.slice(1, -1).join(' ').trim() || 'Не указана';
+        const reason = commandReason(1, -1) || 'Не указана';
         if (!identifier || !['no','yes'].includes(flag)) return commandError(command);
         if (!/^\d+$/.test(identifier) && !/^[A-Za-z0-9_-]{8,64}$/.test(identifier)) throw new Error('Укажите корректный Telegram ID или токен пользователя.');
         if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Кикать пользователей могут только администраторы 2-го уровня и выше.');
@@ -5574,7 +5582,7 @@ document.addEventListener('click', (e) => {
         if (args.length < 2) return commandError(command);
         if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Отключать всех пользователей могут администраторы 2-го уровня и выше.');
         const flag = String(args[args.length - 1] || '').toLowerCase();
-        const reason = args.slice(0, -1).join(' ').trim() || 'Не указана';
+        const reason = commandReason(0, -1) || 'Не указана';
         if (!['no','yes'].includes(flag)) return commandError(command);
         const hidden = flag === 'yes';
         if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
@@ -5679,7 +5687,7 @@ document.addEventListener('click', (e) => {
       if (['/tban','/sban','/tg_ban'].includes(command)) {
         if (args.length < 4) return commandError(command);
         const identifier = args[0], flag = args[args.length-1], days = commandDuration(args[args.length-2]);
-        const reason = args.slice(1,-2).join(' ').trim();
+        const reason = commandReason(1, -2);
         if (!reason) return commandError(command, 'Укажите причину блокировки.');
         const hidden = commandHideName(flag);
         const action = command === '/tban' ? 'banToken' : command === '/sban' ? 'banIp' : 'banTelegramId';
@@ -5723,7 +5731,7 @@ document.addEventListener('click', (e) => {
         if (type === 'telegramId' && !/^\d+$/.test(identifier)) throw new Error('Telegram ID должен содержать только цифры.');
         if (!requireCommandPermission(command === '/cblock' ? 'restrictAds' : 'unrestrictAds', identifier)) return;
         if (command === '/cblock') {
-          const flag = args[args.length-1], days = commandDuration(args[args.length-2]), reason = args.slice(2,-2).join(' ').trim();
+          const flag = args[args.length-1], days = commandDuration(args[args.length-2]), reason = commandReason(2, -2);
           if (!reason) return commandError(command, 'Укажите причину ограничения.');
           const hidden = commandHideName(flag), expiry = commandExpiry(days);
           const entry = { type, value:identifier, reason, adminName:hidden ? '' : getAdminDisplayName(), adminNameHidden:hidden, durationDays:days, issuedAt:new Date().toISOString(), expiresAt:expiry };
@@ -5784,7 +5792,7 @@ document.addEventListener('click', (e) => {
       if (command === '/warn') {
         if (Number(getCurrentAdmin()?.admin_level || 0) < 2) throw new Error('Выдавать предупреждения могут администраторы 2-го уровня и выше.');
         if (args.length < 4) return commandError(command);
-        const target = args[0], flag = args[args.length-1], amount = Number(args[args.length-2]), reason = args.slice(1,-2).join(' ').trim();
+        const target = args[0], flag = args[args.length-1], amount = Number(args[args.length-2]), reason = commandReason(1, -2);
         if (!reason || !Number.isInteger(amount) || amount < 1 || amount > 3) return commandError(command, 'Количество предупреждений должно быть от 1 до 3, а причина не должна быть пустой.');
         if (!['no','yes'].includes(flag.toLowerCase())) return commandError(command);
         const hidden = flag.toLowerCase() === 'yes';
@@ -5819,88 +5827,27 @@ document.addEventListener('click', (e) => {
       if (command === '/alist') {
         if (args.length !== 1) return commandError(command);
         if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр списка наказаний доступен администраторам с соответствующим правом.');
-        const target = args[0];
-        const profile = await window.BuyAdUserStatistics?.getProfileByIdentifier?.(target);
-        if (!profile) throw new Error('Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.');
-        const identifiers = new Set([
-          target,
-          String(profile.telegramId || ''),
-          ...(Array.isArray(profile.tokens) ? profile.tokens : []),
-          ...(Array.isArray(profile.ipAddresses) ? profile.ipAddresses : [])
-        ].filter(Boolean).map(String));
-        const rows = [];
-        const addRow = (label, item) => {
-          if (!item || typeof item !== 'object') return;
-          rows.push({ label, item });
+        const result = await window.BuyAdUserStatistics?.getPunishmentHistoryByIdentifier?.(args[0]);
+        if (!result) throw new Error('Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.');
+        const labels = {
+          account_ban: 'Блокировка аккаунта',
+          telegram_ban: 'Блокировка по Telegram ID',
+          ip_ban: 'Блокировка по IP',
+          ads_restriction: 'Запрет создания/редактирования рекламы',
+          warning: 'Предупреждение'
         };
-
-        // История из архива статистики — тот же источник, который использует экран «Статистика».
-        (Array.isArray(profile.punishments) ? profile.punishments : []).forEach(item => {
-          const identifier = String(item?.identifier || item?.value || '').trim();
-          if (!identifier || identifiers.has(identifier)) {
-            const labels = {
-              account_ban: 'Блокировка аккаунта',
-              telegram_ban: 'Блокировка по Telegram ID',
-              ip_ban: 'Блокировка по IP',
-              ads_restriction: 'Запрет создания/редактирования рекламы',
-              warning: 'Предупреждение'
-            };
-            addRow(labels[item?.kind] || 'Наказание', item);
-          }
-        });
-
-        // Дополняем архив актуальными ограничениями из admin2.js, включая привязанные IP.
-        const liveGroups = [
-          ['Блокировка по токену', runtimeArray('BanForever', [])],
-          ['Блокировка по Telegram ID', runtimeArray('BlockedUsersTelegramID', [])],
-          ['Блокировка по IP', runtimeArray('BlockedUsersIPadresses', [])],
-          ['Запрет создания/редактирования рекламы', runtimeArray('BlockCreateAds', [])]
-        ];
-        liveGroups.forEach(([label, list]) => list.forEach(item => {
-          const value = punishmentEntryValue(item);
-          if (identifiers.has(value)) addRow(label, item && typeof item === 'object' ? item : { value });
-        }));
-
-        const warningTargets = new Set([
-          target,
-          String(profile.telegramId || ''),
-          ...(Array.isArray(profile.tokens) ? profile.tokens : [])
-        ].filter(Boolean).map(String));
-        const warnings = Array.from(warningTargets).flatMap(value =>
-          window.BuyAdWarnings?.warningsFor?.(/^\d+$/.test(value) ? '' : value, /^\d+$/.test(value) ? value : '') || []
-        );
-        warnings.forEach(item => addRow('Предупреждение', item));
-
-        // Убираем повторы, которые встречаются одновременно в архиве и активных массивах.
-        const uniqueRows = Array.from(new Map(rows.map(row => {
-          const item = row.item || {};
-          const key = [
-            row.label,
-            item.id || '',
-            item.kind || '',
-            item.identifier || punishmentEntryValue(item),
-            item.issuedAt || '',
-            item.reason || ''
-          ].join('|');
-          return [key, row];
-        })).values());
-        uniqueRows.sort((a, b) => {
-          const ta = Date.parse(a.item?.issuedAt || '') || 0;
-          const tb = Date.parse(b.item?.issuedAt || '') || 0;
-          return tb - ta;
-        });
-        const message = uniqueRows.length ? uniqueRows.map((row, i) => {
-          const item = row.item || {};
+        const rows = Array.isArray(result.punishments) ? result.punishments : [];
+        const message = rows.length ? rows.map((item, index) => {
           const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
           const issued = item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана';
-          const removed = item.removedAt ? '\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
-          return (i + 1) + '. ' + row.label +
-            '\nПричина: ' + (item.reason || 'Не указана') +
-            '\nДата выдачи: ' + issued +
-            '\nОкончание: ' + end +
+          const removed = item.removedAt ? '\\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
+          return (index + 1) + '. ' + (labels[item.kind] || 'Наказание') +
+            '\\nПричина: ' + (item.reason || 'Не указана') +
+            '\\nДата выдачи: ' + issued +
+            '\\nОкончание: ' + end +
             removed +
-            '\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
-        }).join('\n\n') : 'Наказания для указанного пользователя не найдены.';
+            '\\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
+        }).join('\\n\\n') : 'За последние два месяца наказаний с зафиксированной датой нет.';
         commandMessage('Список наказаний', message);
         return;
       }
