@@ -416,7 +416,8 @@ const ADMIN_PERMISSION_MIN_LEVEL = {
   changeOwnLevelLocally: 5,
   hideNameOnRejection: 5,
   hideNameOnBan: 5,
-  viewOwnIp: 4
+  viewOwnIp: 4,
+  kickUser: 2
 };
 const ADMIN_PERMISSION_LABELS = {
   reviewAds: 'Проверка рекламы',
@@ -434,7 +435,8 @@ const ADMIN_PERMISSION_LABELS = {
   changeOwnLevelLocally: 'Локальное изменение своего уровня',
   hideNameOnRejection: 'Скрывать имя при отклонении рекламы',
   hideNameOnBan: 'Скрывать имя при блокировке',
-  viewOwnIp: 'Просмотр своих IP-адресов'
+  viewOwnIp: 'Просмотр своих IP-адресов',
+  kickUser: 'Отключение пользователей от приложения'
 };
 function getDefaultAdminPermissions(level) {
   return Object.fromEntries(Object.entries(ADMIN_PERMISSION_MIN_LEVEL).map(([permission, minLevel]) => [permission, Number(level) >= minLevel]));
@@ -5187,9 +5189,16 @@ document.addEventListener('click', (e) => {
     '/unwarn': '/unwarn Telegram_ID/Токен — Снимает предупреждения.',
     '/stats': '/stats Telegram_ID/Токен — Открывает статистику пользователя.',
     '/alist': '/alist Telegram_ID/Токен — Показывает список наказаний пользователя.',
+    '/all': '/all — Показывает команды, доступные вашему уровню и правам администратора.',
+    '/tcopy': '/tcopy — Копирует ваш токен пользователя.',
+    '/tdcopy': '/tdcopy — Копирует ваш Telegram ID.',
+    '/icopy': '/icopy — Определяет и копирует ваш IP-адрес.',
+    '/kick': '/kick Telegram_ID/Токен_пользователя Причина no/yes — Отключает пользователя от приложения. Причина может быть пропущена; yes скрывает имя админа.',
     '/chat_off': '/chat_off — Убирает поле команд из главного меню.'
   };
+  let commandFormatTimer = null;
   function commandMessage(title, message, isError = false) {
+    clearTimeout(commandFormatTimer);
     const status = $('main-admin-command-status');
     if (status) {
       status.hidden = false;
@@ -5199,11 +5208,22 @@ document.addEventListener('click', (e) => {
     openModal(title, message);
   }
   function commandError(command, details) {
+    window.__buyAdCommandFailed = true;
     const structure = commandSpecs[command] || '/' + command + ' {структура}';
-    commandMessage('Неверная команда', (details ? details + '\n\n' : '') + 'Правильный формат:\n' + structure, true);
+    const status = $('main-admin-command-status');
+    if (status) {
+      clearTimeout(commandFormatTimer);
+      status.hidden = false;
+      status.style.color = '#e05b67';
+      status.textContent = (details ? details + '\n\n' : '') + 'Правильный формат:\n' + structure;
+      commandFormatTimer = setTimeout(() => { status.hidden = true; }, 5000);
+    }
+    return false;
   }
   function requireCommandPermission(action, target) {
-    return adminGuard(action, target);
+    const allowed = adminGuard(action, target);
+    if (!allowed) window.__buyAdCommandFailed = true;
+    return allowed;
   }
   function commandHideName(flag) {
     if (!['no','yes'].includes(String(flag || '').toLowerCase())) throw new Error('Последний параметр должен быть no или yes.');
@@ -5236,6 +5256,132 @@ document.addEventListener('click', (e) => {
       String(item.admin_name || '').trim().toLowerCase() === normalized
     ) || null;
   }
+  function commandDescription(spec) {
+    const pieces = String(spec || '').split(' — ');
+    return { structure: pieces[0] || '', description: pieces.slice(1).join(' — ') || '' };
+  }
+  function commandAllowedForCurrentAdmin(command) {
+    const admin = getCurrentAdmin();
+    if (!admin || Number(admin.admin_level) < 1) return false;
+    const level = Number(admin.admin_level);
+    const permission = name => adminHasPermission(name);
+    const checks = {
+      '/all': true, '/tcopy': true, '/tdcopy': true, '/icopy': true, '/chat_off': true,
+      '/c': permission('reviewAds'), '/relist': permission('viewRestricted'),
+      '/add_admin': canManageAdminRegistry(), '/change_admin': canManageAdminRegistry(), '/delete_admin': canManageAdminRegistry(),
+      '/tban': permission('banToken'), '/untban': permission('unban'),
+      '/sban': permission('banIp'), '/unsban': permission('unbanIp'),
+      '/search_ip': level === 5 && permission('viewOwnIp'),
+      '/tg_ban': permission('banTelegramId'), '/untg_ban': permission('unbanTelegramId'),
+      '/cblock': permission('restrictAds'), '/uncblock': permission('restrictAds'),
+      '/cban': permission('globalCreateToggle'), '/rban': permission('globalCreateToggle'),
+      '/payments': permission('globalCreateToggle'), '/referals': level >= 4 && permission('globalCreateToggle'),
+      '/close_app': permission('globalCreateToggle'), '/gases': permission('globalCreateToggle'),
+      '/warn': level >= 2, '/unwarn': level >= 2,
+      '/stats': permission('viewUserStatistics'), '/alist': permission('viewUserStatistics'),
+      '/kick': level >= 2 && permission('kickUser')
+    };
+    return checks[command] === true;
+  }
+  function getAvailableAdminCommands() {
+    return Object.entries(commandSpecs)
+      .filter(([command]) => commandAllowedForCurrentAdmin(command))
+      .map(([command, spec]) => spec)
+      .join('\n');
+  }
+  function kickGasRequest(action, payload = {}) {
+    const endpoint = typeof GAS_KICK_URL === 'string' ? GAS_KICK_URL.trim() : '';
+    if (!endpoint) throw new Error('Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в settings.js.');
+    const callbackName = 'buyAdKickCallback_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const scriptTag = document.createElement('script');
+    const query = new URLSearchParams({
+      action,
+      callback: callbackName,
+      initData: String(tg?.initData || ''),
+      payload: JSON.stringify({ ...payload, userToken: String(localStorage.getItem(LS.token) || '') })
+    });
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        delete window[callbackName];
+        scriptTag.remove();
+      };
+      const timer = setTimeout(() => { cleanup(); reject(new Error('Сервис киков не ответил вовремя.')); }, 12000);
+      window[callbackName] = result => {
+        cleanup();
+        if (!result || result.success !== true) reject(new Error(result?.error || 'Сервис киков отклонил запрос.'));
+        else resolve(result);
+      };
+      scriptTag.onerror = () => { cleanup(); reject(new Error('Не удалось связаться с сервисом киков.')); };
+      scriptTag.src = endpoint + (endpoint.includes('?') ? '&' : '?') + query.toString();
+      document.head.appendChild(scriptTag);
+    });
+  }
+  function showKickedScreen(data) {
+    const reason = String(data?.reason || '').trim() || 'Не указана';
+    const adminName = data?.adminNameHidden ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
+    if ($('kicked-screen-reason')) $('kicked-screen-reason').textContent = 'Причина: ' + reason + '.';
+    if ($('kicked-screen-admin')) $('kicked-screen-admin').textContent = 'Админ: ' + adminName + '.';
+    hideAllScreens();
+    show($('screen-kicked'));
+    if (tg?.SettingsButton) tg.SettingsButton.hide();
+    window.__buyAdConsentAccessAllowed = false;
+    window.dispatchEvent(new Event('buyad:consent-access-changed'));
+  }
+  async function checkKickStatus() {
+    if (!GAS_KICK_URL || !tg?.initData || $('screen-kicked') && !$('screen-kicked').hidden) return false;
+    try {
+      const result = await kickGasRequest('checkKick');
+      if (result.kicked === true) {
+        showKickedScreen(result);
+        return true;
+      }
+    } catch (error) {
+      console.warn('Не удалось проверить статус кика:', error);
+    }
+    return false;
+  }
+  function showKickUserDialog() {
+    const body = document.createElement('div');
+    body.className = 'stack-sm';
+    const targetLabel = document.createElement('label');
+    targetLabel.className = 'field__label';
+    targetLabel.textContent = 'Telegram ID или токен пользователя';
+    const target = document.createElement('input');
+    target.className = 'textarea';
+    target.placeholder = 'Введите Telegram ID или токен';
+    target.autocomplete = 'off';
+    targetLabel.appendChild(target);
+    const reasonLabel = document.createElement('label');
+    reasonLabel.className = 'field__label';
+    reasonLabel.textContent = 'Причина (необязательно)';
+    const reason = document.createElement('textarea');
+    reason.className = 'textarea';
+    reason.rows = 3;
+    reason.placeholder = 'Не указана';
+    reasonLabel.appendChild(reason);
+    const hideLabel = document.createElement('label');
+    hideLabel.className = 'field__label';
+    hideLabel.textContent = 'Отображение имени администратора';
+    const hideSelect = document.createElement('select');
+    hideSelect.className = 'textarea';
+    hideSelect.innerHTML = '<option value="no">Показывать имя</option><option value="yes">Скрыть имя (только 5-й уровень)</option>';
+    hideLabel.appendChild(hideSelect);
+    body.append(targetLabel, reasonLabel, hideLabel);
+    openModal('Кикнуть пользователя', body, [
+      { text:'Отмена', class:'btn btn--ghost', onClick:() => {} },
+      { text:'Отключить', class:'btn btn--danger', onClick:() => {
+        const identifier = target.value.trim();
+        const why = reason.value.trim();
+        const flag = hideSelect.value;
+        runAdminCommand('/kick ' + identifier + (why ? ' ' + why : '') + ' ' + flag);
+      }}
+    ]);
+    setTimeout(() => target.focus(), 0);
+  }
   async function commandRunWithLoader(fn) {
     showPreloader();
     try { await fn(); }
@@ -5247,12 +5393,48 @@ document.addEventListener('click', (e) => {
     const parts = text.split(/\s+/);
     const command = parts[0].toLowerCase();
     const args = parts.slice(1);
+    window.__buyAdCommandFailed = false;
     if (!Object.prototype.hasOwnProperty.call(commandSpecs, command)) {
+      window.__buyAdCommandFailed = true;
       commandMessage('Неизвестная команда', 'Команда ' + command + ' не найдена.\nВведите одну из поддерживаемых команд, например /c или /stats.', true);
       return;
     }
     try {
       if (!getCurrentAdmin()) throw new Error('Команды доступны только администраторам.');
+      if (command === '/all') {
+        if (args.length) return commandError(command);
+        const available = getAvailableAdminCommands();
+        commandMessage('Доступные мне команды', available || 'Для вашего уровня нет доступных команд.');
+        return;
+      }
+      if (['/tcopy','/tdcopy','/icopy'].includes(command)) {
+        if (args.length) return commandError(command);
+        let value = '';
+        if (command === '/tcopy') value = String(localStorage.getItem(LS.token) || '');
+        if (command === '/tdcopy') value = String(tg?.initDataUnsafe?.user?.id || '');
+        if (command === '/icopy') value = String(await getClientIp() || '');
+        if (!value) throw new Error(command === '/tdcopy' ? 'Telegram ID недоступен в текущем сеансе.' : 'Не удалось определить нужное значение.');
+        await copyTextCompat(value);
+        commandMessage('Скопировано', command === '/tcopy' ? 'Ваш токен скопирован.' : command === '/tdcopy' ? 'Ваш Telegram ID скопирован.' : 'Ваш IP-адрес скопирован.');
+        return;
+      }
+      if (command === '/kick') {
+        if (args.length < 2) return commandError(command);
+        const identifier = String(args[0] || '').trim();
+        const flag = String(args[args.length - 1] || '').toLowerCase();
+        const reason = args.slice(1, -1).join(' ').trim() || 'Не указана';
+        if (!identifier || !['no','yes'].includes(flag)) return commandError(command);
+        if (!/^\d+$/.test(identifier) && !/^[A-Za-z0-9_-]{8,64}$/.test(identifier)) throw new Error('Укажите корректный Telegram ID или токен пользователя.');
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Кикать пользователей могут только администраторы 2-го уровня и выше.');
+        const hidden = flag === 'yes';
+        if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя при кике может только администратор 5-го уровня с соответствующим правом.');
+        await commandRunWithLoader(async () => {
+          const result = await kickGasRequest('kick', { target:identifier, reason, hideAdminName:hidden, adminToken:String(localStorage.getItem(LS.token) || '') });
+          if (result.kicked !== true) throw new Error('GAS не подтвердил отключение пользователя.');
+        });
+        commandMessage('Пользователь отключён', 'Пользователь: ' + identifier + '\nПричина: ' + reason + '\nАдмин: ' + (hidden ? 'Скрыто' : getAdminDisplayName()) + '.');
+        return;
+      }
       if (command === '/chat_off') {
         localStorage.setItem(commandKey(), 'false');
         syncAdminCommandChat();
@@ -5400,7 +5582,7 @@ document.addEventListener('click', (e) => {
         if (args.length !== 1) return commandError(command);
         if (Number(getCurrentAdmin()?.admin_level || 0) !== 5) throw new Error('Поиск истории IP доступен только администратору 5-го уровня.');
         if (!isIpAddressValue(args[0])) throw new Error('Укажите корректный IPv4 или IPv6 адрес.');
-        if (!adminGuard('viewOwnIp')) return;
+        if (!adminGuard('viewOwnIp')) { window.__buyAdCommandFailed = true; return; }
         const input = $('ip-history-search-input'), button = $('ip-history-search-submit');
         if (!input || !button) throw new Error('Экран поиска IP не загружен.');
         input.value = args[0]; $('admin-search-ip-history')?.click(); button.click();
@@ -5472,6 +5654,44 @@ document.addEventListener('click', (e) => {
       commandMessage('Команда не выполнена', error?.message || 'Не удалось выполнить команду.', true);
     }
   }
+  function renderAdminCommandHints() {
+    const input = $('main-admin-command-input');
+    const hints = $('main-admin-command-hints');
+    if (!input || !hints) return;
+    const raw = String(input.value || '').trim();
+    hints.innerHTML = '';
+    if (!raw.startsWith('/')) { hints.hidden = true; return; }
+    const first = raw.split(/\s+/)[0].toLowerCase();
+    const exact = Object.prototype.hasOwnProperty.call(commandSpecs, first);
+    if (exact) {
+      const details = commandDescription(commandSpecs[first]);
+      const structure = document.createElement('div');
+      structure.className = 'command-hint-structure';
+      structure.textContent = details.structure;
+      hints.appendChild(structure);
+    }
+    const matches = exact ? [first] : Object.keys(commandSpecs).filter(command => command.startsWith(first)).slice(0, 8);
+    matches.forEach(command => {
+      const details = commandDescription(commandSpecs[command]);
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'command-hint-item';
+      const name = document.createElement('span');
+      name.className = 'command-hint-name';
+      name.textContent = command;
+      const description = document.createElement('span');
+      description.className = 'command-hint-description';
+      description.textContent = details.description;
+      item.append(name, description);
+      item.addEventListener('click', () => {
+        input.value = command + ' ';
+        input.focus();
+        renderAdminCommandHints();
+      });
+      hints.appendChild(item);
+    });
+    hints.hidden = matches.length === 0 && !exact;
+  }
   function syncAdminCommandChat() {
     const admin = getCurrentAdmin();
     const toggle = $('admin-main-command-toggle');
@@ -5480,12 +5700,21 @@ document.addEventListener('click', (e) => {
     const enabled = !!admin && enabledForCurrentAdmin();
     if (toggle) toggle.checked = enabled;
     if (row) row.hidden = !admin || Number(admin.admin_level) < 1;
+    const heading = document.querySelector('.admin-main-command-heading');
+    if (heading) heading.hidden = !admin || Number(admin.admin_level) < 1;
+    const kickButton = $('admin-kick-user');
+    const commandsButton = $('admin-available-commands');
+    if (kickButton) kickButton.hidden = !admin || Number(admin.admin_level) < 2 || !adminHasPermission('kickUser');
+    if (commandsButton) commandsButton.hidden = !admin || Number(admin.admin_level) < 1;
     if (card) card.hidden = !enabled;
   }
   function installAdminCommandChat() {
     const toggle = $('admin-main-command-toggle');
     const input = $('main-admin-command-input');
     const send = $('main-admin-command-send');
+    renderAdminCommandHints();
+    input?.addEventListener('input', renderAdminCommandHints);
+    input?.addEventListener('focus', renderAdminCommandHints);
     if (toggle) toggle.addEventListener('change', () => {
       if (!getCurrentAdmin()) { toggle.checked = false; return; }
       localStorage.setItem(commandKey(), toggle.checked ? 'true' : 'false');
@@ -5495,16 +5724,25 @@ document.addEventListener('click', (e) => {
       const value = String(input?.value || '').trim();
       if (!value) return;
       if (!enabledForCurrentAdmin()) { syncAdminCommandChat(); return; }
-      if (input) input.value = '';
       await runAdminCommand(value);
+      if (!window.__buyAdCommandFailed && input) input.value = '';
+      renderAdminCommandHints();
     };
     send?.addEventListener('click', submit);
+    document.addEventListener('click', event => {
+      if (event.target.closest('#admin-available-commands')) runAdminCommand('/all');
+      if (event.target.closest('#admin-kick-user')) showKickUserDialog();
+    });
     input?.addEventListener('keydown', event => {
       if (event.key === 'Enter') { event.preventDefault(); submit(); }
     });
     syncAdminCommandChat();
   }
   window.BuyAdAdminCommandChat = { run: runAdminCommand, refresh: syncAdminCommandChat };
+  window.BuyAdCheckKickStatus = checkKickStatus;
+  if (GAS_KICK_URL && tg?.initData) setInterval(() => {
+    if (!$('screen-kicked') || $('screen-kicked').hidden) checkKickStatus();
+  }, 45000);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installAdminCommandChat, { once:true });
   else installAdminCommandChat();
 })();
