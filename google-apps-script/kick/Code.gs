@@ -168,7 +168,7 @@ function kickUser_(identity, payload) {
   if (!telegramId && !tokens.length) throw new Error('Could not resolve this user identifier.');
   if (telegramId && telegramId === identity.telegramId) throw new Error('You cannot kick your own account.');
   if (tokens.indexOf(identity.userToken) >= 0) throw new Error('You cannot kick your own account.');
-  const hideName = payload.hideAdminName === true;
+  const hideName = payload.hideAdminName === true || String(payload.hideAdminName || '').toLowerCase() === 'true';
   if (hideName && !admin.canHideName) throw new Error('Only a level 5 administrator with hide-name permission can hide their name.');
   const reason = String(payload.reason || '').trim().slice(0, 500) || 'Не указана';
   const sheet = kickSheet_();
@@ -216,7 +216,7 @@ function hashIp_(ip) {
 }
 function kickAll_(identity, payload) {
   const admin = requireKickAdmin_(identity, payload);
-  const hidden = payload.hideAdminName === true;
+  const hidden = payload.hideAdminName === true || String(payload.hideAdminName || '').toLowerCase() === 'true';
   if (hidden && !admin.canHideName) throw new Error('Only a level 5 administrator with hide-name permission can hide their name.');
   const reason = String(payload.reason || '').trim().slice(0,500) || 'Не указана';
   const users = loadUserArchive_();
@@ -310,24 +310,33 @@ function matchingReloadEvents_(identity,payload) {
 
 function checkKick_(identity, payload = {}) {
   const sheet = kickSheet_();
-  const last = sheet.getLastRow();
-  const rows = last >= 2 ? sheet.getRange(2, 1, last - 1, 8).getValues() : [];
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const row = rows[i];
-    const active = row[7] === true || String(row[7]).toLowerCase() === 'true';
-    if (!active) continue;
-    let tokens = [];
-    try { tokens = JSON.parse(String(row[1] || '[]')); } catch (_) {}
-    if (String(row[0] || '') === identity.telegramId || tokens.map(String).indexOf(identity.userToken) >= 0) {
-      const hidden = row[4] === true || String(row[4]).toLowerCase() === 'true';
-      return {
-        kicked: true,
-        reason: String(row[2] || 'Не указана'),
-        adminName: hidden ? '' : String(row[3] || 'Не указан'),
-        adminNameHidden: hidden,
-        kickedAt: row[6] instanceof Date ? row[6].toISOString() : String(row[6] || '')
-      };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const last = sheet.getLastRow();
+    const rows = last >= 2 ? sheet.getRange(2, 1, last - 1, 8).getValues() : [];
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i];
+      const active = row[7] === true || String(row[7]).toLowerCase() === 'true';
+      if (!active) continue;
+      let tokens = [];
+      try { tokens = JSON.parse(String(row[1] || '[]')); } catch (_) {}
+      if (String(row[0] || '') === identity.telegramId || tokens.map(String).indexOf(identity.userToken) >= 0) {
+        const hidden = row[4] === true || String(row[4]).toLowerCase() === 'true';
+        // Consume this kick after the first successful delivery so reopening the app
+        // does not replay the same kick over and over.
+        sheet.getRange(i + 2, 8).setValue(false);
+        return {
+          kicked: true,
+          reason: String(row[2] || 'Не указана'),
+          adminName: hidden ? '' : String(row[3] || 'Не указан'),
+          adminNameHidden: hidden,
+          kickedAt: row[6] instanceof Date ? row[6].toISOString() : String(row[6] || '')
+        };
+      }
     }
+    return { kicked: false, reloadEvents: matchingReloadEvents_(identity, payload) };
+  } finally {
+    lock.releaseLock();
   }
-  return { kicked: false, reloadEvents: matchingReloadEvents_(identity, payload) };
 }
