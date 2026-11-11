@@ -5392,6 +5392,7 @@ document.addEventListener('click', (e) => {
           const [action,value] = operations[command];
           await commandRunWithLoader(() => updateVariable(action,value));
         }
+        recordAdminAction('globalCreateToggle');
         commandMessage('Настройка обновлена', command + ': ' + (enabled ? 'включено / открыто' : 'отключено / закрыто') + '.');
         return;
       }
