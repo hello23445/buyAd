@@ -5957,7 +5957,7 @@ document.addEventListener('click', (e) => {
   function getSimilarAdminCommands(query) {
     const needle = String(query || '').toLowerCase();
     if (!needle || needle === '/') return [];
-    const search = needle.replace(/^\\//, '');
+    const search = needle.replace(/^\//, '');
     const commands = Object.keys(commandSpecs).filter(command => commandAllowedForCurrentAdmin(command));
     const ranked = commands.map(command => {
       const name = command.slice(1);
