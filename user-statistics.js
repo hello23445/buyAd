@@ -638,6 +638,20 @@
     output.appendChild(historyCard);
   }
 
+  async function getProfileByIdentifier(query) {
+    if (!hasAccess()) throw new Error('Просмотр статистики доступен только администраторам 2-го уровня и выше.');
+    const value = String(query || '').trim();
+    if (!value) return null;
+    const result = await readArchive();
+    const found = findArchiveProfile(result.archive, value);
+    if (!found) return null;
+    const profile = { ...found.user };
+    profile.telegramId = String(profile.telegramId || (/^\\d{4,}$/.test(value) ? value : ''));
+    profile.tokens = Array.isArray(profile.tokens) ? profile.tokens.map(String) : [];
+    if (!profile.telegramId && !/^\\d{4,}$/.test(value)) profile.tokens = Array.from(new Set([...profile.tokens, value]));
+    return profile;
+  }
+
   async function searchUser() {
     if (!hasAccess()) {
       setStatus('Доступ разрешён только администраторам 2-го уровня и выше.', true);
@@ -871,7 +885,8 @@
     recordPunishment,
     syncWarnings,
     updateButtonVisibility,
-    searchUser
+    searchUser,
+    getProfileByIdentifier
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
