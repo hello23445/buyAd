@@ -436,6 +436,12 @@ const i18n = {
     personPlural: 'человека',
     sessionChangedTitle: 'Подключение прервано',
     sessionChangedText: 'Другое устройство подключилось к вашему аккаунту в приложении',
+    reloadBannerAttention: 'Внимание!',
+    reloadBannerText: 'Приложение перезапустится через:',
+    reloadCountdownLabel: 'До перезапуска:',
+    reloadScreenTitle: 'Приложение перезапускается',
+    reloadWaitText: 'Пожалуйста, ожидайте пока приложение перезапустится.',
+    reloadWaitSubtext: 'Перезапуск может занять некоторое время.',
     sessionRestartBtn: 'Перезапустить приложение'
   },
   en: {
@@ -747,6 +753,12 @@ const i18n = {
     personPlural: 'people',
     sessionChangedTitle: 'Connection interrupted',
     sessionChangedText: 'Another device has connected to your account in the app',
+    reloadBannerAttention: 'Attention!',
+    reloadBannerText: 'The app will restart in:',
+    reloadCountdownLabel: 'Time until restart:',
+    reloadScreenTitle: 'The app is restarting',
+    reloadWaitText: 'Please wait while the app restarts.',
+    reloadWaitSubtext: 'The restart may take some time.',
     sessionRestartBtn: 'Restart app'
   }
 };
