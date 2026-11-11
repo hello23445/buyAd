@@ -1996,6 +1996,7 @@ async function showMainMenu(updateWhat = 'both') {
 
   if (!await checkUserStatus(isAdmin)) return;
   if (!checkAppOpen(isAdmin)) return;
+  if (await window.BuyAdCheckKickStatus?.()) return;
   if (await applyRuntimeBlockings()) return;
 
   hideAllScreens();
@@ -5291,7 +5292,7 @@ document.addEventListener('click', (e) => {
   }
   function kickGasRequest(action, payload = {}) {
     const endpoint = typeof GAS_KICK_URL === 'string' ? GAS_KICK_URL.trim() : '';
-    if (!endpoint) throw new Error('Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в settings.js.');
+    if (!endpoint) throw new Error('Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в kick-config.js.');
     const callbackName = 'buyAdKickCallback_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const scriptTag = document.createElement('script');
     const query = new URLSearchParams({
@@ -5651,6 +5652,7 @@ document.addEventListener('click', (e) => {
         return;
       }
     } catch (error) {
+      window.__buyAdCommandFailed = true;
       commandMessage('Команда не выполнена', error?.message || 'Не удалось выполнить команду.', true);
     }
   }
