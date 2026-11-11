@@ -1769,7 +1769,7 @@ function startSessionMonitoring() {
     } catch (e) {
       console.error('Error during session monitoring:', e);
     }
-  }, 5000);
+  }, 10000);
 }
 
 // Остановить периодическую проверку
@@ -5344,6 +5344,7 @@ document.addEventListener('click', (e) => {
   }
   const RELOAD_CONSUMED_KEY = 'buyAdConsumedReloadEvents';
   let activeReloadTimer = null;
+  const scheduledReloadTimers = new Map();
   function consumedReloadEvents() {
     try { const value = JSON.parse(localStorage.getItem(RELOAD_CONSUMED_KEY) || '[]'); return Array.isArray(value) ? value.map(String) : []; }
     catch (_) { return []; }
@@ -5385,9 +5386,20 @@ document.addEventListener('click', (e) => {
     const list = Array.isArray(events) ? events : [];
     updateRemoteReloadBanner(list);
     const now = Date.now();
+    const consumed = consumedReloadEvents();
+    list.forEach(event => {
+      const id = String(event.eventId || '');
+      const at = Number(event.scheduledAt);
+      if (!id || consumed.includes(id) || !Number.isFinite(at) || at <= now || scheduledReloadTimers.has(id)) return;
+      const timer = setTimeout(() => {
+        scheduledReloadTimers.delete(id);
+        showRemoteRestart(event);
+      }, Math.min(2147483000, Math.max(0, at - now)));
+      scheduledReloadTimers.set(id, timer);
+    });
     const due = list.filter(event => Number(event.scheduledAt) <= now &&
-      now <= Number(event.scheduledAt) + Math.max(Math.max(1, Number(event.durationSeconds) || 5) * 1000, 15000))
-      .filter(event => !consumedReloadEvents().includes(String(event.eventId || '')))
+      now <= Number(event.scheduledAt) + Math.max(Math.max(1, Number(event.durationSeconds) || 5) * 1000, 30000))
+      .filter(event => !consumed.includes(String(event.eventId || '')))
       .sort((a,b) => Number(a.scheduledAt) - Number(b.scheduledAt));
     if (due.length) return showRemoteRestart(due[0]);
     return false;
