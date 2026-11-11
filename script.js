@@ -5195,6 +5195,11 @@ document.addEventListener('click', (e) => {
     '/tdcopy': '/tdcopy — Копирует ваш Telegram ID.',
     '/icopy': '/icopy — Определяет и копирует ваш IP-адрес.',
     '/kick': '/kick Telegram_ID/Токен_пользователя Причина no/yes — Отключает пользователя от приложения. Причина может быть пропущена; yes скрывает имя админа.',
+    '/kick_all': '/kick_all Причина no/yes — Отключает всех пользователей приложения. yes скрывает имя администратора.',
+    '/reload': '/reload Telegram_ID/Токен/IP-адрес_пользователя — Немедленно перезапускает приложение у выбранных пользователей.',
+    '/reload_time': '/reload_time Telegram_ID/Токен/IP-адрес_пользователя Время(в минутах) Время(в секундах) — Планирует перезапуск для выбранных пользователей.',
+    '/reload_all': '/reload_all — Немедленно перезапускает приложение у всех пользователей.',
+    '/reload_all_time': '/reload_all_time Время(в минутах) Время(в секундах) — Планирует перезапуск приложения у всех пользователей.',
     '/chat_off': '/chat_off — Убирает поле команд из главного меню.'
   };
   let commandFormatTimer = null;
@@ -5280,7 +5285,12 @@ document.addEventListener('click', (e) => {
       '/close_app': permission('globalCreateToggle'), '/gases': permission('globalCreateToggle'),
       '/warn': level >= 2, '/unwarn': level >= 2,
       '/stats': permission('viewUserStatistics'), '/alist': permission('viewUserStatistics'),
-      '/kick': level >= 2 && permission('kickUser')
+      '/kick': level >= 2 && permission('kickUser'),
+      '/kick_all': level >= 2 && permission('kickUser'),
+      '/reload': level >= 2 && permission('kickUser'),
+      '/reload_time': level >= 2 && permission('kickUser'),
+      '/reload_all': level >= 2 && permission('kickUser'),
+      '/reload_all_time': level >= 2 && permission('kickUser')
     };
     return checks[command] === true;
   }
@@ -5332,16 +5342,66 @@ document.addEventListener('click', (e) => {
     window.__buyAdConsentAccessAllowed = false;
     window.dispatchEvent(new Event('buyad:consent-access-changed'));
   }
+  const RELOAD_CONSUMED_KEY = 'buyAdConsumedReloadEvents';
+  let activeReloadTimer = null;
+  function consumedReloadEvents() {
+    try { const value = JSON.parse(localStorage.getItem(RELOAD_CONSUMED_KEY) || '[]'); return Array.isArray(value) ? value.map(String) : []; }
+    catch (_) { return []; }
+  }
+  function markReloadConsumed(eventId) {
+    const ids = consumedReloadEvents().filter(id => id !== String(eventId));
+    ids.push(String(eventId));
+    localStorage.setItem(RELOAD_CONSUMED_KEY, JSON.stringify(ids.slice(-100)));
+  }
+  function updateRemoteReloadBanner(events) {
+    const banner = $('remote-reload-banner');
+    if (!banner) return;
+    const now = Date.now();
+    const next = (Array.isArray(events) ? events : []).filter(event => Number(event.scheduledAt) > now)
+      .sort((a,b) => Number(a.scheduledAt) - Number(b.scheduledAt))[0];
+    if (!next) { banner.hidden = true; return; }
+    const minutes = Math.max(1, Math.ceil((Number(next.scheduledAt) - now) / 60000));
+    banner.textContent = 'Запланирован перезапуск приложения. До перезапуска: ' + minutes + ' мин.';
+    banner.hidden = false;
+  }
+  function showRemoteRestart(event) {
+    const eventId = String(event.eventId || '');
+    if (!eventId || consumedReloadEvents().includes(eventId)) return false;
+    markReloadConsumed(eventId);
+    const overlay = $('remote-reload-screen');
+    const seconds = Math.max(1, Math.min(300, Number(event.durationSeconds) || 5));
+    if (!overlay) { setTimeout(() => window.location.reload(), seconds * 1000); return true; }
+    const adminName = event.adminNameHidden ? 'Скрыто' : (String(event.adminName || '').trim() || 'Администратор');
+    if ($('remote-reload-title')) $('remote-reload-title').textContent = 'Приложение перезапускается';
+    if ($('remote-reload-detail')) $('remote-reload-detail').textContent = 'Перезапуск инициирован администратором: ' + adminName + '.\\nПовторное подключение через ' + seconds + ' сек.';
+    overlay.hidden = false;
+    document.body.classList.add('remote-reload-lock');
+    if (tg?.SettingsButton) tg.SettingsButton.hide();
+    clearTimeout(activeReloadTimer);
+    activeReloadTimer = setTimeout(() => window.location.reload(), seconds * 1000);
+    return true;
+  }
+  function applyRemoteReloadEvents(events) {
+    const list = Array.isArray(events) ? events : [];
+    updateRemoteReloadBanner(list);
+    const now = Date.now();
+    const due = list.filter(event => Number(event.scheduledAt) <= now &&
+      now <= Number(event.scheduledAt) + Math.max(1, Number(event.durationSeconds) || 5) * 1000)
+      .filter(event => !consumedReloadEvents().includes(String(event.eventId || '')))
+      .sort((a,b) => Number(a.scheduledAt) - Number(b.scheduledAt));
+    if (due.length) return showRemoteRestart(due[0]);
+    return false;
+  }
   async function checkKickStatus() {
     if (!GAS_KICK_URL || !tg?.initData || $('screen-kicked') && !$('screen-kicked').hidden) return false;
     try {
-      const result = await kickGasRequest('checkKick');
-      if (result.kicked === true) {
-        showKickedScreen(result);
-        return true;
-      }
+      const ip = cachedClientIp || await getClientIp() || '';
+      if (ip) cachedClientIp = ip;
+      const result = await kickGasRequest('checkKick', { clientIp: ip });
+      if (result.kicked === true) { showKickedScreen(result); return true; }
+      return applyRemoteReloadEvents(result.reloadEvents || []);
     } catch (error) {
-      console.warn('Не удалось проверить статус кика:', error);
+      console.warn('Не удалось проверить статус кика/перезапуска:', error);
     }
     return false;
   }
@@ -5434,6 +5494,62 @@ document.addEventListener('click', (e) => {
           if (result.kicked !== true) throw new Error('GAS не подтвердил отключение пользователя.');
         });
         commandMessage('Пользователь отключён', 'Пользователь: ' + identifier + '\nПричина: ' + reason + '\nАдмин: ' + (hidden ? 'Скрыто' : getAdminDisplayName()) + '.');
+        return;
+      }
+      if (command === '/kick_all') {
+        if (args.length < 2) return commandError(command);
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Отключать всех пользователей могут администраторы 2-го уровня и выше.');
+        const flag = String(args[args.length - 1] || '').toLowerCase();
+        const reason = args.slice(0, -1).join(' ').trim() || 'Не указана';
+        if (!['no','yes'].includes(flag)) return commandError(command);
+        const hidden = flag === 'yes';
+        if (hidden && (!adminHasPermission('hideNameOnBan') || Number(getCurrentAdmin()?.admin_level) !== 5)) throw new Error('Скрывать имя может только администратор 5-го уровня с соответствующим правом.');
+        const confirmed = await confirmAdminMenuAction('Отключить всех пользователей?', 'Будут отключены все пользователи из архива аккаунтов, включая ваш аккаунт.', 'Отключить всех', true);
+        if (!confirmed) { commandMessage('Отменено', 'Массовое отключение отменено.'); return; }
+        await commandRunWithLoader(async () => {
+          const result = await kickGasRequest('kickAll', { reason, hideAdminName:hidden, adminToken:String(localStorage.getItem(LS.token) || '') });
+          if (result.kicked !== true) throw new Error('GAS не подтвердил массовое отключение.');
+          commandMessage('Пользователи отключены', 'Отключено аккаунтов: ' + Number(result.kickedCount || 0) + '.\\nПричина: ' + reason + '\\nАдмин: ' + (hidden ? 'Скрыто' : getAdminDisplayName()) + '.');
+        });
+        return;
+      }
+      if (command === '/reload' || command === '/reload_time') {
+        const scheduled = command === '/reload_time';
+        if (args.length !== (scheduled ? 3 : 1)) return commandError(command);
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложения пользователей могут администраторы 2-го уровня и выше.');
+        const identifier = args[0].trim();
+        let targetType = 'token';
+        if (/^\\d+$/.test(identifier)) targetType = 'telegram';
+        else if (isIpAddressValue(identifier)) targetType = 'ip';
+        else if (!/^[A-Za-z0-9_-]{8,64}$/.test(identifier)) throw new Error('Укажите Telegram ID, токен или корректный IP-адрес.');
+        let minutes = 0, seconds = 5;
+        if (scheduled) {
+          minutes = Number(args[1]); seconds = Number(args[2]);
+          if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440 || !Number.isInteger(seconds) || seconds < 1 || seconds > 300) return commandError(command, 'Минуты: от 1 до 1440. Длительность перезапуска: от 1 до 300 секунд.');
+        }
+        await commandRunWithLoader(async () => {
+          const result = await kickGasRequest('createReload', { targetType, target:identifier, scheduledAt:Date.now() + minutes * 60000, durationSeconds:seconds, adminToken:String(localStorage.getItem(LS.token) || '') });
+          if (result.created !== true) throw new Error('GAS не подтвердил создание перезапуска.');
+        });
+        commandMessage(scheduled ? 'Перезапуск запланирован' : 'Перезапуск запущен', scheduled ? 'Обратный отсчёт: ' + minutes + ' мин.\\nДлительность экрана перезапуска: ' + seconds + ' сек.' : 'Перезапуск начнётся сразу и продлится 5 секунд.');
+        return;
+      }
+      if (command === '/reload_all' || command === '/reload_all_time') {
+        const scheduled = command === '/reload_all_time';
+        if (args.length !== (scheduled ? 2 : 0)) return commandError(command);
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 2 || !adminHasPermission('kickUser')) throw new Error('Перезапускать приложение у всех могут администраторы 2-го уровня и выше.');
+        let minutes = 0, seconds = 5;
+        if (scheduled) {
+          minutes = Number(args[0]); seconds = Number(args[1]);
+          if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440 || !Number.isInteger(seconds) || seconds < 1 || seconds > 300) return commandError(command, 'Минуты: от 1 до 1440. Длительность перезапуска: от 1 до 300 секунд.');
+        }
+        const confirmed = await confirmAdminMenuAction(scheduled ? 'Запланировать перезапуск для всех?' : 'Перезапустить приложение у всех?', scheduled ? 'У всех появится обратный отсчёт на ' + minutes + ' мин., затем экран перезапуска продлится ' + seconds + ' сек.' : 'Приложение будет перезапущено у всех пользователей на 5 секунд.', scheduled ? 'Запланировать' : 'Перезапустить', true);
+        if (!confirmed) { commandMessage('Отменено', 'Массовый перезапуск отменён.'); return; }
+        await commandRunWithLoader(async () => {
+          const result = await kickGasRequest('createReload', { targetType:'all', scheduledAt:Date.now() + minutes * 60000, durationSeconds:seconds, adminToken:String(localStorage.getItem(LS.token) || '') });
+          if (result.created !== true) throw new Error('GAS не подтвердил создание перезапуска.');
+        });
+        commandMessage(scheduled ? 'Перезапуск запланирован' : 'Перезапуск запущен', scheduled ? 'У всех обратный отсчёт: ' + minutes + ' мин. Длительность перезапуска: ' + seconds + ' сек.' : 'Приложение перезапустится у всех через 5 секунд.');
         return;
       }
       if (command === '/chat_off') {
@@ -5746,7 +5862,7 @@ document.addEventListener('click', (e) => {
   window.BuyAdCheckKickStatus = checkKickStatus;
   if (GAS_KICK_URL && tg?.initData) setInterval(() => {
     if (!$('screen-kicked') || $('screen-kicked').hidden) checkKickStatus();
-  }, 45000);
+  }, 5000);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installAdminCommandChat, { once:true });
   else installAdminCommandChat();
 })();
