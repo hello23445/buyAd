@@ -5588,6 +5588,13 @@ document.addEventListener('click', (e) => {
     }
     try {
       if (!getCurrentAdmin()) throw new Error('Команды доступны только администраторам.');
+      // Не раскрываем формат, назначение или дополнительные подсказки команд,
+      // которые недоступны текущему администратору.
+      if (!commandAllowedForCurrentAdmin(command)) {
+        window.__buyAdCommandFailed = true;
+        commandMessage('Недостаточно прав', 'Эта команда недоступна с вашим текущим уровнем и разрешениями.', true);
+        return;
+      }
       if (command === '/all') {
         if (args.length) return commandError(command);
         renderAvailableCommandsDialog();
@@ -5931,6 +5938,42 @@ document.addEventListener('click', (e) => {
       if (sendButton) sendButton.disabled = false;
     }
   }
+  function commandEditDistance(left, right) {
+    const a = String(left || ''), b = String(right || '');
+    let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= a.length; i++) {
+      const current = [i];
+      for (let j = 1; j <= b.length; j++) {
+        current[j] = Math.min(
+          current[j - 1] + 1,
+          previous[j] + 1,
+          previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)
+        );
+      }
+      previous = current;
+    }
+    return previous[b.length];
+  }
+  function getSimilarAdminCommands(query) {
+    const needle = String(query || '').toLowerCase();
+    if (!needle || needle === '/') return [];
+    const commands = Object.keys(commandSpecs).filter(command => commandAllowedForCurrentAdmin(command));
+    const exact = commands.includes(needle);
+    if (exact) return [needle];
+    const ranked = commands.map(command => {
+      const name = command.slice(1);
+      const search = needle.replace(/^\//, '');
+      const distance = commandEditDistance(search, name);
+      let score = 0;
+      if (command.startsWith(needle)) score = 1000 - command.length;
+      else if (command.includes(needle) || name.includes(search)) score = 800 - Math.abs(name.length - search.length);
+      else if (name.startsWith(search) || search.startsWith(name)) score = 700 - distance;
+      else if (distance <= Math.max(1, Math.floor(Math.max(search.length, name.length) * 0.4))) score = 500 - distance * 10;
+      return { command, score, distance };
+    }).filter(item => item.score > 0);
+    ranked.sort((a, b) => b.score - a.score || a.distance - b.distance || a.command.localeCompare(b.command));
+    return ranked.map(item => item.command);
+  }
   function renderAdminCommandHints() {
     const input = $('main-admin-command-input');
     const hints = $('main-admin-command-hints');
@@ -5943,9 +5986,10 @@ document.addEventListener('click', (e) => {
     const exactAllowed = knownExact && commandAllowedForCurrentAdmin(first);
     structureBox.hidden = !exactAllowed;
     structureBox.textContent = exactAllowed ? commandDescription(commandSpecs[first]).structure : '';
-    if (!first) { hints.hidden = true; return; }
-    const matches = (knownExact ? (exactAllowed ? [first] : []) : Object.keys(commandSpecs)
-      .filter(command => command.startsWith(first) && commandAllowedForCurrentAdmin(command))).slice(0, 8);
+    if (!first || (knownExact && !exactAllowed)) { hints.hidden = true; return; }
+    // Показываем все доступные совпадения: префиксные, содержащие запрос
+    // и близкие по написанию команды. Искусственного лимита в 8 пунктов нет.
+    const matches = getSimilarAdminCommands(first);
     matches.forEach(command => {
       const details = commandDescription(commandSpecs[command]);
       const item = document.createElement('button');
