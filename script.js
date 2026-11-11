@@ -5905,18 +5905,64 @@ document.addEventListener('click', (e) => {
           warning: 'Предупреждение'
         };
         const rows = Array.isArray(result.punishments) ? result.punishments : [];
-        const message = rows.length ? rows.map((item, index) => {
-          const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
-          const issued = item.issuedAt ? new Date(item.issuedAt).toLocaleString('ru-RU') : 'не указана';
-          const removed = item.removedAt ? '\nСнято: ' + new Date(item.removedAt).toLocaleString('ru-RU') : '';
-          return (index + 1) + '. ' + (labels[item.kind] || 'Наказание') +
-            '\nПричина: ' + (item.reason || 'Не указана') +
-            '\nДата выдачи: ' + issued +
-            '\nОкончание: ' + end +
-            removed +
-            '\nАдминистратор: ' + (item.adminNameHidden ? 'скрыто' : item.adminName || 'не указан');
-        }).join('\n\n') : 'За последние два месяца наказаний с зафиксированной датой нет.';
-        commandMessage('Список наказаний', message);
+        const history = document.createElement('div');
+        history.className = 'stack-sm';
+        const formatHistoryDate = value => {
+          if (!value) return 'Не зафиксирована';
+          const date = new Date(value);
+          if (!Number.isFinite(date.getTime())) return 'Не зафиксирована';
+          return new Intl.DateTimeFormat('ru-RU', {
+            timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit',
+            day: '2-digit', hour: '2-digit', minute: '2-digit',
+            second: '2-digit', hourCycle: 'h23'
+          }).format(date);
+        };
+        const addHistoryField = (card, label, value) => {
+          const field = document.createElement('div');
+          field.className = 'field';
+          field.style.marginBottom = '10px';
+          const caption = document.createElement('div');
+          caption.className = 'field__label';
+          caption.textContent = label;
+          const text = document.createElement('div');
+          text.className = 'rules__text';
+          text.textContent = value == null || value === '' ? '—' : String(value);
+          field.append(caption, text);
+          card.appendChild(field);
+        };
+        if (rows.length) {
+          rows.forEach((item, index) => {
+            const card = document.createElement('article');
+            card.className = 'card punishment-history-entry';
+            card.style.marginTop = '8px';
+            const heading = document.createElement('div');
+            heading.className = 'card__title';
+            heading.textContent = '№' + (index + 1) + ' · ' + (labels[item.kind] || 'Наказание');
+            card.appendChild(heading);
+            const issued = document.createElement('div');
+            issued.className = 'punishment-history-date';
+            issued.textContent = formatHistoryDate(item.issuedAt);
+            issued.setAttribute('aria-label', 'Дата и время выдачи по Москве');
+            card.appendChild(issued);
+            addHistoryField(card, 'Причина', item.reason || 'Не указана');
+            addHistoryField(card, 'Администратор', item.adminNameHidden ? 'Скрыто' : item.adminName || 'Не указан');
+            if (item.expiresAt) addHistoryField(card, 'Действует до (МСК)', formatHistoryDate(item.expiresAt));
+            if (item.removedAt) addHistoryField(card, 'Снято (МСК)', formatHistoryDate(item.removedAt));
+            history.appendChild(card);
+          });
+        } else {
+          const empty = document.createElement('div');
+          empty.className = 'hint';
+          empty.textContent = 'За последние два месяца наказаний с зафиксированной датой нет.';
+          history.appendChild(empty);
+        }
+        const status = $('main-admin-command-status');
+        if (status) {
+          status.hidden = false;
+          status.style.color = '';
+          status.textContent = rows.length ? 'Найдено наказаний: ' + rows.length : 'Наказаний за выбранный период нет.';
+        }
+        openModal('Список наказаний', history);
         return;
       }
     } catch (error) {
