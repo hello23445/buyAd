@@ -2329,3 +2329,16 @@ body.theme-dark #main-admin-command-input { background:#172033; border-color:#39
 
 #main-admin-command-card[hidden] { display:none !important; }
 .admin-main-command-heading { margin-top:18px; padding:10px 14px 7px; color:var(--hint-color,#8993a8); font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+
+
+/* Admin command autocomplete and kick screen */
+.main-admin-command-hints { display:grid; gap:7px; margin:0 1px 10px; }
+.command-hint-structure { padding:2px 3px 5px; color:var(--accent-color,#91a3ff); font-size:13px; font-weight:750; line-height:1.4; overflow-wrap:anywhere; }
+.command-hint-item { display:grid; gap:3px; width:100%; padding:7px 8px; border-radius:9px; text-align:left; background:rgba(127,140,255,.055); }
+.command-hint-item:active { background:rgba(127,140,255,.13); }
+.command-hint-name { color:var(--accent-color,#aab8ff); font-size:14px; font-weight:700; line-height:1.25; }
+.command-hint-description { color:var(--hint-color,#8993a8); font-size:11px; font-weight:400; line-height:1.35; }
+.kicked-screen-card { display:grid; gap:10px; }
+.kicked-screen-card .card__title { line-height:1.35; }
+.kicked-screen-card .card__subtitle { white-space:pre-wrap; overflow-wrap:anywhere; margin:0; }
+.kicked-screen-card .hint { overflow-wrap:anywhere; }
