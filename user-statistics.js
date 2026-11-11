@@ -646,9 +646,9 @@
     const found = findArchiveProfile(result.archive, value);
     if (!found) return null;
     const profile = { ...found.user };
-    profile.telegramId = String(profile.telegramId || (/^\\d{4,}$/.test(value) ? value : ''));
+    profile.telegramId = String(profile.telegramId || (/^\d{4,}$/.test(value) ? value : ''));
     profile.tokens = Array.isArray(profile.tokens) ? profile.tokens.map(String) : [];
-    if (!profile.telegramId && !/^\\d{4,}$/.test(value)) profile.tokens = Array.from(new Set([...profile.tokens, value]));
+    if (!profile.telegramId && !/^\d{4,}$/.test(value)) profile.tokens = Array.from(new Set([...profile.tokens, value]));
     return profile;
   }
 
