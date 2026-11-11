@@ -773,8 +773,10 @@
       menu.append(group, button);
       // Keep the local command-chat setting directly below the statistics entry.
       const commandHeading = document.querySelector('.admin-main-command-heading');
+      const kickButton = document.getElementById('admin-kick-user');
+      const commandsButton = document.getElementById('admin-available-commands');
       const commandToggle = document.getElementById('admin-main-command-toggle-row');
-      if (commandHeading && commandToggle) menu.append(commandHeading, commandToggle);
+      if (commandHeading && commandToggle) menu.append(commandHeading, kickButton, commandsButton, commandToggle);
     }
 
     const app = document.querySelector('main.app') || document.getElementById('app');
