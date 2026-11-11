@@ -1276,6 +1276,7 @@ async function loadAdmin2Config() {
       UserLogs: []
     };
     runtimeAdmin2ConfigLoaded = true;
+    window.__buyadRuntimeWarnings = runtimeAdmin2Config.UserWarnings;
     window.dispatchEvent(new CustomEvent('buyad:admin2-config-loaded', {
       detail: {
         UserWarnings: runtimeAdmin2Config.UserWarnings,
