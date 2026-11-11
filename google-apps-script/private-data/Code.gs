@@ -77,11 +77,14 @@ function verifyTelegramInitData_(initData) {
 function getMyRestrictions_(user, userToken) {
   const all = readAllData_();
   const match = entry => {
-    const value = entryValue_(entry);
-    return value && (
-      (userToken && value === userToken) ||
-      value === user.id ||
-      String(entry && entry.telegramId || '') === user.id
+    if (!entry || typeof entry !== 'object') {
+      const value = entryValue_(entry);
+      return !!value && ((userToken && value === userToken) || value === user.id);
+    }
+    return !!(
+      (userToken && (String(entry.token || '') === userToken || String(entry.value || '') === userToken)) ||
+      String(entry.telegramId || '') === user.id ||
+      String(entry.value || '') === user.id
     );
   };
   const result = {};
@@ -154,14 +157,19 @@ function mutatePunishment_(admin, action, payload) {
     : { value: String(payload.value || '').trim() };
   const key = entryValue_(value);
   if (!key) throw new Error('Не указана цель наказания.');
-  if (String(payload.targetTelegramId || '') === String(admin.telegram_id)) throw new Error('Нельзя применить действие к самому себе.');
+  const targetTelegramId = String(payload.targetTelegramId || (name === 'BlockedUsersTelegramID' ? key : (value && value.telegramId || '')));
+  if (targetTelegramId && targetTelegramId === String(admin.telegram_id)) throw new Error('Нельзя применить действие к самому себе.');
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
     const sheet = getSheet_();
     const cell = sheet.getRange(DATA_ROW, COLS[name]);
     const rows = parseJsonArray_(cell.getValue(), name);
-    const index = rows.findIndex(row => entryValue_(row) === key);
+    const requestedType = String(value && value.type || '');
+    const index = rows.findIndex(row =>
+      entryValue_(row) === key &&
+      (name !== 'BlockCreateAds' || !requestedType || String(row && row.type || '') === requestedType)
+    );
     if (action === 'updatePunishment') {
       if (index >= 0) rows[index] = value;
       else rows.push(value);
