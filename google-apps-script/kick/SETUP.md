@@ -34,7 +34,7 @@ The backend checks the admin level in the live admin.js registry and also checks
 Each admin who will use /kick must open the Mini App at least once so their token-to-Telegram-ID association is present in the statistics archive. If the backend reports that it cannot confirm the association, have that admin open the app, wait for the statistics archive to update, and retry.
 
 - Only level 2+ admins can kick, kick all archived users, or schedule targeted/global reloads.
-- `/kick_all` snapshots users currently present in `data/user-statistics.json` and writes their kick records to `KickedUsers`.
+- `/kick_all` combines registered accounts from the Google Sheets `Users` tab with token mappings in `data/user-statistics.json`, then writes their kick records to `KickedUsers`.
 - `/reload`, `/reload_time`, `/reload_all`, and `/reload_all_time` append independent events to `ReloadEvents`; a manual reload does not edit or cancel scheduled events.
 - IP-targeted reloads store an HMAC fingerprint of the IP address. The script uses `IP_HASH_SECRET` if set, or the private `TELEGRAM_BOT_TOKEN` as the HMAC key if not.
 - Hiding the admin name is accepted only for level 5 when the live registry grants hideNameOnBan.
