@@ -757,6 +757,10 @@
         if (typeof refreshBackButton === 'function') refreshBackButton();
       });
       menu.append(group, button);
+      // Keep the local command-chat setting directly below the statistics entry.
+      const commandHeading = document.querySelector('.admin-main-command-heading');
+      const commandToggle = document.getElementById('admin-main-command-toggle-row');
+      if (commandHeading && commandToggle) menu.append(commandHeading, commandToggle);
     }
 
     const app = document.querySelector('main.app') || document.getElementById('app');
