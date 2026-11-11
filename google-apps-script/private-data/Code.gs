@@ -158,7 +158,7 @@ function mutatePunishment_(admin, action, payload) {
   const value = payload.entry && typeof payload.entry === 'object'
     ? payload.entry
     : { value: String(payload.value || '').trim() };
-  const key = entryValue_(value);
+  const key = name === 'UserWarnings' ? String(value.id || value.warningId || '').trim() : entryValue_(value);
   if (!key) throw new Error('Не указана цель наказания.');
   const targetTelegramId = String(payload.targetTelegramId || (name === 'BlockedUsersTelegramID' ? key : (value && value.telegramId || '')));
   if (targetTelegramId && targetTelegramId === String(admin.telegram_id)) throw new Error('Нельзя применить действие к самому себе.');
@@ -169,10 +169,11 @@ function mutatePunishment_(admin, action, payload) {
     const cell = sheet.getRange(DATA_ROW, COLS[name]);
     const rows = parseJsonArray_(cell.getValue(), name);
     const requestedType = String(value && value.type || '');
-    const index = rows.findIndex(row =>
-      entryValue_(row) === key &&
-      (name !== 'BlockCreateAds' || !requestedType || String(row && row.type || '') === requestedType)
-    );
+    const index = rows.findIndex(row => {
+      if (name === 'UserWarnings') return String(row && (row.id || row.warningId) || '') === key;
+      return entryValue_(row) === key &&
+        (name !== 'BlockCreateAds' || !requestedType || String(row && row.type || '') === requestedType);
+    });
     if (action === 'updatePunishment') {
       if (index >= 0) rows[index] = value;
       else rows.push(value);
