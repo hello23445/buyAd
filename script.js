@@ -5443,6 +5443,8 @@ document.addEventListener('click', (e) => {
         if (args.length !== 1) return commandError(command);
         if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр списка наказаний доступен администраторам с соответствующим правом.');
         const target = args[0], isTelegram = /^\d+$/.test(target);
+        const profile = await window.BuyAdUserStatistics?.getProfileByIdentifier?.(target);
+        const identifiers = new Set([target, String(profile?.telegramId || ''), ...(profile?.tokens || [])].filter(Boolean).map(String));
         const groups = [
           ['Блокировка по токену', runtimeArray('BanForever',[])],
           ['Блокировка по Telegram ID', runtimeArray('BlockedUsersTelegramID',[])],
@@ -5452,10 +5454,12 @@ document.addEventListener('click', (e) => {
         const rows = [];
         groups.forEach(([label,list]) => list.forEach(item => {
           const value = punishmentEntryValue(item);
-          if (value === target || (isTelegram && String(item?.telegramId || '') === target)) rows.push({label,item});
+          if (identifiers.has(value) || (isTelegram && String(item?.telegramId || '') === target)) rows.push({label,item});
         }));
-        const warnings = window.BuyAdWarnings?.warningsFor?.(isTelegram ? '' : target, isTelegram ? target : '') || [];
-        warnings.forEach(item => rows.push({label:'Предупреждение',item}));
+        const warningTargets = new Set([target, String(profile?.telegramId || ''), ...(profile?.tokens || [])].filter(Boolean).map(String));
+        const warnings = Array.from(warningTargets).flatMap(value => window.BuyAdWarnings?.warningsFor?.(/^\d+$/.test(value) ? '' : value, /^\d+$/.test(value) ? value : '') || []);
+        const uniqueWarnings = Array.from(new Map(warnings.map(item => [String(item.id || item.issuedAt || JSON.stringify(item)), item])).values());
+        uniqueWarnings.forEach(item => rows.push({label:'Предупреждение',item}));
         const message = rows.length ? rows.map((row,i) => {
           const item = row.item || {};
           const end = item.expiresAt ? new Date(item.expiresAt).toLocaleString('ru-RU') : 'не указан / бессрочно';
