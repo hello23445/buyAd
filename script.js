@@ -1177,6 +1177,40 @@ $('admin-clear-localstorage')?.addEventListener('click', async () => {
 }
 });
 
+// Private GAS API: sensitive punishment data is never read from the public admin2.js file.
+(function initBuyAdPrivateDataApi() {
+  let sequence = 0;
+  function call(action, params = {}) {
+    return new Promise((resolve, reject) => {
+      if (!GAS_PRIVATE_DATA_URL) return reject(new Error('Не настроен адрес приватного сервера.'));
+      const callbackName = '__buyadPrivateDataCallback_' + Date.now() + '_' + (++sequence);
+      const query = new URLSearchParams({
+        action: String(action || ''),
+        initData: String(tg?.initData || ''),
+        userToken: String(localStorage.getItem(LS.token) || ''),
+        callback: callbackName
+      });
+      if (params && Object.keys(params).length) query.set('payload', JSON.stringify(params));
+      const script = document.createElement('script');
+      let settled = false;
+      const finish = (error, result) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { delete window[callbackName]; } catch (_) { window[callbackName] = undefined; }
+        script.remove();
+        if (error) reject(error); else resolve(result);
+      };
+      const timer = setTimeout(() => finish(new Error('Сервер не ответил за отведённое время.')), 15000);
+      window[callbackName] = result => finish(null, result);
+      script.onerror = () => finish(new Error('Не удалось связаться с приватным сервером.'));
+      script.src = GAS_PRIVATE_DATA_URL + (GAS_PRIVATE_DATA_URL.includes('?') ? '&' : '?') + query.toString();
+      document.head.appendChild(script);
+    });
+  }
+  window.BuyAdPrivateData = { call };
+})();
+
 let runtimeAdmin2ConfigLoaded = false;
 let runtimeAdmin2Config = {
   BanForever: [''],
@@ -1209,30 +1243,39 @@ function parseExportValue(name, content) {
 
 async function loadAdmin2Config() {
   try {
+    // Public admin2.js is used only for non-sensitive global switches.
     const response = await fetch(ADMIN2_PATH, { cache: 'no-store' });
-    if (!response.ok) {
-      console.warn('admin2.js load failed', response.status);
-      return;
-    }
+    if (!response.ok) throw new Error('Не удалось загрузить публичные настройки: ' + response.status);
     const content = await response.text();
+
+    let serverResponse = await window.BuyAdPrivateData.call('getAdminData');
+    if (!serverResponse || serverResponse.ok !== true) {
+      serverResponse = await window.BuyAdPrivateData.call('getMyRestrictions');
+    }
+    if (!serverResponse || serverResponse.ok !== true || !serverResponse.data) {
+      throw new Error(serverResponse?.error || 'Приватный сервер не вернул данные ограничений.');
+    }
+
+    const data = serverResponse.data;
     runtimeAdmin2Config = {
-      BanForever: parseExportArray('BanForever', content),
-      BlockCreateAds: parseExportArray('BlockCreateAds', content),
-      BlockedUsersTelegramID: parseExportArray('BlockedUsersTelegramID', content),
-      BlockedUsersIPadresses: parseExportArray('BlockedUsersIPadresses', content),
+      BanForever: Array.isArray(data.BanForever) ? data.BanForever : [],
+      BlockCreateAds: Array.isArray(data.BlockCreateAds) ? data.BlockCreateAds : [],
+      BlockedUsersTelegramID: Array.isArray(data.BlockedUsersTelegramID) ? data.BlockedUsersTelegramID : [],
+      BlockedUsersIPadresses: Array.isArray(data.BlockedUsersIPadresses) ? data.BlockedUsersIPadresses : [],
       CloseApp: parseExportValue('CloseApp', content),
       GASESES: parseExportValue('GASESES', content),
       Purchases2: parseExportValue('Purchases2', content),
       disableCreateAds2: parseExportValue('disableCreateAds2', content),
       disableEditingAds: parseExportValue('disableEditingAds', content),
-      UserWarnings: parseExportArray('UserWarnings', content),
-      UserLogs: parseExportArray('UserLogs', content)
+      UserWarnings: Array.isArray(data.UserWarnings) ? data.UserWarnings : [],
+      UserLogs: []
     };
     runtimeAdmin2ConfigLoaded = true;
     window.dispatchEvent(new CustomEvent('buyad:admin2-config-loaded', {
       detail: {
         UserWarnings: runtimeAdmin2Config.UserWarnings,
-        UserLogs: runtimeAdmin2Config.UserLogs
+        UserLogs: runtimeAdmin2Config.UserLogs,
+        serverAdmin: serverResponse.admin || null
       }
     }));
     const lang = localStorage.getItem(LS.lang) || 'ru';
@@ -1245,7 +1288,7 @@ async function loadAdmin2Config() {
     }
     await applyRuntimeBlockings();
   } catch (e) {
-    console.warn('Failed to load admin2 config', e);
+    console.warn('Failed to load private admin data', e);
   }
 }
 
@@ -4092,6 +4135,40 @@ async function handleUnban(userID, userToken = '') {
 }
 
 async function updateVariable(action, value) {
+    const privateListByAction = {
+      BanForever: 'BanForever',
+      UnBanForever: 'BanForever',
+      BlockCreateAds: 'BlockCreateAds',
+      UnBlockCreateAds: 'BlockCreateAds',
+      BlockedUsersTelegramID: 'BlockedUsersTelegramID',
+      UnBlockedUsersTelegramID: 'BlockedUsersTelegramID',
+      BlockedUsersIPadresses: 'BlockedUsersIPadresses',
+      UnBlockedUsersIPadresses: 'BlockedUsersIPadresses'
+    };
+    const privateList = privateListByAction[action];
+    if (privateList) {
+      const isAdd = ['BanForever', 'BlockCreateAds', 'BlockedUsersTelegramID', 'BlockedUsersIPadresses'].includes(action);
+      const entries = Array.isArray(value) ? value : [value];
+      for (const item of entries) {
+        const entry = item && typeof item === 'object' ? item : { value: String(item || '').trim() };
+        const result = await window.BuyAdPrivateData.call(isAdd ? 'updatePunishment' : 'removePunishment', {
+          list: privateList,
+          entry,
+          value: entry.value || entry.token || entry.ip || entry.telegramId || ''
+        });
+        if (!result || result.ok !== true) throw new Error(result?.error || 'Приватный сервер отклонил изменение.');
+      }
+      await loadAdmin2Config();
+      if (window.BuyAdWarnings) {
+        window.BuyAdWarnings.recordAdminAction(isAdd ? 'punishment_added' : 'punishment_removed', {
+          list: privateList,
+          count: entries.length
+        });
+      }
+      alert(`${privateList} успешно изменён(а) на приватном сервере`);
+      return { ok: true, list: privateList };
+    }
+
     const response2 = await fetch(
         "https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec"
     );
