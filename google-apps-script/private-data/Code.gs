@@ -24,7 +24,14 @@ function doGet(e) {
     const user = verifyTelegramInitData_(initData);
     const action = String(p.action || '');
     if (action === 'getMyRestrictions') {
-      result = { ok: true, data: getMyRestrictions_(user, String(p.userToken || ''), String(p.userIp || '')) };
+      let userIPs = [];
+      try {
+        const parsedIPs = JSON.parse(String(p.userIPs || '[]'));
+        if (Array.isArray(parsedIPs)) userIPs = parsedIPs.map(value => String(value || '').trim()).filter(Boolean);
+      } catch (_) {}
+      const currentIp = String(p.userIp || '').trim();
+      if (currentIp) userIPs.push(currentIp);
+      result = { ok: true, data: getMyRestrictions_(user, String(p.userToken || ''), userIPs) };
     } else if (action === 'getAdminData') {
       const admin = requireAdmin_(user);
       result = { ok: true, admin: publicAdmin_(admin), data: readAllData_() };
@@ -81,25 +88,36 @@ function verifyTelegramInitData_(initData) {
   return { id: String(user.id), username: String(user.username || '') };
 }
 
-function getMyRestrictions_(user, userToken, userIp) {
+function getMyRestrictions_(user, userToken, userIPs) {
   const all = readAllData_();
-  const match = (entry, listName) => {
-    if (!entry || typeof entry !== 'object') {
-      const value = entryValue_(entry);
-      return !!value && ((userToken && value === userToken) || value === user.id ||
-        (listName === 'BlockedUsersIPadresses' && userIp && value === userIp));
-    }
-    return !!(
-      (userToken && (String(entry.token || '') === userToken || String(entry.value || '') === userToken)) ||
-      String(entry.telegramId || '') === user.id ||
-      String(entry.value || '') === user.id ||
-      (listName === 'BlockedUsersIPadresses' && userIp &&
-        (String(entry.ip || '') === userIp || String(entry.value || '') === userIp))
+  const normalizedToken = String(userToken || '').trim();
+  const normalizedTelegramId = String(user && user.id || '').trim();
+  const ipSet = new Set((Array.isArray(userIPs) ? userIPs : [userIPs])
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean));
+
+  const matchesUser = (entry, listName) => {
+    const value = entryValue_(entry);
+    if (!value) return false;
+    const tokenMatch = !!normalizedToken && (
+      value === normalizedToken ||
+      (entry && typeof entry === 'object' && String(entry.token || '') === normalizedToken)
     );
+    const telegramMatch = !!normalizedTelegramId && (
+      value === normalizedTelegramId ||
+      (entry && typeof entry === 'object' && String(entry.telegramId || '') === normalizedTelegramId)
+    );
+    const ipMatch = listName === 'BlockedUsersIPadresses' && (
+      ipSet.has(value.toLowerCase()) ||
+      (entry && typeof entry === 'object' && ipSet.has(String(entry.ip || '').trim().toLowerCase()))
+    );
+    return tokenMatch || telegramMatch || ipMatch;
   };
+
   const result = {};
   Object.keys(COLS).forEach(name => {
-    result[name] = (all[name] || []).filter(entry => match(entry, name));
+    // Return the original full records, including reason, administrator and duration metadata.
+    result[name] = (all[name] || []).filter(entry => matchesUser(entry, name));
   });
   return result;
 }
