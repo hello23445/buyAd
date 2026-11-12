@@ -6,6 +6,7 @@
  * binding stored in data/user-statistics.json before writing to Google Sheets.
  */
 const BUYAD_KICK_SPREADSHEET_ID = '1pNPa_d4XwUiZzrLVNl4YENBezSAOOUsKQpmpyQIEZIo';
+const BUYAD_CONFIG_SPREADSHEET_ID = '1UpHiiY8EiEApSFfxdE0VWlgoGk4M4Vh2-lMBhIiVibI';
 const BUYAD_KICK_SHEET_NAME = 'KickedUsers';
 const BUYAD_RELOAD_SHEET_NAME = 'ReloadEvents';
 const BUYAD_KICK_ADMIN_URL = 'https://raw.githubusercontent.com/hello23445/buyAd/main/admin.js';
@@ -48,7 +49,7 @@ function doGet(e) {
 }
 
 function verifyTelegramInitData_(initData, userToken) {
-  const botToken = PropertiesService.getScriptProperties().getProperty('TELEGRAM_BOT_TOKEN');
+  const botToken = telegramBotToken_();
   if (!botToken) throw new Error('Kick service is not configured: add TELEGRAM_BOT_TOKEN in Script Properties.');
   if (!initData) throw new Error('Telegram authorization is missing or invalid.');
   const values = {};
@@ -85,6 +86,15 @@ function constantTimeEquals_(left, right) {
   let diff = 0;
   for (let i = 0; i < left.length; i++) diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
   return diff === 0;
+}
+
+function telegramBotToken_() {
+  const configBook = SpreadsheetApp.openById(BUYAD_CONFIG_SPREADSHEET_ID);
+  const sheets = configBook.getSheets();
+  if (!sheets.length) throw new Error('Таблица конфигурации не содержит листов.');
+  const token = String(sheets[0].getRange('A2').getDisplayValue() || '').trim();
+  if (!token) throw new Error('Токен Telegram-бота не найден в A2 таблицы конфигурации.');
+  return token;
 }
 
 function spreadsheet_() {
@@ -214,7 +224,7 @@ function reloadSheet_() {
 }
 function hashIp_(ip) {
   const props = PropertiesService.getScriptProperties();
-  const secret = props.getProperty('IP_HASH_SECRET') || props.getProperty('TELEGRAM_BOT_TOKEN');
+  const secret = props.getProperty('IP_HASH_SECRET') || telegramBotToken_();
   if (!secret) throw new Error('IP reload matching requires TELEGRAM_BOT_TOKEN in Script Properties.');
   const value = String(ip || '').trim().toLowerCase();
   if (!value || value.length > 64) throw new Error('Invalid IP address.');
