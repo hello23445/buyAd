@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T11:52:56.792Z",
+  "updatedAt": "2026-11-12T12:03:00.769Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -230,6 +230,30 @@
       "loginCount": 1,
       "punishments": [],
       "lastSeenToken": "OAic3kfBMbI1zGwN"
+    },
+    "local:ip:128.71.249.101": {
+      "telegramId": "",
+      "fallbackId": "ip:128.71.249.101",
+      "tokens": [],
+      "firstSeenAt": "2026-11-12T12:03:00.768Z",
+      "registeredAt": null,
+      "lastLoginAt": null,
+      "loginCount": 0,
+      "punishments": [
+        {
+          "id": "ip_ban:128.71.249.101:1794484980769",
+          "kind": "ip_ban",
+          "identifier": "128.71.249.101",
+          "identifierType": "ip",
+          "issuedAt": "2026-11-12T12:03:00.769Z",
+          "expiresAt": "",
+          "durationDays": null,
+          "reason": "чит",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 5
+        }
+      ]
     }
   }
 }
