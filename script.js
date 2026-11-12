@@ -1218,6 +1218,7 @@ $('admin-clear-localstorage')?.addEventListener('click', async () => {
   window.BuyAdPrivateData = { call };
 })();
 
+let runtimeIsMainAdmin = false;
 let runtimeAdmin2ConfigLoaded = false;
 let runtimeAdmin2Config = {
   BanForever: [''],
@@ -1267,6 +1268,7 @@ async function loadAdmin2Config() {
     }
 
     const data = serverResponse.data;
+    runtimeIsMainAdmin = Number(serverResponse.admin?.admin_level || 0) >= 5;
     runtimeAdmin2Config = {
       BanForever: Array.isArray(data.BanForever) ? data.BanForever : [],
       BlockCreateAds: Array.isArray(data.BlockCreateAds) ? data.BlockCreateAds : [],
@@ -1568,7 +1570,8 @@ async function applyRuntimeBlockings() {
   const isTokenBan = isTokenFullyBlocked();
   const isCreateBan = isTokenCreateBlocked();
   const isTelegramBan = isTelegramIdBlocked();
-  const isIpBan = await isIpBlocked();
+  // Root admin (level 5) is exempt from IP bans, including when getAdminData returns the full ban registry.
+  const isIpBan = runtimeIsMainAdmin ? false : await isIpBlocked();
 
   const blockedByIpOrTelegram = isTelegramBan || isIpBan;
   const anyBlocked = isTokenBan || blockedByIpOrTelegram;
