@@ -32,6 +32,12 @@ function doGet(e) {
       const admin = requireAdmin_(user);
       const payload = JSON.parse(String(p.payload || '{}'));
       result = { ok: true, result: mutatePunishment_(admin, action, payload) };
+    } else if (action === 'sendAdNotification') {
+      const payload = JSON.parse(String(p.payload || '{}'));
+      result = sendAdNotification_(user, payload);
+    } else if (action === 'createInvoiceLink') {
+      const payload = JSON.parse(String(p.payload || '{}'));
+      result = createInvoiceLink_(user, payload);
     } else {
       throw new Error('Неизвестное действие сервера.');
     }
@@ -63,7 +69,8 @@ function verifyTelegramInitData_(initData) {
   const botToken = String(sheet.getRange(DATA_ROW, 1).getDisplayValue() || '').trim();
   if (!botToken) throw new Error('В ячейке A2 не задан токен бота.');
   const secret = Utilities.computeHmacSha256Signature(botToken, 'WebAppData');
-  const calculated = bytesToHex_(Utilities.computeHmacSha256Signature(check, secret));
+  const checkBytes = Utilities.newBlob(check, 'text/plain').getBytes();
+  const calculated = bytesToHex_(Utilities.computeHmacSha256Signature(checkBytes, secret));
   if (!constantTimeEqual_(calculated, hash.toLowerCase())) throw new Error('Неверная подпись Telegram.');
   const authDate = Number(params.auth_date || 0);
   const now = Math.floor(Date.now() / 1000);
@@ -218,4 +225,57 @@ function constantTimeEqual_(a, b) {
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
+}
+
+
+function getBotToken_() {
+  const token = String(getSheet_().getRange(DATA_ROW, 1).getDisplayValue() || '').trim();
+  if (!token) throw new Error('В ячейке A2 не задан токен бота.');
+  return token;
+}
+
+function telegramBotRequest_(method, payload) {
+  const response = UrlFetchApp.fetch('https://api.telegram.org/bot' + getBotToken_() + '/' + method, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload || {}),
+    muteHttpExceptions: true
+  });
+  let data;
+  try { data = JSON.parse(response.getContentText()); }
+  catch (_) { throw new Error('Telegram вернул некорректный ответ.'); }
+  if (!data.ok) throw new Error(String(data.description || 'Ошибка Telegram Bot API.'));
+  return data.result;
+}
+
+function sendAdNotification_(user, payload) {
+  const chatId = String(PropertiesService.getScriptProperties().getProperty('BUYAD_NOTIFICATION_CHAT_ID') || '').trim();
+  if (!chatId) throw new Error('Не задано свойство BUYAD_NOTIFICATION_CHAT_ID в настройках GAS.');
+  const adName = String(payload.adName || '').slice(0, 120);
+  const userIp = String(payload.userIp || 'unknown').slice(0, 80);
+  const message = [
+    '🆕 Новая реклама!',
+    'Название рекламы: ' + adName,
+    'Telegram ID создателя: ' + user.id,
+    'IP-адрес создателя: ' + userIp
+  ].join('\\n');
+  telegramBotRequest_('sendMessage', { chat_id: chatId, text: message });
+  return { ok: true };
+}
+
+function createInvoiceLink_(user, payload) {
+  const amount = Number(payload.amount);
+  const stars = Number(payload.stars);
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1000000 ||
+      !Number.isSafeInteger(stars) || stars < 1 || stars > 1000000) {
+    throw new Error('Некорректная сумма платежа.');
+  }
+  const result = telegramBotRequest_('createInvoiceLink', {
+    title: String(payload.title || (amount + ' Crystals')).slice(0, 32),
+    description: String(payload.description || '').slice(0, 255),
+    payload: String(payload.payload || (user.id + ':' + amount)).slice(0, 128),
+    currency: 'XTR',
+    prices: [{ label: 'Crystals', amount: stars }]
+  });
+  return { ok: true, invoiceLink: String(result || '') };
 }
