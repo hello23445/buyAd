@@ -7,9 +7,7 @@ The website-side /kick command is committed, but the kick backend must be deploy
 1. Open https://script.google.com/ using the Google account that has edit access to the BuyAd spreadsheet.
 2. Create a new standalone Apps Script project.
 3. Copy the complete contents of google-apps-script/kick/Code.gs into its Code.gs.
-4. Open Project Settings → Script Properties and add:
-   - Property: TELEGRAM_BOT_TOKEN
-   - Value: the Telegram bot token used by the BuyAd Mini App.
+4. The service reads the Telegram bot token from cell A2 of the private configuration spreadsheet (`1UpHiiY8EiEApSFfxdE0VWlgoGk4M4Vh2-lMBhIiVibI`). Do not add the token to source code or duplicate it in Script Properties.
 5. Save the project. Run a function from the editor once if Google requests authorization for Sheets and external requests.
 
 The spreadsheet ID is already configured in the source. On the first request, the script creates a KickedUsers sheet with the kick records. Do not change or delete its header row.
