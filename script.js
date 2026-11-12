@@ -4160,7 +4160,7 @@ async function handleUnban(userID, userToken = '') {
   }
 }
 
-async function updateVariable(action, value) {
+async function updateVariable(action, value, quiet = false) {
     const privateListByAction = {
       BanForever: 'BanForever',
       UnBanForever: 'BanForever',
@@ -4586,7 +4586,7 @@ async function updateVariable(action, value) {
         });
     }
 
-    alert(
+    if (!quiet) alert(
         `${variableName} успешно изменена`
     );
 
@@ -5291,6 +5291,9 @@ document.addEventListener('click', (e) => {
     '/gases': '/gases число(1 отключить, 2 включить) — Управляет обращениями к GAS.',
     '/warn': '/warn Telegram_ID/Токен Причина Количество(1-3) no/yes — no скрывает имя администратора, yes показывает.',
     '/unwarn': '/unwarn Telegram_ID/Токен — Снимает предупреждения.',
+    '/users': '/users — Показывает таблицу пользователей из Google Sheets.',
+    '/user': '/user Telegram_ID/Токен_пользователя — Показывает данные одного пользователя.',
+    '/app': '/app 1|2 1|2 1|2 1|2 1|2 1|2 — Управляет созданием, редактированием, платежами, рефералами, доступом к приложению и обращениями к GAS.',
     '/stats': '/stats Telegram_ID/Токен — Открывает статистику пользователя.',
     '/alist': '/alist Telegram_ID/Токен — Показывает список наказаний пользователя.',
     '/all': '/all — Показывает команды, доступные вашему уровню и правам администратора.',
@@ -5371,9 +5374,9 @@ document.addEventListener('click', (e) => {
   }
   function renderAvailableCommandsDialog() {
     const groups = [
-      { title:'Проверка и работа с пользователями', commands:['/c','/relist','/stats','/alist','/warn','/unwarn'] },
+      { title:'Проверка и работа с пользователями', commands:['/c','/relist','/users','/user','/stats','/alist','/warn','/unwarn'] },
       { title:'Блокировки и ограничения', commands:['/tban','/untban','/sban','/unsban','/tg_ban','/untg_ban','/cblock','/uncblock'] },
-      { title:'Управление приложением', commands:['/cban','/rban','/payments','/referals','/close_app','/gases'] },
+      { title:'Управление приложением', commands:['/app','/cban','/rban','/payments','/referals','/close_app','/gases'] },
       { title:'Администраторы', commands:['/add_admin','/change_admin','/delete_admin'] },
       { title:'Отключение и перезапуск', commands:['/kick','/kick_all','/reload','/reload_time','/reload_all','/reload_all_time'] },
       { title:'Мои данные и настройки', commands:['/tcopy','/tdcopy','/icopy','/chat_off'] }
@@ -5440,6 +5443,8 @@ document.addEventListener('click', (e) => {
       '/payments': permission('globalCreateToggle'), '/referals': level >= 4 && permission('globalCreateToggle'),
       '/close_app': permission('globalCreateToggle'), '/gases': permission('globalCreateToggle'),
       '/warn': level >= 2, '/unwarn': level >= 2,
+      '/users': level >= 2, '/user': level >= 2,
+      '/app': level >= 4,
       '/stats': permission('viewUserStatistics'), '/alist': permission('viewUserStatistics'),
       '/kick': level >= 2 && permission('kickUser'),
       '/kick_all': level >= 2 && permission('kickUser'),
@@ -5664,6 +5669,62 @@ document.addEventListener('click', (e) => {
       ], { onClose:() => finish(false) });
     });
   }
+
+  function renderUsersTable(rows, title, total = rows.length, truncated = false) {
+    const root = document.createElement('div');
+    root.className = 'stack-sm';
+    const summary = document.createElement('div');
+    summary.className = 'hint';
+    summary.textContent = 'Записей: ' + total + (truncated ? ' (показана только первая часть списка)' : '');
+    root.appendChild(summary);
+    if (!rows.length) {
+      const empty = document.createElement('p');
+      empty.textContent = 'Пользователи не найдены.';
+      root.appendChild(empty);
+      openModal(title, root);
+      return;
+    }
+    const wrap = document.createElement('div');
+    wrap.style.overflowX = 'auto';
+    wrap.style.maxWidth = '100%';
+    wrap.style.borderRadius = '12px';
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.minWidth = '680px';
+    table.style.borderCollapse = 'collapse';
+    const headers = ['User Telegram ID','User Token','User Count of crystals','User Ads count','Session ID'];
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    headers.forEach(label => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      th.style.textAlign = 'left';
+      th.style.padding = '10px 8px';
+      th.style.borderBottom = '1px solid var(--border-color, #394155)';
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      row.slice(0, 5).forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = String(value == null ? '' : value);
+        td.style.padding = '9px 8px';
+        td.style.borderBottom = '1px solid var(--border-color, #30394d)';
+        td.style.verticalAlign = 'top';
+        td.style.overflowWrap = 'anywhere';
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    root.appendChild(wrap);
+    openModal(title, root);
+  }
+
   async function commandRunWithLoader(fn) {
     showPreloader();
     try { await fn(); }
@@ -5987,6 +6048,56 @@ document.addEventListener('click', (e) => {
         commandMessage('Предупреждения сняты', result?.message || 'Предупреждения сняты.');
         return;
       }
+
+      if (command === '/users' || command === '/user') {
+        if (command === '/users' ? args.length !== 0 : args.length !== 1) return commandError(command);
+        const query = command === '/user' ? String(args[0] || '').trim() : '';
+        if (query && !/^\\d+$/.test(query) && !/^[A-Za-z0-9_-]{8,120}$/.test(query)) {
+          throw new Error('Укажите корректный Telegram ID или токен пользователя.');
+        }
+        let result;
+        await commandRunWithLoader(async () => {
+          result = await kickGasRequest(command === '/users' ? 'getUsers' : 'getUser', { query, adminToken:String(localStorage.getItem(LS.token) || '') });
+        });
+        const rows = Array.isArray(result.rows) ? result.rows : [];
+        renderUsersTable(rows, command === '/users' ? 'Пользователи' : 'Данные пользователя', Number(result.total || rows.length), result.truncated === true);
+        return;
+      }
+      if (command === '/app') {
+        if (args.length !== 6 || args.some(value => !['1','2'].includes(value))) {
+          return commandError(command, 'Нужно указать ровно шесть значений: создание, редактирование, платежи, рефералы, доступ к приложению, GAS. Для каждого: 1 — выключить/закрыть, 2 — включить/открыть.');
+        }
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 4) {
+          throw new Error('Команда /app доступна только администраторам 4-го и 5-го уровня.');
+        }
+        const [create, edit, payments, referrals, appOpen, gases] = args.map(value => value === '2');
+        const operations = [
+          [create ? 'UndisableCreateAds2' : 'disableCreateAds2', create ? 'enabled' : 'disabled'],
+          [edit ? 'UndisableEditingAds' : 'disableEditingAds', edit ? 'enabled' : 'disabled'],
+          [payments ? 'UnPurchases2' : 'Purchases2', payments ? 'enabled' : 'no']
+        ];
+        await commandRunWithLoader(async () => {
+          // Apply the GAS toggle last so it cannot interrupt the remaining settings updates.
+          for (const [action, value] of operations) await updateVariable(action, value, true);
+          if (typeof window.BuyAdReferralSetGlobalEnabled !== 'function') {
+            throw new Error('Модуль реферальной системы не загружен; остальные настройки уже могли сохраниться.');
+          }
+          const referralResult = await window.BuyAdReferralSetGlobalEnabled(referrals);
+          if (referralResult?.systemEnabled !== referrals) throw new Error('Сервер не подтвердил настройку реферальной системы.');
+          await updateVariable(appOpen ? 'UnCloseApp' : 'CloseApp', appOpen ? 'not_closed' : 'closed', true);
+          await updateVariable(gases ? 'UnGASESES' : 'GASESES', gases ? 'true' : 'no', true);
+        });
+        recordAdminAction('globalCreateToggle');
+        commandMessage('Настройки приложения обновлены',
+          'Создание рекламы: ' + (create ? 'включено' : 'отключено') + '\n' +
+          'Редактирование рекламы: ' + (edit ? 'включено' : 'отключено') + '\n' +
+          'Платежи: ' + (payments ? 'включены' : 'отключены') + '\n' +
+          'Реферальная система: ' + (referrals ? 'включена' : 'отключена') + '\n' +
+          'Приложение: ' + (appOpen ? 'открыто' : 'закрыто') + '\n' +
+          'Обращения к GAS: ' + (gases ? 'включены' : 'отключены'));
+        return;
+      }
+
       if (command === '/stats') {
         if (args.length !== 1) return commandError(command);
         if (!adminHasPermission('viewUserStatistics')) throw new Error('Просмотр статистики доступен администраторам с соответствующим правом.');
