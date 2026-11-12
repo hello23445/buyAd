@@ -128,11 +128,22 @@ function parseJsonArray_(raw, name) {
 }
 
 function requireAdmin_(user) {
-  const sheet = getSheet_();
-  const raw = String(sheet.getRange(DATA_ROW, ADMIN_REGISTRY_COL).getDisplayValue() || '').trim();
-  if (!raw) throw new Error('Реестр администраторов не настроен: заполните G2.');
+  // Prefer the private Script Property; G2 is retained as a backwards-compatible fallback.
+  const properties = PropertiesService.getScriptProperties();
+  const propertyRaw = String(properties.getProperty('BUYAD_ADMIN_REGISTRY_JSON') || '').trim();
+  const sheetRaw = String(getSheet_().getRange(DATA_ROW, ADMIN_REGISTRY_COL).getDisplayValue() || '').trim();
+  const raw = propertyRaw || sheetRaw;
+  if (!raw) {
+    throw new Error('Реестр администраторов не настроен: задайте BUYAD_ADMIN_REGISTRY_JSON в свойствах приватного GAS или заполните G2.');
+  }
   let registry;
-  try { registry = JSON.parse(raw); } catch (_) { throw new Error('Некорректный JSON реестра администраторов в G2.'); }
+  try {
+    registry = JSON.parse(raw);
+  } catch (_) {
+    throw new Error(propertyRaw
+      ? 'Некорректный JSON в свойстве BUYAD_ADMIN_REGISTRY_JSON.'
+      : 'Некорректный JSON реестра администраторов в G2.');
+  }
   const admins = Array.isArray(registry.admins) ? registry.admins : [];
   const admin = admins.find(x => String(x.telegram_id || '') === user.id);
   if (!admin) throw new Error('Доступ запрещён.');
