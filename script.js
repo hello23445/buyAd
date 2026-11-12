@@ -5162,27 +5162,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (button) button.disabled = false;
   }, 7000);
 
-  // Record the first visit and its signed Telegram start parameter before
-  // the legacy initUser request can create a Users row.
-  if (typeof window.BuyAdReferralBootstrap === 'function') {
-    await startupWait(window.BuyAdReferralBootstrap(), 12500, null);
-  }
+  // Referral registration runs in the background. Keep it ordered before
+  // initUser so a signed Telegram start parameter is processed before the
+  // legacy Users row can be created.
+  const referralBootstrapTask = typeof window.BuyAdReferralBootstrap === 'function'
+    ? Promise.resolve()
+        .then(() => window.BuyAdReferralBootstrap())
+        .catch(error => {
+          console.warn('Referral bootstrap failed:', error);
+          return null;
+        })
+    : Promise.resolve(null);
 
-// Инициализация пользователя в таблице Users
-(async () => {
-  if (isGasDisabled()) return; // Пропускаем GAS
-  try {
-    await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
-  } catch (e) {
-    console.warn('Failed to init user in Users sheet');
-  }
-})();
+  // Initialize the Users row only after referral start-parameter processing.
+  // This chain is intentionally non-blocking for the app startup.
+  referralBootstrapTask.then(async () => {
+    if (isGasDisabled()) return; // Пропускаем GAS
+    try {
+      await fetch(`${GAS_SYS_URL}?action=initUser&userID=${getUserID()}&token=${USER_TOKEN}`);
+    } catch (e) {
+      console.warn('Failed to init user in Users sheet');
+    }
+  }).catch(error => console.warn('Failed to initialize user row:', error));
   const lang = localStorage.getItem(LS.lang);
   const theme = localStorage.getItem(LS.theme) || 'system';
   applyTheme(theme);
 
-  currentUserIpBlocked = await startupWait(isIpBlocked(), 2500, false);
-  await startupWait(pollAdmin2Config(), 4000, undefined);
+  // Run the IP check and the private admin configuration request in parallel.
+  // The admin configuration remains part of the mandatory access gate below:
+  // the main menu must not open before runtime restrictions are applied.
+  const ipCheckTask = startupWait(isIpBlocked(), 2500, false);
+  const adminConfigTask = startupWait(pollAdmin2Config(), 4000, undefined);
+  [currentUserIpBlocked] = await Promise.all([ipCheckTask, adminConfigTask]);
 
   // Не продолжаем запуск приложения, если пользователь заблокирован по IP или Telegram ID.
   // loadAdmin2Config() уже загрузил конфигурацию и применил блокировки.
@@ -5206,9 +5217,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isAdmin = ADMIN_TOKENS.includes(localStorage.getItem(LS.token));
     const userStatusOk = await startupWait(checkUserStatus(isAdmin), 3000, true);
     if (userStatusOk && checkAppOpen(isAdmin)) {
-      // Do not let a slow remote request block the app from opening.
+      // Start session registration in parallel with the main-menu data load.
+      // Session monitoring still starts only after GAS confirms the write.
+      initializeSession().catch(error => console.warn('Background session initialization failed:', error));
+
+      // Do not let optional background work delay the main-menu transition.
       await startupWait(showMainMenu('both'), 5000, undefined);
-      await startupWait(initializeSession(), 3000, undefined);
       // Фоновая загрузка списка реклам после запуска приложения.
       loadMyAds(true).catch(error => console.warn('Не удалось загрузить список реклам:', error));
     }
