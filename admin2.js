@@ -8,7 +8,7 @@ export const UserLogs = []; // IP history is stored privately in Supabase, never
 //Общее
 export const CloseApp = ""; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
 export const GASESES = "true"; // '' или 'no' — если 'no' тогда блокируем обращения к GAS.
-export const Purchases2 = "enabled"; // '' или 'no' — если 'no' тогда отключаем платежи.
+export const Purchases2 = "no"; // '' или 'no' — если 'no' тогда отключаем платежи.
 export const disableCreateAds2 = "disabled"; // '' или 'disabled' — если 'disabled' тогда запрещаем создавать рекламу.
 export const disableEditingAds = "disabled"; // '' или 'disabled' — если 'disabled' тогда запрещаем редактировать рекламу.
 
