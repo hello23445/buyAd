@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T14:25:59.635Z",
+  "updatedAt": "2026-11-12T14:27:02.793Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -290,7 +290,8 @@
           "reason": "cheat / Чит",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
-          "adminLevel": 5
+          "adminLevel": 5,
+          "removedAt": "2026-11-12T14:27:02.793Z"
         }
       ]
     }
