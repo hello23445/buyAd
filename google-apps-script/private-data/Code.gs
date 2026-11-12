@@ -92,6 +92,7 @@ function getMyRestrictions_(user, userToken, userIPs) {
   const all = readAllData_();
   const normalizedToken = String(userToken || '').trim();
   const normalizedTelegramId = String(user && user.id || '').trim();
+  const isMainAdmin = isMainAdminTelegramId_(normalizedTelegramId);
   const ipSet = new Set((Array.isArray(userIPs) ? userIPs : [userIPs])
     .map(value => String(value || '').trim().toLowerCase())
     .filter(Boolean));
@@ -107,7 +108,9 @@ function getMyRestrictions_(user, userToken, userIPs) {
       value === normalizedTelegramId ||
       (entry && typeof entry === 'object' && String(entry.telegramId || '') === normalizedTelegramId)
     );
-    const ipMatch = listName === 'BlockedUsersIPadresses' && (
+    // The root administrator is exempt from IP bans, even when their current
+    // address is shared with or matches an IP present in the ban list.
+    const ipMatch = !isMainAdmin && listName === 'BlockedUsersIPadresses' && (
       ipSet.has(value.toLowerCase()) ||
       (entry && typeof entry === 'object' && ipSet.has(String(entry.ip || '').trim().toLowerCase()))
     );
@@ -120,6 +123,27 @@ function getMyRestrictions_(user, userToken, userIPs) {
     result[name] = (all[name] || []).filter(entry => matchesUser(entry, name));
   });
   return result;
+}
+
+
+function isMainAdminTelegramId_(telegramId) {
+  const id = String(telegramId || '').trim();
+  if (!id) return false;
+  const properties = PropertiesService.getScriptProperties();
+  const propertyRaw = String(properties.getProperty('BUYAD_ADMIN_REGISTRY_JSON') || '').trim();
+  const sheetRaw = String(getSheet_().getRange(DATA_ROW, ADMIN_REGISTRY_COL).getDisplayValue() || '').trim();
+  const raw = propertyRaw || sheetRaw;
+  if (!raw) return false;
+  try {
+    const registry = JSON.parse(raw);
+    const admins = Array.isArray(registry.admins) ? registry.admins : [];
+    return admins.some(admin =>
+      String(admin.telegram_id || '').trim() === id &&
+      Number(admin.admin_level || 0) >= 5
+    );
+  } catch (_) {
+    return false;
+  }
 }
 
 function readAllData_() {
