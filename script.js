@@ -5534,8 +5534,7 @@ document.addEventListener('click', (e) => {
     if (remaining <= 0) { banner.hidden = true; return; }
     const countdown = formatReloadCountdown(remaining);
     banner.textContent = (dictionary.reloadBannerAttention || 'Внимание!') + '\n' +
-      (dictionary.reloadBannerText || 'Приложение перезапустится через:') + '\n' +
-      (dictionary.reloadCountdownLabel || 'До перезапуска:') + '\n' + countdown;
+      (dictionary.reloadBannerText || 'Приложение перезапустится через:') + '\n' + countdown;
     banner.hidden = false;
   }
   function updateRemoteReloadBanner(events) {
