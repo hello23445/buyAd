@@ -1,8 +1,6 @@
 /* settings.js */
 
-/* ========== PLACEHOLDERS (НЕ УДАЛЯТЬ) ========== */
-const BOT_TOKEN = '7633424551:AAH8JptpFazBaf7FlfCVrDjhquI1JYxf3RM';
-const BOT_CHAT_ID = '6434781065';
+/* ========== PUBLIC SETTINGS ========== */
 const REPORT_ERROR_URL = 'https://t.me/Clickerstart_bot';
 const SUPPORT_URL = 'https://t.me/Clickerstart_bot';
 
