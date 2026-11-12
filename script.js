@@ -1607,11 +1607,31 @@ async function applyRuntimeBlockings() {
     } else if (isIpBan) {
       updateBlockedSubtitle('ip', lang); $('user-token-blocked').textContent = token || '—'; updateBlockedTelegramId();
       const blockedIPs = runtimeArray('BlockedUsersIPadresses', []);
-      const matchedIP = getSavedUserAPIs().find(ip => blockedIPs.some(entry => punishmentEntryValue(entry) === ip));
-      punishmentReason = matchedIP ? getPunishmentReason('BlockedUsersIPadresses', matchedIP) : '';
-      punishmentAdminName = matchedIP ? getPunishmentAdminName('BlockedUsersIPadresses', matchedIP) : '';
+      // The ban may match the live IP even when userAPIs is empty or stale.
+      const candidateIPs = Array.from(new Set(
+        getSavedUserAPIs().concat(cachedClientIp || []).map(ip => String(ip || '').trim().toLowerCase()).filter(Boolean)
+      ));
+      const matchedEntry = blockedIPs.find(entry => {
+        const value = punishmentEntryValue(entry).toLowerCase();
+        const explicitIp = entry && typeof entry === 'object' ? String(entry.ip || '').trim().toLowerCase() : '';
+        return candidateIPs.includes(value) || (explicitIp && candidateIPs.includes(explicitIp));
+      }) || null;
+      punishmentReason = matchedEntry && typeof matchedEntry === 'object'
+        ? String(matchedEntry.reason || matchedEntry.reasonText || matchedEntry.description || '').trim() : '';
+      punishmentAdminName = matchedEntry && typeof matchedEntry === 'object'
+        ? String(matchedEntry.adminName || matchedEntry.admin_name || matchedEntry.issuedBy || '').trim() : '';
     }
-    const punishmentEntry = isTokenBan ? findPunishmentEntry('BanForever', token) : isTelegramBan ? findPunishmentEntry('BlockedUsersTelegramID', String(tg?.initDataUnsafe?.user?.id || '')) : (() => { const ips=getSavedUserAPIs(); const hit=ips.find(ip=>runtimeArray('BlockedUsersIPadresses', []).some(entry=>punishmentEntryValue(entry)===ip)); return hit ? findPunishmentEntry('BlockedUsersIPadresses', hit) : null; })();
+    const punishmentEntry = isTokenBan
+      ? findPunishmentEntry('BanForever', token)
+      : isTelegramBan
+        ? findPunishmentEntry('BlockedUsersTelegramID', String(tg?.initDataUnsafe?.user?.id || ''))
+        : isIpBan
+          ? (runtimeArray('BlockedUsersIPadresses', []).find(entry => {
+              const candidates = getSavedUserAPIs().concat(cachedClientIp || []).map(ip => String(ip || '').trim().toLowerCase());
+              return candidates.includes(punishmentEntryValue(entry).toLowerCase()) ||
+                (entry && typeof entry === 'object' && candidates.includes(String(entry.ip || '').trim().toLowerCase()));
+            }) || null)
+          : null;
     currentBlockedDetails = { reason: punishmentReason, adminName: punishmentAdminName, entry: punishmentEntry };
     renderBlockedScreenDetails(lang);
     
