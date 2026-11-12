@@ -28,6 +28,12 @@ function doGet(e) {
       result = kickAll_(identity, payload);
     } else if (action === 'createReload') {
       result = createReloadEvent_(identity, payload);
+    } else if (action === 'getUsers') {
+      const admin = requireKickAdmin_(identity, payload);
+      result = getUsers_(admin);
+    } else if (action === 'getUser') {
+      const admin = requireKickAdmin_(identity, payload);
+      result = getUser_(admin, payload);
     } else {
       throw new Error('Unknown kick action.');
     }
@@ -262,6 +268,44 @@ function kickAll_(identity, payload) {
   } finally { lock.releaseLock(); }
   return { kicked:true, kickedCount:count, reason:reason, adminName:hidden?'':admin.name, adminNameHidden:hidden };
 }
+
+function usersSheet_() {
+  const sheet = spreadsheet_().getSheetByName('Users');
+  if (!sheet) throw new Error('Лист Users не найден в указанной Google-таблице.');
+  return sheet;
+}
+
+function readUsersRows_() {
+  const sheet = usersSheet_();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) return [];
+  const values = sheet.getRange(1, 1, lastRow, 5).getDisplayValues();
+  return values.filter(function(row, index) {
+    const telegramId = String(row[0] || '').trim();
+    const token = String(row[1] || '').trim();
+    if (!telegramId && !token) return false;
+    if (index === 0 && !/^\\d+$/.test(telegramId) && /telegram|user|token/i.test(row.join(' '))) return false;
+    return true;
+  });
+}
+
+function getUsers_(admin) {
+  if (Number(admin.level) < 2) throw new Error('Просмотр пользователей доступен администраторам 2-го уровня и выше.');
+  const allRows = readUsersRows_();
+  const limit = 1000;
+  return { rows: allRows.slice(0, limit), total: allRows.length, truncated: allRows.length > limit };
+}
+
+function getUser_(admin, payload) {
+  if (Number(admin.level) < 2) throw new Error('Просмотр пользователей доступен администраторам 2-го уровня и выше.');
+  const query = String(payload.query || '').trim();
+  if (!query) throw new Error('Укажите Telegram ID или токен пользователя.');
+  const rows = readUsersRows_().filter(function(row) {
+    return String(row[0] || '').trim() === query || String(row[1] || '').trim() === query;
+  });
+  return { rows: rows.slice(0, 20), total: rows.length, truncated: rows.length > 20 };
+}
+
 function createReloadEvent_(identity, payload) {
   const admin=requireKickAdmin_(identity,payload);
   if (Number(admin.level) < 4) throw new Error('Application restart is available only to administrators of level 4 or higher.');
