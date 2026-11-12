@@ -2961,18 +2961,13 @@ $('btn-create-ad').onclick = async () => {
   try {
     if (!editMode) {
       const userIp = await getClientIp();
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: BOT_CHAT_ID,
-          text: `🆕 Новая реклама! \n
-          Название рекламы: ${adName} \n
-          Telegram ID создателя этой рекламы: ${getUserID()} \n
-          IP-адрес создателя этой рекламы: ${userIp || 'unknown'}. \n
-          Токен создателя этой рекламы: ${localStorage.getItem('get_UserToken')}`
-        })
+      const notice = await window.BuyAdPrivateData.call('sendAdNotification', {
+        adName,
+        userIp: userIp || 'unknown'
       });
+      if (!notice || notice.ok !== true) {
+        throw new Error(notice?.error || 'Не удалось отправить уведомление.');
+      }
     }
 
     let base64 = null;
@@ -3931,20 +3926,17 @@ async function buyCrystals(amount, stars) {
     return;
   }
   try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/createInvoiceLink`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        title: `${amount} Crystals`,
-        description: `Purchase ${amount} crystals for ${stars} Telegram Stars`,
-        payload: `${getUserID()}:${amount}`,
-        currency: 'XTR',
-        prices: [{label: 'Crystals', amount: stars}]
-      })
+    const invoice = await window.BuyAdPrivateData.call('createInvoiceLink', {
+      amount: Number(amount),
+      stars: Number(stars),
+      title: `${amount} Crystals`,
+      description: `Purchase ${amount} crystals for ${stars} Telegram Stars`,
+      payload: `${getUserID()}:${amount}`
     });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.description);
-    const link = data.result;
+    if (!invoice || invoice.ok !== true || !invoice.invoiceLink) {
+      throw new Error(invoice?.error || 'Не удалось создать ссылку оплаты.');
+    }
+    const link = invoice.invoiceLink;
     tg.openInvoice(link, async (status) => {
       if (status.status === 'paid') {
         showPreloader();
