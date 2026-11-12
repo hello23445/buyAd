@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-12T12:10:57.718Z",
+  "updatedAt": "2026-11-12T12:11:54.446Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -249,6 +249,19 @@
           "expiresAt": "",
           "durationDays": null,
           "reason": "чит",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 5
+        },
+        {
+          "id": "ip_ban:128.71.249.101:1794485514446",
+          "kind": "ip_ban",
+          "identifier": "128.71.249.101",
+          "identifierType": "ip",
+          "issuedAt": "2026-11-12T12:11:54.446Z",
+          "expiresAt": "",
+          "durationDays": null,
+          "reason": "Чит",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
           "adminLevel": 5
