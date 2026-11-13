@@ -1449,13 +1449,29 @@ function isTelegramIdBlocked() {
 }
 
 // Resolve the public IP only when an explicit history event needs to be recorded.
-async function getClientIp() {
-  try {
-    const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return typeof data.ip === 'string' ? data.ip.trim() : null;
-  } catch (_) { return null; }
+let cachedClientIpValue = null;
+let cachedClientIpAt = 0;
+let clientIpRequest = null;
+async function getClientIp(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedClientIpValue && now - cachedClientIpAt < 5 * 60 * 1000) return cachedClientIpValue;
+  if (clientIpRequest) return clientIpRequest;
+  clientIpRequest = (async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json', { cache: 'no-store' });
+      if (!response.ok) return cachedClientIpValue;
+      const data = await response.json();
+      const ip = typeof data.ip === 'string' ? data.ip.trim() : '';
+      if (ip) {
+        cachedClientIpValue = ip;
+        cachedClientIpAt = Date.now();
+        return ip;
+      }
+      return cachedClientIpValue;
+    } catch (_) { return cachedClientIpValue; }
+    finally { clientIpRequest = null; }
+  })();
+  return clientIpRequest;
 }
 async function isIpBlocked() {
   const ip = await getClientIp();
@@ -1663,9 +1679,20 @@ async function applyRuntimeBlockings() {
   return false;
 }
 
+let admin2ConfigPollTimer = null;
+let admin2ConfigLoadPromise = null;
 async function pollAdmin2Config() {
-  await loadAdmin2Config();
-  setInterval(loadAdmin2Config, 1000);
+  if (!admin2ConfigLoadPromise) {
+    admin2ConfigLoadPromise = loadAdmin2Config().finally(() => { admin2ConfigLoadPromise = null; });
+  }
+  await admin2ConfigLoadPromise;
+  if (!admin2ConfigPollTimer) {
+    admin2ConfigPollTimer = setInterval(() => {
+      if (!admin2ConfigLoadPromise) {
+        admin2ConfigLoadPromise = loadAdmin2Config().finally(() => { admin2ConfigLoadPromise = null; });
+      }
+    }, 60000);
+  }
 }
 
 function applyLang(lang) {
@@ -2064,69 +2091,41 @@ async function updateCrystalsInGAS(amount, isAdd = true) {
   }
 }
 
-async function showMainMenu(updateWhat = 'both') {
+async function showMainMenu(updateWhat = 'both', accessPrechecked = false) {
   window.__buyAdConsentAccessAllowed = false;
   window.dispatchEvent(new Event('buyad:consent-access-changed'));
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const token = localStorage.getItem(LS.token);
   const isAdmin = ADMIN_TOKENS.includes(token);
 
-  if (!await checkUserStatus(isAdmin)) return;
-  if (!checkAppOpen(isAdmin)) return;
-  if (await window.BuyAdCheckKickStatus?.()) return;
-  if (await applyRuntimeBlockings()) return;
+  if (!accessPrechecked) {
+    if (!await checkUserStatus(isAdmin)) return;
+    if (!checkAppOpen(isAdmin)) return;
+    if (await window.BuyAdCheckKickStatus?.()) return;
+    if (await applyRuntimeBlockings()) return;
+  }
 
   hideAllScreens();
   show($('screen-main'));
   $('nav-admin').hidden = !isAdmin;
   updateAdminLevelBadge();
 
-  // Показываем состояние загрузки пока данные загружаются
-  const loadingText = lang === 'ru' ? 'Загрузка...' : 'Loading...';
-  
-  // Отключаем кнопку "Создать рекламу" до загрузки кристаллов
-  $('nav-create').disabled = true;
-
-  // Отключаем кнопку "Кристаллы" пока загружаются кристаллы
-  if (updateWhat === 'both' || updateWhat === 'crystals') {
-    $('nav-crystals').disabled = true;
-  }
-
-  // Загружаем данные в зависимости от updateWhat параметра
-  // 'both' - обновляем оба счетчика ОДНОВРЕМЕННО
-  // 'ads' - только счетчик реклам
-  // 'crystals' - только счетчик кристаллов
-  // 'none' - не обновляем ничего
+  // Show cached values immediately. Network refreshes must never delay the main menu.
   if (updateWhat === 'both' || updateWhat === 'ads') {
-    $('ads-count').textContent = loadingText;
+    $('ads-count').textContent = localStorage.getItem('adsCount') || '0';
+    updateAdsCount().catch(error => console.warn('Failed to refresh ads count:', error));
   }
   if (updateWhat === 'both' || updateWhat === 'crystals') {
-    $('crystals-count').textContent = loadingText;
-    $('crystals-now').textContent = loadingText;
-  }
-
-  // Загружаем все необходимые данные одновременно
-  const promises = [];
-  if (updateWhat === 'both' || updateWhat === 'ads') {
-    promises.push(updateAdsCount());
-  }
-  if (updateWhat === 'both' || updateWhat === 'crystals') {
-    promises.push(
-      fetchCrystals().then(crystals => {
-        currentCrystals = crystals;
-        $('crystals-count').textContent = formatNumber(currentCrystals);
-        $('crystals-now').textContent = formatNumber(currentCrystals);
-      })
-    );
-  }
-  
-  if (promises.length > 0) {
-    await Promise.all(promises);
-  }
-
-  // Включаем кнопку "Кристаллы" после загрузки
-  if (updateWhat === 'both' || updateWhat === 'crystals') {
+    const cachedCrystals = Number(localStorage.getItem('crystals') || 0);
+    currentCrystals = Number.isFinite(cachedCrystals) ? cachedCrystals : 0;
+    $('crystals-count').textContent = formatNumber(currentCrystals);
+    $('crystals-now').textContent = formatNumber(currentCrystals);
     $('nav-crystals').disabled = false;
+    fetchCrystals().then(crystals => {
+      currentCrystals = crystals;
+      $('crystals-count').textContent = formatNumber(currentCrystals);
+      $('crystals-now').textContent = formatNumber(currentCrystals);
+    }).catch(error => console.warn('Failed to refresh crystals:', error));
   }
 
   // Локальное отключение создания (после загрузки кристаллов)
@@ -5217,14 +5216,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isAdmin = ADMIN_TOKENS.includes(localStorage.getItem(LS.token));
     const userStatusOk = await startupWait(checkUserStatus(isAdmin), 3000, true);
     if (userStatusOk && checkAppOpen(isAdmin)) {
+      const kickBlocked = await startupWait(window.BuyAdCheckKickStatus?.(), 2500, false);
+      if (kickBlocked) {
+        updateOnlineStatus();
+      } else {
       // Start session registration in parallel with the main-menu data load.
       // Session monitoring still starts only after GAS confirms the write.
       initializeSession().catch(error => console.warn('Background session initialization failed:', error));
 
-      // Do not let optional background work delay the main-menu transition.
-      await startupWait(showMainMenu('both'), 5000, undefined);
+      // Runtime restrictions were checked above; render the menu without repeating network checks.
+      await startupWait(showMainMenu('both', true), 1000, undefined);
       // Фоновая загрузка списка реклам после запуска приложения.
       loadMyAds(true).catch(error => console.warn('Не удалось загрузить список реклам:', error));
+      }
     }
     const langBtn = document.querySelector(`#settings-lang-buttons .seg[data-value="${lang}"]`);
     if (langBtn) langBtn.classList.add('active');
