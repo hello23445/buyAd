@@ -341,7 +341,7 @@ function createNotification_(admin,payload){
     if(type==='token'&&!tokens.length)throw new Error('User token was not found.');
   }else if(type!=='all')throw new Error('Unknown notification target.');
   const now=Date.now(),eventId=Utilities.getUuid();
-  notificationSheet_().appendRow([eventId,type,telegramId,JSON.stringify(tokens),message,duration,payload.showChief===true,new Date(now),new Date(now+duration*1000),admin.name]);
+  notificationSheet_().appendRow([eventId,type,telegramId,JSON.stringify(tokens),message,duration,payload.showChief===true,new Date(now),new Date(now+duration*1000+30000),admin.name]);
   return {created:true,eventId:eventId};
 }
 function matchingNotifications_(identity){
