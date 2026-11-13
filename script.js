@@ -3952,37 +3952,56 @@ async function buyCrystals(amount, stars) {
     openModal(i18n[lang].paymentsDisabled || 'Платежи временно отключены', '');
     return;
   }
-  try {
-    const invoice = await window.BuyAdPrivateData.call('createInvoiceLink', {
-      amount: Number(amount),
-      stars: Number(stars),
-      title: `${amount} Crystals`,
-      description: `Purchase ${amount} crystals for ${stars} Telegram Stars`,
-      payload: `${getUserID()}:${amount}`
-    });
-    if (!invoice || invoice.ok !== true || !invoice.invoiceLink) {
-      throw new Error(invoice?.error || 'Не удалось создать ссылку оплаты.');
-    }
-    const link = invoice.invoiceLink;
-    tg.openInvoice(link, async (status) => {
-      if (status.status === 'paid') {
-        showPreloader();
-        try {
-          await updateCrystalsInGAS(amount, true);
-          $('crystals-now').textContent = formatNumber(currentCrystals);
-          $('crystals-count').textContent = formatNumber(currentCrystals);
-          if ($('crystals-in-create')) $('crystals-in-create').textContent = formatNumber(currentCrystals);
-          openModal(i18n[lang].doneTitle, i18n[lang].crystalsAdded);
-        } catch (e) {
-          openModal(i18n[lang].failedToAddCrystals, '');
-        } finally {
-          hidePreloader();
-        }
+  const formattedAmount = formatNumber(Number(amount));
+  const formattedStars = formatNumber(Number(stars));
+  const requestMessage = lang === 'ru'
+    ? `Здравствуйте, мне бы хотелось оформить ${formattedAmount} кристаллов за ${formattedStars} телеграм звёзд в приложении бота @buyAdss_bot.`
+    : `Hello, I would like to purchase ${formattedAmount} crystals for ${formattedStars} Telegram Stars in the @buyAdss_bot app.`;
+  const body = document.createElement('div');
+  body.className = 'stack-sm';
+  const instruction = document.createElement('p');
+  instruction.textContent = lang === 'ru'
+    ? 'Необходимо перейти к нашему боту службы поддержки и отправить ему это сообщение:'
+    : 'Please open our support bot and send it this message:';
+  body.appendChild(instruction);
+  const messageBox = document.createElement('div');
+  messageBox.className = 'card';
+  messageBox.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;';
+  messageBox.textContent = requestMessage;
+  body.appendChild(messageBox);
+  const copyButton = document.createElement('button');
+  copyButton.type = 'button';
+  copyButton.className = 'btn btn--secondary btn--full';
+  copyButton.textContent = lang === 'ru' ? 'Скопировать сообщение' : 'Copy message';
+  copyButton.onclick = async () => {
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(requestMessage);
+      else {
+        const field = document.createElement('textarea');
+        field.value = requestMessage;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand('copy');
+        field.remove();
       }
-    });
-  } catch (e) {
-    openModal(`${i18n[lang].failedToCreateInvoice}: ${e.message}`, '');
-  }
+      copyButton.textContent = lang === 'ru' ? 'Скопировано' : 'Copied';
+    } catch (_) { copyButton.textContent = lang === 'ru' ? 'Не удалось скопировать' : 'Copy failed'; }
+  };
+  body.appendChild(copyButton);
+  openModal(lang === 'ru' ? 'Покупка кристаллов' : 'Purchase crystals', body, [
+    {
+      text: lang === 'ru' ? 'Перейти к боту' : 'Open support bot',
+      class: 'btn btn--primary',
+      onClick: () => {
+        const url = 'https://t.me/Clickerstart_bot';
+        if (tg?.openTelegramLink) tg.openTelegramLink(url);
+        else window.open(url, '_blank', 'noopener');
+      }
+    },
+    { text: lang === 'ru' ? 'Закрыть' : 'Close', class: 'btn btn--secondary' }
+  ]);
 }
 
 /* ========== ADMIN FUNCTIONS ========== */
