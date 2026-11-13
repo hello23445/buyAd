@@ -5311,6 +5311,7 @@ document.addEventListener('click', (e) => {
     '/unwarn': '/unwarn Telegram_ID/Токен — Снимает предупреждения.',
     '/users': '/users — Показывает таблицу пользователей из Google Sheets.',
     '/user': '/user Telegram_ID/Токен_пользователя — Показывает данные одного пользователя.',
+    '/t_notify': '/t_notify [Telegram_ID/Токен] Сообщение Время_в_секундах no/yes — Баннер всем активным пользователям или выбранному пользователю. yes — «Главный администратор», no — «Администрация».',
     '/app': '/app [1] [2] [3] [4] [5] [6] — 1: создание рекламы (1 выкл., 2 вкл.); 2: редактирование рекламы (1 выкл., 2 вкл.); 3: платежи (1 выкл., 2 вкл.); 4: рефералы (1 выкл., 2 вкл.); 5: приложение (1 закрыть, 2 открыть); 6: обращения к GAS (1 выкл., 2 вкл.). Пример: /app 2 2 2 2 2 2 — включить всё.',
     '/stats': '/stats Telegram_ID/Токен — Открывает статистику пользователя.',
     '/alist': '/alist Telegram_ID/Токен — Показывает список наказаний пользователя.',
@@ -5394,7 +5395,7 @@ document.addEventListener('click', (e) => {
     const groups = [
       { title:'Проверка и работа с пользователями', commands:['/c','/relist','/users','/user','/stats','/alist','/warn','/unwarn'] },
       { title:'Блокировки и ограничения', commands:['/tban','/untban','/sban','/unsban','/tg_ban','/untg_ban','/cblock','/uncblock'] },
-      { title:'Управление приложением', commands:['/app','/cban','/rban','/payments','/referals','/close_app','/gases'] },
+      { title:'Управление приложением', commands:['/app','/t_notify','/cban','/rban','/payments','/referals','/close_app','/gases'] },
       { title:'Администраторы', commands:['/add_admin','/change_admin','/delete_admin'] },
       { title:'Отключение и перезапуск', commands:['/kick','/kick_all','/reload','/reload_time','/reload_all','/reload_all_time'] },
       { title:'Мои данные и настройки', commands:['/tcopy','/tdcopy','/icopy','/chat_off'] }
@@ -5463,6 +5464,7 @@ document.addEventListener('click', (e) => {
       '/warn': level >= 2, '/unwarn': level >= 2,
       '/users': level >= 2, '/user': level >= 2,
       '/app': level >= 4,
+      '/t_notify': level >= 5,
       '/stats': permission('viewUserStatistics'), '/alist': permission('viewUserStatistics'),
       '/kick': level >= 2 && permission('kickUser'),
       '/kick_all': level >= 2 && permission('kickUser'),
@@ -5632,12 +5634,35 @@ document.addEventListener('click', (e) => {
       if (ip) cachedClientIp = ip;
       const result = await kickGasRequest('checkKick', { clientIp: ip });
       if (result.kicked === true) { showKickedScreen(result); return true; }
+      applyUserNotifications(result.notifications || []);
       return applyRemoteReloadEvents(result.reloadEvents || []);
     } catch (error) {
       console.warn('Не удалось проверить статус кика/перезапуска:', error);
     }
     return false;
   }
+
+  const NOTIFY_CONSUMED_KEY='buyAdConsumedNotifications';
+  let notificationPollTimer=null,activeNotificationTimer=null;
+  function consumedNotifications(){try{const a=JSON.parse(localStorage.getItem(NOTIFY_CONSUMED_KEY)||'[]');return Array.isArray(a)?a.map(String):[];}catch(_){return[];}}
+  function showUserNotification(event){
+    const id=String(event.eventId||'');if(!id||consumedNotifications().includes(id))return;
+    const ids=consumedNotifications();ids.push(id);localStorage.setItem(NOTIFY_CONSUMED_KEY,JSON.stringify(ids.slice(-100)));
+    let banner=$('user-notification-banner');
+    if(!banner){banner=document.createElement('div');banner.id='user-notification-banner';banner.style.cssText='position:fixed;z-index:10050;top:calc(env(safe-area-inset-top, 0px) + 12px);left:16px;right:16px;padding:16px 18px;border:1px solid var(--border-color, #394155);border-radius:16px;background:var(--card-bg, #171f32);color:var(--text-color, #f4f6ff);box-shadow:0 10px 35px rgba(0,0,0,.35);white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.45;';document.body.appendChild(banner);}
+    clearTimeout(activeNotificationTimer);banner.textContent=(event.showChief===true?'Главный администратор':'Администрация')+':\\n'+String(event.message||'');banner.hidden=false;
+    const seconds=Math.max(1,Math.min(86400,Number(event.durationSeconds)||5));activeNotificationTimer=setTimeout(()=>{banner.hidden=true;},seconds*1000);
+  }
+  function applyUserNotifications(events){(Array.isArray(events)?events:[]).forEach(showUserNotification);}
+  function startUserNotificationPolling(){
+    if(notificationPollTimer||!GAS_KICK_URL||!tg?.initData)return;
+    notificationPollTimer=setInterval(async()=>{
+      if(document.visibilityState==='hidden'||!tg?.initData)return;
+      try{const ip=cachedClientIp||await getClientIp()||'';const result=await kickGasRequest('checkKick',{clientIp:ip});if(result.kicked===true){showKickedScreen(result);return;}applyRemoteReloadEvents(result.reloadEvents||[]);applyUserNotifications(result.notifications||[]);}
+      catch(error){console.warn('Не удалось проверить уведомления:',error);}
+    },10000);
+  }
+
   function showKickUserDialog() {
     const body = document.createElement('div');
     body.className = 'stack-sm';
@@ -6080,6 +6105,24 @@ document.addEventListener('click', (e) => {
         renderUsersTable(rows, command === '/users' ? 'Пользователи' : 'Данные пользователя', Number(result.total || rows.length), result.truncated === true);
         return;
       }
+
+      if (command === '/t_notify') {
+        if (Number(getCurrentAdmin()?.admin_level || 0) < 5) throw new Error('Команда /t_notify доступна только главному администратору 5-го уровня.');
+        if (args.length < 3) return commandError(command);
+        const visibility=String(args[args.length-1]).toLowerCase(), duration=Number(args[args.length-2]);
+        let targetType='all',target='',messageParts=args.slice(0,-2);
+        if(args.length>=4&&(/^\\d+$/.test(args[0])||/^[A-Za-z0-9_-]{8,120}$/.test(args[0]))){target=args[0];targetType=/^\\d+$/.test(target)?'telegram':'token';messageParts=args.slice(1,-2);}
+        const message=messageParts.join(' ').trim();
+        if(!message)return commandError(command,'Укажите текст уведомления.');
+        if(!Number.isInteger(duration)||duration<1||duration>86400)throw new Error('Время показа должно быть целым числом от 1 до 86400 секунд.');
+        if(!['no','yes'].includes(visibility))throw new Error('Последний параметр должен быть no или yes.');
+        await commandRunWithLoader(async()=>{
+          const result=await kickGasRequest('createNotification',{targetType,target,message,durationSeconds:duration,showChief:visibility==='yes',adminToken:String(localStorage.getItem(LS.token)||'')});
+          if(result.created!==true)throw new Error('Сервер не подтвердил отправку уведомления.');
+        });
+        commandMessage('Уведомление отправлено',(targetType==='all'?'Получатели: все активные пользователи':'Получатель: '+target)+'\\nОтправитель: '+(visibility==='yes'?'Главный администратор':'Администрация')+'\\nПоказывать: '+duration+' сек.\\n\\n'+message);
+        return;
+      }
       if (command === '/app') {
         if (args.length !== 6 || args.some(value => !['1','2'].includes(value))) {
           return commandError(command, 'Нужно указать ровно шесть значений: создание, редактирование, платежи, рефералы, доступ к приложению, GAS. Для каждого: 1 — выключить/закрыть, 2 — включить/открыть.');
@@ -6336,6 +6379,7 @@ document.addEventListener('click', (e) => {
   }
   window.BuyAdAdminCommandChat = { run: runAdminCommand, refresh: syncAdminCommandChat };
   window.BuyAdCheckKickStatus = checkKickStatus;
+  startUserNotificationPolling();
   if (GAS_KICK_URL && tg?.initData) setInterval(() => {
     if (!$('screen-kicked') || $('screen-kicked').hidden) checkKickStatus();
   }, 5000);
