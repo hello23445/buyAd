@@ -5748,7 +5748,7 @@ document.addEventListener('click', (e) => {
     const sender=banner.querySelector('.buyad-notice-sender');
     const message=banner.querySelector('.buyad-notice-message');
     if(sender)sender.textContent=event.showChief===true?'Главный администратор':'Администрация';
-    if(message)message.textContent=String(event.message||'');
+    if(message)message.textContent=String(event.message||'').replace(/\\n/g,'\n');
     banner.hidden=false;
     banner.style.animation='none';
     void banner.offsetWidth;
