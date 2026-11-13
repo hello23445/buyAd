@@ -5665,12 +5665,100 @@ document.addEventListener('click', (e) => {
   let notificationPollTimer=null,activeNotificationTimer=null;
   function consumedNotifications(){try{const a=JSON.parse(localStorage.getItem(NOTIFY_CONSUMED_KEY)||'[]');return Array.isArray(a)?a.map(String):[];}catch(_){return[];}}
   function showUserNotification(event){
-    const id=String(event.eventId||'');if(!id||consumedNotifications().includes(id))return;
-    const ids=consumedNotifications();ids.push(id);localStorage.setItem(NOTIFY_CONSUMED_KEY,JSON.stringify(ids.slice(-100)));
+    const id=String(event.eventId||'');
+    if(!id||consumedNotifications().includes(id))return;
+    const ids=consumedNotifications();
+    ids.push(id);
+    localStorage.setItem(NOTIFY_CONSUMED_KEY,JSON.stringify(ids.slice(-100)));
+
     let banner=$('user-notification-banner');
-    if(!banner){banner=document.createElement('div');banner.id='user-notification-banner';banner.style.cssText='position:fixed;z-index:10050;top:calc(env(safe-area-inset-top, 0px) + 12px);left:16px;right:16px;padding:16px 18px;border:1px solid var(--border-color, #394155);border-radius:16px;background:var(--card-bg, #171f32);color:var(--text-color, #f4f6ff);box-shadow:0 10px 35px rgba(0,0,0,.35);white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.45;';document.body.appendChild(banner);}
-    clearTimeout(activeNotificationTimer);banner.textContent=(event.showChief===true?'Главный администратор':'Администрация')+':\\n'+String(event.message||'');banner.hidden=false;
-    const seconds=Math.max(1,Math.min(86400,Number(event.durationSeconds)||5));activeNotificationTimer=setTimeout(()=>{banner.hidden=true;},seconds*1000);
+    if(!banner){
+      if(!document.getElementById('buyad-notification-styles')){
+        const style=document.createElement('style');
+        style.id='buyad-notification-styles';
+        style.textContent=`
+          @keyframes buyAdNoticeIn {
+            from { opacity:0; transform:translate(-50%,-12px) scale(.985); }
+            to { opacity:1; transform:translate(-50%,0) scale(1); }
+          }
+          @keyframes buyAdNoticeOut {
+            from { opacity:1; transform:translate(-50%,0) scale(1); }
+            to { opacity:0; transform:translate(-50%,-8px) scale(.99); }
+          }
+          #user-notification-banner {
+            position:fixed; z-index:10050;
+            top:calc(env(safe-area-inset-top, 0px) + 26px);
+            left:50%; width:calc(100% - 32px); max-width:560px;
+            box-sizing:border-box; overflow:hidden;
+            padding:0; border:1px solid var(--border-color, #394155);
+            border-radius:18px;
+            background:linear-gradient(135deg,rgba(35,47,76,.98),rgba(20,28,46,.98));
+            color:var(--text-color,#f4f6ff);
+            box-shadow:0 14px 38px rgba(0,0,0,.34),0 2px 8px rgba(0,0,0,.16);
+            backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+            transform:translateX(-50%);
+            animation:buyAdNoticeIn .24s cubic-bezier(.2,.75,.25,1) both;
+          }
+          #user-notification-banner .buyad-notice-accent {
+            height:3px; width:100%;
+            background:linear-gradient(90deg,#536dfe,#8c9bff,#536dfe);
+          }
+          #user-notification-banner .buyad-notice-content { padding:14px 17px 16px; }
+          #user-notification-banner .buyad-notice-heading {
+            display:flex; align-items:center; gap:9px;
+            margin:0 0 7px; font-size:14px; line-height:1.3;
+            font-weight:700; letter-spacing:.01em; opacity:.96;
+          }
+          #user-notification-banner .buyad-notice-dot {
+            flex:0 0 8px; width:8px; height:8px; border-radius:50%;
+            background:#8192ff; box-shadow:0 0 10px rgba(129,146,255,.7);
+          }
+          #user-notification-banner .buyad-notice-message {
+            margin:0; font-size:15px; line-height:1.45;
+            font-weight:450; white-space:pre-wrap; overflow-wrap:anywhere;
+          }
+          @media (prefers-reduced-motion:reduce) {
+            #user-notification-banner { animation:none; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      banner=document.createElement('div');
+      banner.id='user-notification-banner';
+      banner.setAttribute('role','status');
+      banner.setAttribute('aria-live','polite');
+      const accent=document.createElement('div');
+      accent.className='buyad-notice-accent';
+      const content=document.createElement('div');
+      content.className='buyad-notice-content';
+      const heading=document.createElement('div');
+      heading.className='buyad-notice-heading';
+      const dot=document.createElement('span');
+      dot.className='buyad-notice-dot';
+      const sender=document.createElement('span');
+      sender.className='buyad-notice-sender';
+      heading.append(dot,sender);
+      const message=document.createElement('p');
+      message.className='buyad-notice-message';
+      content.append(heading,message);
+      banner.append(accent,content);
+      document.body.appendChild(banner);
+    }
+    clearTimeout(activeNotificationTimer);
+    const sender=banner.querySelector('.buyad-notice-sender');
+    const message=banner.querySelector('.buyad-notice-message');
+    if(sender)sender.textContent=event.showChief===true?'Главный администратор':'Администрация';
+    if(message)message.textContent=String(event.message||'');
+    banner.hidden=false;
+    banner.style.animation='none';
+    void banner.offsetWidth;
+    banner.style.animation='buyAdNoticeIn .24s cubic-bezier(.2,.75,.25,1) both';
+    const seconds=Math.max(1,Math.min(86400,Number(event.durationSeconds)||5));
+    activeNotificationTimer=setTimeout(()=>{
+      if(!banner.isConnected)return;
+      banner.style.animation='buyAdNoticeOut .18s ease-in both';
+      setTimeout(()=>{if(banner.isConnected)banner.hidden=true;},180);
+    },seconds*1000);
   }
   function applyUserNotifications(events){(Array.isArray(events)?events:[]).forEach(showUserNotification);}
   function startUserNotificationPolling(){
