@@ -29,15 +29,27 @@ const RULES_TEXT = {
 
 <b>2.4.</b> Запрещены распространение, направление или финансирование (либо просьбы о финансировании) терроризма, террористических группировок и так далее | <b>Наказание:</b> полная блокировка аккаунта навсегда.
 
-<b>2.5.</b> Запрещено создавать рекламу с оскорблением или завуалированным оскорблением родных или данного проекта | <b>Наказание:</b> блокировка создания и редактирования реклам на срок от 2 до 5 дней.
+<b>2.5.</b> Запрещено создавать рекламу с оскорблением или завуалированным оскорблением родных или данного проекта | <b>Наказание:</b> предупреждение, при повторных нарушениях — блокировка создания и редактирования реклам на срок от 2 до 5 дней.
 
-<b>2.6.</b> Запрещено использовать баги или неисправности приложения для получения преимуществ | <b>Наказание:</b> блокировка аккаунта от 2 до 10 дней.
+<b>2.6.</b> Запрещено использовать баги или неисправности приложения для получения преимуществ | <b>Наказание:</b> предупреждение, при повторных нарушениях — блокировка аккаунта от 2 до 10 дней.
 
 <b>2.7.</b> Запрещено использование нецензурных лексик в рекламе | <b>Наказание:</b> предупреждение, при повторных нарушениях - блокировка аккаунта от 2 до 15 дней.
 
-<b>2.8.</b> Запрещено оскорбление кого-либо и чего-либо | <b>Наказание:</b> блокировка создания и редактирования реклам на 2 дня, при повторных - блокировка аккаунта от 5 до 30 дней.
+<b>2.8.</b> Запрещено оскорбление кого-либо и чего-либо | <b>Наказание:</b> предупреждение или блокировка создания и редактирования реклам на 2 дня; при повторных нарушениях — блокировка аккаунта от 5 до 30 дней.
 
 <b>2.9.</b> Запрещено создавать рекламу с оскорблением/завуалированным оскорблением национальности/наций или религии/религий | <b>Наказание:</b> блокировка аккаунта от 10 дней до полной блокировки аккаунта навсегда.
+
+<b>2.10.</b> Запрещено создание реклам с участием политиков или несовершеннолетних детей | <b>Наказание:</b> от предупреждения до блокировки аккаунта на 10 дней или до полной блокировки аккаунта от 5 дней.
+
+<b>2.11.</b> Запрещено создавать рекламы, содержащие сцены насилия, жестокости или крови | <b>Наказание:</b> предупреждение или блокировка аккаунта на 10 дней, вплоть до блокировки аккаунта навсегда.
+
+<b>2.12.</b> Запрещено создавать рекламы, нарушающие авторские права | <b>Наказание:</b> предупреждение, при повторных нарушениях — блокировка создания и редактирования реклам от 2 до 30 дней.
+
+<b>2.13.</b> Запрещено создание реклам с целью политического разжигания | <b>Наказание:</b> от предупреждения до блокировки аккаунта от 5 дней до блокировки аккаунта навсегда.
+
+<b>2.14.</b> Запрещено создавать рекламы, способные причинить травмы или вред здоровью | <b>Наказание:</b> от предупреждения до блокировки аккаунта от 3 дней до блокировки аккаунта навсегда.
+
+<b>2.15.</b> Запрещено создавать рекламы, изображающие людей в унизительном, ложном или дискредитирующем свете | <b>Наказание:</b> от предупреждения до блокировки аккаунта от 5 до 30 дней.
 
 🔹 <b>3. Размещение и оплата</b>
 
@@ -80,15 +92,27 @@ Examples: @link, t.me/link, and so on | <b>Penalty:</b> blocking ad creation and
 
 <b>2.4.</b> Promoting, directing, or financing terrorism or terrorist groups, or requesting such financing, is prohibited. | <b>Penalty:</b> permanent account ban.
 
-<b>2.5.</b> Creating an advertisement that insults or indirectly insults a person's family or this project is prohibited | <b>Penalty:</b> blocking ad creation and editing for 2 to 5 days.
+<b>2.5.</b> Creating an advertisement that insults or indirectly insults a person's family or this project is prohibited | <b>Penalty:</b> warning; for repeated violations — blocking ad creation and editing for 2 to 5 days.
 
-<b>2.6.</b> Using bugs or app malfunctions to gain an advantage is prohibited | <b>Penalty:</b> account ban for 2 to 10 days.
+<b>2.6.</b> Using bugs or app malfunctions to gain an advantage is prohibited | <b>Penalty:</b> warning; for repeated violations — account ban for 2 to 10 days.
 
 <b>2.7.</b> Using obscene language in advertisements is prohibited | <b>Penalty:</b> warning; for repeated violations - account ban from 2 to 15 days.
 
-<b>2.8.</b> Insulting anyone or anything is prohibited | <b>Penalty:</b> blocking ad creation and editing for 2 days; for repeated violations - account ban from 5 to 30 days.
+<b>2.8.</b> Insulting anyone or anything is prohibited | <b>Penalty:</b> warning or blocking ad creation and editing for 2 days; for repeated violations — account ban from 5 to 30 days.
 
 <b>2.9.</b> Creating an advertisement with an insult or veiled insult targeting a nationality/nationalities or religion/religions is prohibited | <b>Penalty:</b> account ban from 10 days up to a permanent account ban.
+
+<b>2.10.</b> Advertisements featuring politicians or minors are prohibited | <b>Penalty:</b> from a warning up to a 10-day account ban, or a full account ban lasting at least 5 days.
+
+<b>2.11.</b> Advertisements containing scenes of violence, cruelty, or blood are prohibited | <b>Penalty:</b> warning or a 10-day account ban, up to a permanent account ban.
+
+<b>2.12.</b> Advertisements that infringe copyright are prohibited | <b>Penalty:</b> warning; for repeated violations — blocking ad creation and editing for 2 to 30 days.
+
+<b>2.13.</b> Advertisements intended to incite political hostility are prohibited | <b>Penalty:</b> from a warning up to an account ban of at least 5 days, up to a permanent account ban.
+
+<b>2.14.</b> Advertisements that may cause injury or harm to health are prohibited | <b>Penalty:</b> from a warning up to an account ban of at least 3 days, up to a permanent account ban.
+
+<b>2.15.</b> Advertisements depicting people in a humiliating, false, or defamatory manner are prohibited | <b>Penalty:</b> from a warning up to an account ban from 5 to 30 days.
 
 🔹 <b>3. Placement and Payment</b>
 
