@@ -35,6 +35,9 @@ function doGet(e) {
     } else if (action === 'getUser') {
       const admin = requireKickAdmin_(identity, payload);
       result = getUser_(admin, payload);
+    } else if (action === 'createNotification') {
+      const admin = requireKickAdmin_(identity, payload);
+      result = createNotification_(admin, payload);
     } else {
       throw new Error('Unknown kick action.');
     }
@@ -316,6 +319,44 @@ function getUser_(admin, payload) {
   return { rows: rows.slice(0, 20), total: rows.length, truncated: rows.length > 20 };
 }
 
+
+const BUYAD_NOTIFICATION_SHEET_NAME='UserNotifications';
+function notificationSheet_(){
+  const book=spreadsheet_();let sheet=book.getSheetByName(BUYAD_NOTIFICATION_SHEET_NAME);
+  if(!sheet)sheet=book.insertSheet(BUYAD_NOTIFICATION_SHEET_NAME);
+  if(sheet.getLastRow()===0)sheet.getRange(1,1,1,10).setValues([['event_id','target_type','target_telegram_id','target_tokens_json','message','duration_seconds','show_chief','created_at','expires_at','admin_name']]);
+  return sheet;
+}
+function createNotification_(admin,payload){
+  if(Number(admin.level)<5)throw new Error('Notifications are available only to the level 5 chief administrator.');
+  const type=String(payload.targetType||'all'),target=String(payload.target||'').trim(),message=String(payload.message||'').trim(),duration=Number(payload.durationSeconds);
+  if(!message||message.length>1500)throw new Error('Notification text must contain 1 to 1500 characters.');
+  if(!Number.isInteger(duration)||duration<1||duration>86400)throw new Error('Notification duration must be 1 to 86400 seconds.');
+  let telegramId='',tokens=[];
+  if(type==='telegram'||type==='token'){
+    if(!target)throw new Error('Specify a Telegram ID or user token.');
+    const profile=profileForIdentifier_(target);telegramId=profile.telegramId||(type==='telegram'?target:'');
+    tokens=Array.from(new Set((profile.tokens||[]).concat(type==='token'?[target]:[])));
+    if(type==='telegram'&&!/^\\d+$/.test(telegramId))throw new Error('Invalid Telegram ID.');
+    if(type==='token'&&!tokens.length)throw new Error('User token was not found.');
+  }else if(type!=='all')throw new Error('Unknown notification target.');
+  const now=Date.now(),eventId=Utilities.getUuid();
+  notificationSheet_().appendRow([eventId,type,telegramId,JSON.stringify(tokens),message,duration,payload.showChief===true,new Date(now),new Date(now+duration*1000),admin.name]);
+  return {created:true,eventId:eventId};
+}
+function matchingNotifications_(identity){
+  const sheet=notificationSheet_(),last=sheet.getLastRow();if(last<2)return[];
+  const now=Date.now(),rows=sheet.getRange(2,1,last-1,10).getValues(),matches=[];
+  rows.forEach(row=>{
+    const expires=row[8] instanceof Date?row[8].getTime():Number(row[8]);if(!Number.isFinite(expires)||now>expires)return;
+    const type=String(row[1]||'');let tokens=[];try{tokens=JSON.parse(String(row[3]||'[]')).map(String);}catch(_){}
+    const telegram=String(row[2]||'');
+    const matched=type==='all'||(type==='telegram'&&telegram===identity.telegramId)||(type==='token'&&(tokens.includes(identity.userToken)||(telegram&&telegram===identity.telegramId)));
+    if(matched)matches.push({eventId:String(row[0]||''),message:String(row[4]||''),durationSeconds:Number(row[5])||5,showChief:row[6]===true||String(row[6]).toLowerCase()==='true'});
+  });
+  return matches;
+}
+
 function createReloadEvent_(identity, payload) {
   const admin=requireKickAdmin_(identity,payload);
   if (Number(admin.level) < 4) throw new Error('Application restart is available only to administrators of level 4 or higher.');
@@ -390,7 +431,7 @@ function checkKick_(identity, payload = {}) {
         };
       }
     }
-    return { kicked: false, reloadEvents: matchingReloadEvents_(identity, payload) };
+    return { kicked: false, reloadEvents: matchingReloadEvents_(identity, payload), notifications: matchingNotifications_(identity) };
   } finally {
     lock.releaseLock();
   }
