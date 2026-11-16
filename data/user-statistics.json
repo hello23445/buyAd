@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-16T16:23:02.702Z",
+  "updatedAt": "2026-11-16T16:23:26.505Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -147,6 +147,30 @@
           "issuedAt": "2026-11-16T16:14:53.341Z",
           "expiresAt": "2026-11-20T16:14:53.340Z",
           "reason": "2.15",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1794846206062_0_rqgm2",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-16T16:23:26.062Z",
+          "expiresAt": "2026-11-18T16:23:26.063Z",
+          "reason": "2.14",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1794846206062_1_l85eo",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-16T16:23:26.063Z",
+          "expiresAt": "2026-11-20T16:23:26.063Z",
+          "reason": "2.14",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
           "adminLevel": 0
