@@ -9,6 +9,7 @@ const ADMINS = [
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
+      "viewUserStatistics": true,
       "banToken": true,
       "unban": true,
       "unbanTelegramId": true,
@@ -21,6 +22,8 @@ const ADMINS = [
       "changeOwnLevelLocally": true,
       "hideNameOnRejection": true,
       "hideNameOnBan": true,
+      "viewOwnIp": true,
+      "kickUser": true
     }
   },
   {
@@ -30,6 +33,7 @@ const ADMINS = [
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
+      "viewUserStatistics": true,
       "banToken": true,
       "unban": true,
       "unbanTelegramId": true,
@@ -38,10 +42,12 @@ const ADMINS = [
       "banTelegramId": true,
       "banIp": false,
       "globalCreateToggle": false,
-      "manageAdmins": true,
+      "manageAdmins": false,
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
+      "viewOwnIp": false,
+      "kickUser": true
     }
   },
   {
@@ -51,6 +57,7 @@ const ADMINS = [
     "permissions": {
       "reviewAds": true,
       "viewRestricted": true,
+      "viewUserStatistics": true,
       "banToken": true,
       "unban": true,
       "unbanTelegramId": false,
@@ -59,24 +66,27 @@ const ADMINS = [
       "banTelegramId": false,
       "banIp": false,
       "globalCreateToggle": false,
-      "manageAdmins": true,
+      "manageAdmins": false,
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
+      "viewOwnIp": false,
+      "kickUser": true
     }
   },
   {
-    "admin_name": "Администратор 1 уровня",
-    "admin_level": 1,
+    "admin_name": "Администратор 2 уровня",
+    "admin_level": 2,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
       "reviewAds": true,
-      "viewRestricted": false,
-      "banToken": false,
-      "unban": false,
+      "viewRestricted": true,
+      "viewUserStatistics": true,
+      "banToken": true,
+      "unban": true,
       "unbanTelegramId": false,
       "unbanIp": false,
-      "restrictAds": false,
+      "restrictAds": true,
       "banTelegramId": false,
       "banIp": false,
       "globalCreateToggle": false,
@@ -84,6 +94,8 @@ const ADMINS = [
       "changeOwnLevelLocally": false,
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
+      "viewOwnIp": false,
+      "kickUser": true
     },
     "custom_permissions": true
   }
