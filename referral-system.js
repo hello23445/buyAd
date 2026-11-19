@@ -737,6 +737,7 @@
           target.disabled = true;
           target.textContent = text('Создаём ссылку…', 'Creating link…');
           try {
+            if (window.BuyAdWarnings?.isReferralDisabled?.()) throw new Error(text('Реферальная система отключена из-за активного предупреждения.', 'Referral access is disabled due to an active warning.'));
             await api('createReferral');
             await loadState();
             if (typeof window.BuyAdRefreshCrystals === 'function') await window.BuyAdRefreshCrystals();
@@ -819,6 +820,10 @@
 
   async function openReferralScreen() {
     showScreen();
+    if (window.BuyAdWarnings?.isReferralDisabled?.()) {
+      setPageMessage(text('Реферальная система отключена: у аккаунта есть активное предупреждение. Она станет доступна после снятия всех предупреждений.', 'Referral system is disabled while your account has an active warning. It will become available after all warnings are removed.'), 'is-warning');
+      return;
+    }
     if (!serviceUrl()) {
       setPageMessage(text(
         'Сервер реферальной системы ещё не подключён. После развёртывания Google Apps Script укажите URL в settings.js.',
