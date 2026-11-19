@@ -313,7 +313,7 @@ function formatPunishmentDuration(entry, lang) {
 function showFeatureBlockedModal(type) {
   const lang = localStorage.getItem(LS.lang) || 'ru';
   const i18nLang = i18n[lang] || i18n.ru;
-  const title = i18nLang.attentionTitle || 'Внимание';
+  const title = i18nLang.attentionTitle || buyAdUiText('Внимание', 'Attention');
   let body = type === 'edit'
     ? (i18nLang.editDisabled || 'Возможность редактировать рекламу временно отключена.')
     : (i18nLang.createDisabled || 'Возможность создавать рекламу временно отключена.');
@@ -2200,7 +2200,7 @@ function openAdminReferralConfirmation({ title, body, confirmText, confirmClass,
         );
         refreshAdminReferralStatus();
       } catch (error) {
-        openModal(lang === 'ru' ? 'Не удалось изменить статус' : 'Could not change status', error.message || '');
+        openModal(buyAdUiText('Не удалось изменить статус', 'Could not change status'), error.message || '');
       }
     } },
     { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
@@ -3566,7 +3566,7 @@ function openAdStatistics(ad) {
     if (!Number.isNaN(candidate.getTime())) createdDate = candidate;
   }
   if (createdDate && createdField && createdLabel) {
-    createdLabel.textContent = 'Реклама создана в: ' + String(createdDate.getDate()).padStart(2, '0') + '.' + String(createdDate.getMonth() + 1).padStart(2, '0') + '.' + createdDate.getFullYear();
+    createdLabel.textContent = buyAdUiText('Реклама создана в: ', 'Ad created: ') + String(createdDate.getDate()).padStart(2, '0') + '.' + String(createdDate.getMonth() + 1).padStart(2, '0') + '.' + createdDate.getFullYear();
     createdField.hidden = false;
   } else if (createdField) createdField.hidden = true;
   $('ad-statistics-views').textContent = formatNumber(views);
@@ -4000,7 +4000,7 @@ async function buyCrystals(amount, stars) {
     } catch (_) { copyButton.textContent = lang === 'ru' ? 'Не удалось скопировать' : 'Copy failed'; }
   };
   body.appendChild(copyButton);
-  openModal(lang === 'ru' ? 'Покупка кристаллов' : 'Purchase crystals', body, [
+  openModal(buyAdUiText('Покупка кристаллов', 'Purchase crystals'), body, [
     {
       text: lang === 'ru' ? 'Перейти к боту' : 'Open support bot',
       class: 'btn btn--primary',
@@ -4079,10 +4079,10 @@ async function handleAdAction(adName, action, userID = null, rejectionReason = '
   if (action === 'reject' && !confirmed) {
     const admin = getCurrentAdmin();
     const body = document.createElement('div'); body.style.display = 'grid'; body.style.gap = '10px';
-    const label = document.createElement('label'); label.textContent = lang === 'ru' ? 'Причина отказа' : 'Rejection reason'; body.appendChild(label);
-    const input = document.createElement('textarea'); input.rows = 3; input.placeholder = lang === 'ru' ? 'Укажите причину отказа' : 'Enter rejection reason'; input.style.width = '100%'; body.appendChild(input);
-    openModal(lang === 'ru' ? 'Отклонить рекламу' : 'Reject ad', body, [
-      { text: lang === 'ru' ? 'Отклонить' : 'Reject', onClick: () => { if (Number(admin?.admin_level) === 1 && !input.value.trim()) { openModal(lang === 'ru' ? 'Причина обязательна' : 'Reason required', i18n[lang].rejectionReasonRequired); return; } handleAdAction(adName, action, userID, input.value.trim(), true, userToken); } },
+    const label = document.createElement('label'); label.textContent = buyAdUiText('Причина отказа', 'Rejection reason'); body.appendChild(label);
+    const input = document.createElement('textarea'); input.rows = 3; input.placeholder = buyAdUiText('Укажите причину отказа', 'Enter rejection reason'); input.style.width = '100%'; body.appendChild(input);
+    openModal(buyAdUiText('Отклонить рекламу', 'Reject ad'), body, [
+      { text: buyAdUiText('Отклонить', 'Reject'), onClick: () => { if (Number(admin?.admin_level) === 1 && !input.value.trim()) { openModal(buyAdUiText('Причина обязательна', 'Reason required'), i18n[lang].rejectionReasonRequired); return; } handleAdAction(adName, action, userID, input.value.trim(), true, userToken); } },
       { text: lang === 'ru' ? 'Отмена' : 'Cancel', class: 'btn btn--ghost' }
     ]);
     return;
@@ -4137,7 +4137,7 @@ $('admin-restricted').onclick = async () => {
   if (isGasDisabled()) {
     const list = $('admin-restricted-list');
     list.innerHTML = '';
-    openModal(lang === 'ru' ? 'GAS отключён' : 'GAS disabled', '');
+    openModal(buyAdUiText('GAS отключён', 'GAS disabled'), '');
     return;
   }
   showPreloader();
@@ -4219,7 +4219,7 @@ async function updateVariable(action, value, quiet = false) {
           count: entries.length
         });
       }
-      alert(`${privateList} успешно изменён(а) на приватном сервере`);
+      alert(buyAdUiText(`${privateList} успешно изменён(а) на приватном сервере`, `${privateList} successfully updated on the private server`));
       return { ok: true, list: privateList };
     }
 
@@ -4791,7 +4791,7 @@ $('admin-ban-create-edit').onclick = () => {
   [1,2,4,5,10,15,30,40,50,60].forEach(days => {
     const option = document.createElement('option');
     option.value = String(days);
-    option.textContent = days + ' ' + (days === 1 ? 'день' : [2,3,4].includes(days) ? 'дня' : 'дней');
+    option.textContent = lang === 'ru' ? days + ' ' + (days === 1 ? 'день' : [2,3,4].includes(days) ? 'дня' : 'дней') : days + (days === 1 ? ' day' : ' days');
     duration.appendChild(option);
   });
   const custom = document.createElement('option');
