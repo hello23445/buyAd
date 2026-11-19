@@ -2495,8 +2495,24 @@ $('nav-crystals').onclick = () => {
 };
 
 async function returnToMainMenuWithPreloader(updateWhat = 'both') {
-  // Show the main menu immediately; refresh counters asynchronously in-place.
-  await showMainMenu(updateWhat);
+  // Do not wait for network-based access checks or counters before displaying the main menu.
+  await showMainMenu(updateWhat, true);
+  const token = localStorage.getItem(LS.token);
+  const isAdmin = ADMIN_TOKENS.includes(token);
+  Promise.resolve().then(async () => {
+    try {
+      if (blockInApp.includes(token)) {
+        hideAllScreens();
+        show($('screen-blocked'));
+        return;
+      }
+      if (!checkAppOpen(isAdmin)) return;
+      if (await window.BuyAdCheckKickStatus?.()) return;
+      await applyRuntimeBlockings();
+    } catch (error) {
+      console.warn('Failed to refresh access status after returning to main menu:', error);
+    }
+  });
 }
 
 /* BACK */
