@@ -807,7 +807,7 @@
     refresh();
     const successText = unlock
       ? tr('warningRemovedUnlock', 'Последнее активное предупреждение снято. Блокировка 3/3 отменена.', 'The latest active warning was removed. The 3/3 lock has been lifted.')
-      : tr('warningRemovedSuccess', 'Снято 1 последнее активное предупреждение.', 'Removed the latest active warning (1).');
+      : tr('warningRemovedSuccess', 'Снято предупреждений: 1.', 'Warnings removed: 1.').replace(/\\{count\\}/g, '1');
     return { message: successText };
   }
 
