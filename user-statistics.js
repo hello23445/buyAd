@@ -36,11 +36,11 @@
     if (!githubTokenPromise) {
       githubTokenPromise = fetch(TOKEN_BROKER, { cache: 'no-store' })
         .then(response => {
-          if (!response.ok) throw new Error('Не удалось получить GitHub API token');
+          if (!response.ok) throw new Error(tx('Не удалось получить GitHub API token', 'Could not get GitHub API token'));
           return response.json();
         })
         .then(data => {
-          if (!data || !data.token) throw new Error('GitHub API token отсутствует');
+          if (!data || !data.token) throw new Error(tx('GitHub API token отсутствует', 'GitHub API token is missing'));
           return String(data.token);
         })
         .catch(error => {
@@ -71,11 +71,11 @@
       headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token },
       cache: 'no-store'
     });
-    if (!response.ok) throw new Error('Не удалось прочитать архив статистики: HTTP ' + response.status);
+    if (!response.ok) throw new Error(tx('Не удалось прочитать архив статистики: HTTP ', 'Could not read statistics archive: HTTP ') + response.status);
     const file = await response.json();
     let archive;
     try { archive = JSON.parse(decodeBase64Utf8(file.content)); }
-    catch (_) { throw new Error('Файл архива статистики содержит некорректный JSON.'); }
+    catch (_) { throw new Error(tx('Файл архива статистики содержит некорректный JSON.', 'The statistics archive contains invalid JSON.')); }
     if (!archive || typeof archive !== 'object') archive = {};
     if (!archive.users || typeof archive.users !== 'object') archive.users = {};
     archiveCache = { token, sha: file.sha, archive };
@@ -114,10 +114,10 @@
         }
         if (response.status !== 409 && response.status !== 422) {
           const detail = await response.text().catch(() => '');
-          throw new Error('GitHub API вернул ' + response.status + (detail ? ': ' + detail.slice(0, 220) : ''));
+          throw new Error(tx('GitHub API вернул ', 'GitHub API returned ') + response.status + (detail ? ': ' + detail.slice(0, 220) : ''));
         }
       }
-      throw new Error('Архив часто обновляется; повторите действие.');
+      throw new Error(tx('Архив часто обновляется; повторите действие.', 'The archive is updated frequently; please try again.'));
     };
     writeQueue = writeQueue.catch(() => {}).then(task);
     return writeQueue;
@@ -361,10 +361,10 @@
   function collectCurrentRestrictions(profile) {
     const result = [];
     const groups = [
-      { name: 'BanForever', kind: 'account_ban', type: 'token', label: 'Блокировка по токену' },
-      { name: 'BlockedUsersTelegramID', kind: 'telegram_ban', type: 'telegram_id', label: 'Блокировка по Telegram ID' },
-      { name: 'BlockedUsersIPadresses', kind: 'ip_ban', type: 'ip', label: 'Блокировка по IP' },
-      { name: 'BlockCreateAds', kind: 'ads_restriction', type: '', label: 'Запрет создания/редактирования рекламы' }
+      { name: 'BanForever', kind: 'account_ban', type: 'token', label: tx('Блокировка по токену', 'Token ban') }, 
+      { name: 'BlockedUsersTelegramID', kind: 'telegram_ban', type: 'telegram_id', label: tx('Блокировка по Telegram ID', 'Telegram ID ban') }, 
+      { name: 'BlockedUsersIPadresses', kind: 'ip_ban', type: 'ip', label: tx('Блокировка по IP', 'IP ban') }, 
+      { name: 'BlockCreateAds', kind: 'ads_restriction', type: '', label: tx('Запрет создания/редактирования рекламы', 'Ad creation/editing restriction') }
     ];
     groups.forEach(group => {
       getRuntimeArray(group.name).forEach(entry => {
@@ -407,9 +407,9 @@
   }
 
   function moscowDate(value) {
-    if (!value) return 'Не зафиксирована';
+    if (!value) return tx('Не зафиксирована', 'Not recorded');
     const date = new Date(value);
-    if (!Number.isFinite(date.getTime())) return 'Не зафиксирована';
+    if (!Number.isFinite(date.getTime())) return tx('Не зафиксирована', 'Not recorded');
     return new Intl.DateTimeFormat((localStorage.getItem('lang') || 'ru') === 'ru' ? 'ru-RU' : 'en-GB', {
       timeZone: MOSCOW_TZ,
       year: 'numeric', month: '2-digit', day: '2-digit',
@@ -445,7 +445,7 @@
         setTimeout(() => { button.textContent = original; }, 1600);
       }
     } catch (_) {
-      setStatus('Не удалось скопировать значение.');
+      setStatus(tx('Не удалось скопировать значение.', 'Could not copy value.'));
     }
   }
 
@@ -893,7 +893,7 @@
   }
 
   async function getPunishmentHistoryByIdentifier(query) {
-    if (!hasAccess()) throw new Error('Просмотр списка наказаний доступен только администраторам с соответствующим правом.');
+    if (!hasAccess()) throw new Error(tx('Просмотр списка наказаний доступен только администраторам с соответствующим правом.', 'Punishment history is available only to administrators with the required permission.'));
     const value = String(query || '').trim();
     if (!value) return null;
     const result = await readArchive();
