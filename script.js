@@ -2471,7 +2471,7 @@ let previousScreen = 'screen-main';
 let previousEditScreen = null; // To track where edit was opened from
 ['back-from-create','back-from-myads','back-from-crystals','back-from-admin'].forEach(id => {
   const el = $(id);
-  if (el) el.onclick = () => {
+  if (el) el.onclick = async () => {
     // Reset ad creation screen title and state
     if (id === 'back-from-create') {
       const screenTitle = document.querySelector('#screen-create .screen__title');
