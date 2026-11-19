@@ -2709,6 +2709,10 @@ document.querySelectorAll('#priority-buttons .seg').forEach(b => {
 
 document.querySelectorAll('#platform-buttons .seg').forEach(b => {
   b.onclick = async () => {
+    if (window.BuyAdWarnings?.isPlatformRestricted?.(b.dataset.value || b.textContent)) {
+      openModal(buyAdUiText('Функция недоступна. Эта площадка заблокирована при наличии предупреждения.', 'Feature unavailable. This platform is blocked while a warning is active.'), '');
+      return;
+    }
     if (editingFrozenAd) { const lang = localStorage.getItem(LS.lang) || 'ru'; openModal(i18n[lang].frozenPlatformChange, ''); return; }
     const lang = localStorage.getItem(LS.lang) || 'ru';
     const cost = parseInt(b.dataset.cost) || 0;
@@ -3057,6 +3061,15 @@ $('footer-remove').onclick = async () => {
 
 $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
+
+  if (!editMode && window.BuyAdWarnings?.getActiveWarningCount?.() >= 2 && !window.BuyAdWarnings?.canCreateAdToday?.()) {
+    openModal(buyAdUiText('Лимит создания рекламы', 'Ad creation limit'), buyAdUiText('При 2/3 предупреждениях можно создать только одну рекламу в день. Вы уже использовали дневной лимит.', 'With 2/3 warnings, only one ad can be created per day. You have already used today’s limit.'));
+    return;
+  }
+  if (!editMode && window.BuyAdWarnings?.isPlatformRestricted?.(selectedPlatform)) {
+    openModal(buyAdUiText('Функция недоступна. Эта площадка заблокирована при наличии предупреждения.', 'Feature unavailable. This platform is blocked while a warning is active.'), '');
+    return;
+  }
 
   if (editMode ? isEditingDisabledGlobally() : isCreateAdsDisabledGlobally()) {
     showFeatureBlockedModal(editMode ? 'edit' : 'create');
