@@ -704,7 +704,7 @@
       const notice = makeElement('div', 'card referral-warning');
       notice.appendChild(makeElement('div', 'referral-warning-icon', '⚠️'));
       notice.appendChild(makeElement('div', 'card__title', text('Реферальная система временно отключена', 'Referral system temporarily disabled')));
-      notice.appendChild(makeElement('p', 'card__subtitle', state.eligibilityReason || text('На аккаунте есть предупреждение или блокировка.', 'Your account has a warning or ban.')));
+      notice.appendChild(makeElement('p', 'card__subtitle', localizeServerError(state.eligibilityReason) || text('На аккаунте есть предупреждение или блокировка.', 'Your account has a warning or ban.')));
       notice.appendChild(makeElement('p', 'field__hint', text('Ссылка будет снова активна после снятия всех предупреждений и блокировок.', 'The link can become active again after all warnings and bans are removed.')));
       host.appendChild(notice);
       return;
