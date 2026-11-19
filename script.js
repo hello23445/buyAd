@@ -457,6 +457,29 @@ const ADMIN_PERMISSION_LABELS = {
   viewOwnIp: 'Просмотр своих IP-адресов',
   kickUser: 'Отключение пользователей от приложения'
 };
+function translateAdminPermissionLabel(labelText) {
+  const translations = {
+    'Проверка рекламы': 'Ad review',
+    'Просмотр списка ограниченных пользователей': 'View restricted users',
+    'Просмотр статистики пользователей': 'View user statistics',
+    'Блокировка пользователя по токену': 'Ban user by token',
+    'Разблокировка пользователя по токену': 'Unban user by token',
+    'Разблокировка по Telegram ID': 'Unban by Telegram ID',
+    'Разблокировка по IP-адресу': 'Unban by IP address',
+    'Запрет создания и редактирования рекламы': 'Prevent creating and editing ads',
+    'Блокировка по Telegram ID': 'Ban by Telegram ID',
+    'Блокировка по IP-адресу': 'Ban by IP address',
+    'Управление приложением, рекламой, GAS и платежами': 'Manage app, ads, GAS, and payments',
+    'Управление администраторами': 'Manage administrators',
+    'Локальное изменение своего уровня': 'Locally change own level',
+    'Скрывать имя при отклонении рекламы': 'Hide name when rejecting ads',
+    'Скрывать имя при блокировке': 'Hide name when banning',
+    'Просмотр своих IP-адресов': 'View own IP addresses',
+    'Отключение пользователей от приложения': 'Disconnect users from the app'
+  };
+  return buyAdUiText(labelText, translations[labelText] || labelText);
+}
+
 function getDefaultAdminPermissions(level) {
   return Object.fromEntries(Object.entries(ADMIN_PERMISSION_MIN_LEVEL).map(([permission, minLevel]) => [permission, Number(level) >= minLevel]));
 }
@@ -894,7 +917,7 @@ function openAddAdminModal() {
     checkbox.type = 'checkbox';
     checkbox.checked = false;
     const label = document.createElement('span');
-    label.textContent = labelText;
+    label.textContent = translateAdminPermissionLabel(labelText);
     optionLabel.append(checkbox, label);
     permissionsList.appendChild(optionLabel);
     permissionInputs[permission] = checkbox;
@@ -1028,7 +1051,7 @@ function createAdminPermissionEditor(initialLevel, initialPermissions = {}) {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     const label = document.createElement('span');
-    label.textContent = labelText;
+    label.textContent = translateAdminPermissionLabel(labelText);
     optionLabel.append(checkbox, label);
     permissionsList.appendChild(optionLabel);
     permissionInputs[permission] = checkbox;
@@ -2434,6 +2457,15 @@ $('nav-crystals').onclick = () => {
   loadCrystals();
 };
 
+async function returnToMainMenuWithPreloader(updateWhat = 'both') {
+  showPreloader();
+  try {
+    await showMainMenu(updateWhat);
+  } finally {
+    hidePreloader();
+  }
+}
+
 /* BACK */
 let previousScreen = 'screen-main';
 let previousEditScreen = null; // To track where edit was opened from
@@ -2466,17 +2498,17 @@ let previousEditScreen = null; // To track where edit was opened from
         }
         previousEditScreen = null;
       } else {
-        showMainMenu();
+        await returnToMainMenuWithPreloader();
       }
     } else if (id === 'back-from-myads') {
       // When returning from ads menu - only update ads count
-      showMainMenu('ads');
+      await returnToMainMenuWithPreloader('ads');
     } else if (id === 'back-from-crystals') {
       // When returning from crystals menu - only update crystals count
-      showMainMenu('crystals');
+      await returnToMainMenuWithPreloader('crystals');
     } else if (id === 'back-from-admin') {
       // When returning from admin menu - don't update any counts
-      showMainMenu('none');
+      await returnToMainMenuWithPreloader('none');
     }
   };
 });
