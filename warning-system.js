@@ -101,7 +101,10 @@
       return false;
     }
   };
-    async function loadCloudWarnings() {
+    let cloudWarningsRequest = null;
+  async function loadCloudWarnings() {
+    if (cloudWarningsRequest) return cloudWarningsRequest;
+    cloudWarningsRequest = (async () => {
     try {
       const current = await githubGet('admin2.js');
       const match = current.content.match(/(?:export\s+)?const UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
@@ -114,7 +117,11 @@
     } catch (error) {
       console.error('Не удалось загрузить предупреждения из GitHub:', error);
       return null;
+    } finally {
+      cloudWarningsRequest = null;
     }
+    })();
+    return cloudWarningsRequest;
   }
   const safeWriteCache = (key, value) => {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; }
@@ -1227,6 +1234,15 @@
   }
 
   window.addEventListener('buyad:main-menu-shown', () => {
+    // Reload authoritative warning records whenever the user returns to the app menu.
+    loadCloudWarnings().then(rows => {
+      if (rows !== null) {
+        refresh();
+        renderWarningsScreen();
+      } else {
+        refresh(); // Keep cached restrictions active if the remote request fails.
+      }
+    });
     refresh();
     renderWarningsScreen();
   });
@@ -1321,6 +1337,8 @@
     if (!document.hidden) {
       cleanupWarnings();
       refresh();
+      // Recheck the latest warning data when reopening the Mini App.
+      loadCloudWarnings().then(() => refresh());
     }
   });
 })();
