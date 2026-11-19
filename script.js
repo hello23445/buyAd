@@ -4734,10 +4734,10 @@ function createAdsRestrictionTargetFields(actionLabel) {
   const type = document.createElement('select');
   type.className = 'admin-modal-control';
   [
-    ['', 'Выберите тип идентификатора'],
-    ['token', 'По токену'],
-    ['telegramId', 'По Telegram ID'],
-    ['ip', 'По IP-адресу']
+    ['', buyAdUiText('Выберите тип идентификатора','Select identifier type')],
+    ['token', buyAdUiText('По токену','By token')],
+    ['telegramId', buyAdUiText('По Telegram ID','By Telegram ID')],
+    ['ip', buyAdUiText('По IP-адресу','By IP address')]
   ].forEach(([value, text]) => {
     const option = document.createElement('option');
     option.value = value;
@@ -4757,8 +4757,8 @@ function createAdsRestrictionTargetFields(actionLabel) {
     input.disabled = !type.value;
     input.value = '';
     input.placeholder = type.value === 'token' ? buyAdUiText('Введите токен пользователя','Enter user token')
-      : type.value === 'telegramId' ? 'Введите Telegram ID'
-      : type.value === 'ip' ? 'Введите IPv4 или IPv6' : 'Сначала выберите тип идентификатора';
+      : type.value === 'telegramId' ? buyAdUiText('Введите Telegram ID','Enter Telegram ID')
+      : type.value === 'ip' ? buyAdUiText('Введите IPv4 или IPv6','Enter IPv4 or IPv6') : buyAdUiText('Сначала выберите тип идентификатора','Select identifier type first');
     input.inputMode = type.value === 'telegramId' ? 'numeric' : 'text';
   });
 
