@@ -1097,7 +1097,14 @@
     updateAdminButtonVisibility();
     cleanupWarnings();
     refresh();
+    // Load warnings directly as well: the admin2-config event may fire before this module subscribes.
+    loadCloudWarnings();
   }
+
+  window.addEventListener('buyad:main-menu-shown', () => {
+    refresh();
+    renderWarningsScreen();
+  });
 
   window.addEventListener('buyad:admin2-config-loaded', event => {
     const detail = event.detail || {};
