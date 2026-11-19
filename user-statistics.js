@@ -397,20 +397,20 @@
 
   function punishmentLabel(kind) {
     const labels = {
-      account_ban: 'Блокировка аккаунта',
-      telegram_ban: 'Блокировка по Telegram ID',
-      ip_ban: 'Блокировка по IP',
-      ads_restriction: 'Запрет создания/редактирования рекламы',
-      warning: 'Предупреждение'
+      account_ban: tx('Блокировка аккаунта', 'Account ban'),
+      telegram_ban: tx('Блокировка по Telegram ID', 'Telegram ID ban'),
+      ip_ban: tx('Блокировка по IP', 'IP ban'),
+      ads_restriction: tx('Запрет создания/редактирования рекламы', 'Ad creation/editing restriction'),
+      warning: tx('Предупреждение', 'Warning')
     };
-    return labels[kind] || String(kind || 'Наказание');
+    return labels[kind] || String(kind || tx('Наказание', 'Punishment'));
   }
 
   function moscowDate(value) {
     if (!value) return 'Не зафиксирована';
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return 'Не зафиксирована';
-    return new Intl.DateTimeFormat('ru-RU', {
+    return new Intl.DateTimeFormat((localStorage.getItem('lang') || 'ru') === 'ru' ? 'ru-RU' : 'en-GB', {
       timeZone: MOSCOW_TZ,
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -560,11 +560,11 @@
     const activeBans = activeRestrictions.filter(row => row.kind !== 'ads_restriction');
     const adRestrictions = activeRestrictions.filter(row => row.kind === 'ads_restriction');
     const warningCount = warnings.length;
-    let status = 'Активен';
-    if (activeBans.some(row => row.kind === 'account_ban')) status = 'Забанен по токену';
-    else if (activeBans.some(row => row.kind === 'telegram_ban')) status = 'Забанен по Telegram ID';
-    else if (activeBans.some(row => row.kind === 'ip_ban')) status = 'Полностью забанен по IP';
-    else if (warningCount >= 3) status = 'Забанен за 3 из 3 предупреждений';
+    let status = tx('Активен', 'Active');
+    if (activeBans.some(row => row.kind === 'account_ban')) status = tx('Забанен по токену', 'Banned by token');
+    else if (activeBans.some(row => row.kind === 'telegram_ban')) status = tx('Забанен по Telegram ID', 'Banned by Telegram ID');
+    else if (activeBans.some(row => row.kind === 'ip_ban')) status = tx('Полностью забанен по IP', 'Fully banned by IP');
+    else if (warningCount >= 3) status = tx('Забанен за 3 из 3 предупреждений', 'Banned after 3 of 3 warnings');
 
     const identityCard = makeElement('div', 'card stats-overview');
     identityCard.appendChild(makeElement('div', 'card__title', tx('Общая информация', 'General information')));
@@ -787,8 +787,8 @@
       screen.className = 'screen';
       screen.hidden = true;
       screen.innerHTML = '<div class="stack">' +
-        '<div class="screen__head"><button class="back-btn" id="back-from-user-statistics" type="button" aria-label="Назад"><i class="fa-solid fa-arrow-left"></i></button><div class="screen__title">Статистика пользователя</div></div>' +
-        '<div class="card"><div class="field"><label class="field__label" for="user-statistics-query">Telegram ID или токен пользователя</label><input id="user-statistics-query" class="textarea" type="text" autocomplete="off" placeholder="Введите Telegram ID или токен"></div><button id="user-statistics-search" class="btn btn--primary btn--full" type="button" style="margin-top:12px">Найти пользователя</button><div id="user-statistics-status" class="hint" role="status" aria-live="polite" style="margin-top:10px"></div></div>' +
+        '<div class="screen__head"><button class="back-btn" id="back-from-user-statistics" type="button" aria-label="'+tx('Назад','Back')+'"><i class="fa-solid fa-arrow-left"></i></button><div class="screen__title">'+tx('Статистика пользователя','User statistics')+'</div></div>' +
+        '<div class="card"><div class="field"><label class="field__label" for="user-statistics-query">'+tx('Telegram ID или токен пользователя','User Telegram ID or token')+'</label><input id="user-statistics-query" class="textarea" type="text" autocomplete="off" placeholder="'+tx('Введите Telegram ID или токен','Enter Telegram ID or token')+'"></div><button id="user-statistics-search" class="btn btn--primary btn--full" type="button" style="margin-top:12px">'+tx('Найти пользователя','Find user')+'</button><div id="user-statistics-status" class="hint" role="status" aria-live="polite" style="margin-top:10px"></div></div>' +
         '<div id="user-statistics-result" class="stack"></div>' +
         '</div>';
       app.appendChild(screen);
@@ -881,6 +881,15 @@
     });
     window.addEventListener('storage', updateButtonVisibility);
     updateButtonVisibility();
+    window.addEventListener('buyad:language-changed', () => {
+      const screen = document.getElementById('screen-user-statistics');
+      const input = document.getElementById('user-statistics-query');
+      if (screen && !screen.hidden && input && input.value.trim()) searchUser();
+      const button = document.getElementById('admin-user-statistics');
+      if (button) button.querySelector('.menu__text').textContent = tx('Статистика пользователя', 'User statistics');
+      const group = document.getElementById('admin-user-statistics-group');
+      if (group) group.textContent = tx('Пользователи', 'Users');
+    });
   }
 
   async function getPunishmentHistoryByIdentifier(query) {
