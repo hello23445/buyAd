@@ -594,7 +594,7 @@
               </button>
             </div>
           </div>
-          <button id="settings-nav-warnings" class="menu__item" type="button" style="margin-top:20px;width:100%;box-sizing:border-box;">
+          <button id="settings-nav-warnings" class="menu__item" type="button" style="margin-top:8px;width:100%;box-sizing:border-box;">
             <span class="menu__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
             <span class="menu__text" data-i18n="warningTitle">Список предупреждений</span>
             <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
@@ -931,26 +931,6 @@
     </div>
   </template>
 
-  <!-- Independent emergency startup watchdog: prevents an indefinitely stuck overlay. -->
-  <script>
-    (function () {
-      window.__buyAdEmergencyStartupWatchdog = setTimeout(function () {
-        var overlay = document.getElementById('preloader');
-        if (overlay && !overlay.hidden && getComputedStyle(overlay).display !== 'none') {
-          overlay.hidden = true;
-          overlay.style.display = 'none';
-          document.body.classList.remove('preloader-scroll-locked');
-          var visibleScreen = document.querySelector('.screen:not([hidden])');
-          if (!visibleScreen) {
-            var lang = localStorage.getItem('lang') || localStorage.getItem('language');
-            var fallback = document.getElementById(lang ? 'screen-main' : 'screen-first');
-            if (fallback) fallback.hidden = false;
-          }
-          console.error('Emergency startup watchdog: preloader forcibly released after 18 seconds.');
-        }
-      }, 18000);
-    })();
-  </script>
   <!-- SCRIPT -->
    <script src="translations.js"></script>
 <script src="settings.js"></script>
