@@ -58,17 +58,17 @@
     <!-- USER KICK SCREEN -->
     <section id="screen-kicked" class="screen screen--center" hidden>
       <div class="card card--wide kicked-screen-card">
-        <div class="card__title">Вы были отключены из сервера.</div>
-        <div id="kicked-screen-reason" class="card__subtitle">Причина: Не указана.</div>
-        <div id="kicked-screen-admin" class="hint">Админ: Не указан.</div>
+        <div class="card__title" data-i18n="kickedTitle">Вы были отключены из сервера.</div>
+        <div id="kicked-screen-reason" class="card__subtitle" data-i18n="kickedReasonDefault">Причина: Не указана.</div>
+        <div id="kicked-screen-admin" class="hint" data-i18n="kickedAdminDefault">Админ: Не указан.</div>
       </div>
     </section>
 
     <div id="remote-reload-screen" class="remote-reload-screen" hidden role="alertdialog" aria-modal="true">
       <div class="remote-reload-panel">
         <div class="remote-reload-spinner" aria-hidden="true"></div>
-        <div id="remote-reload-title" class="remote-reload-title">Приложение перезапускается</div>
-        <div id="remote-reload-detail" class="remote-reload-detail">Подождите несколько секунд.</div>
+        <div id="remote-reload-title" class="remote-reload-title" data-i18n="reloadScreenTitle">Приложение перезапускается</div>
+        <div id="remote-reload-detail" class="remote-reload-detail" data-i18n="reloadScreenDetail">Подождите несколько секунд.</div>
       </div>
     </div>
 
@@ -150,8 +150,8 @@
         <div id="main-admin-command-card" class="card main-admin-command-card" hidden>
           <div id="main-admin-command-structure" class="command-hint-structure" hidden></div>
           <div class="main-admin-command-row">
-            <input id="main-admin-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Введите команду администратора" aria-label="Команда администратора">
-            <button id="main-admin-command-send" class="btn btn--primary main-admin-command-send" type="button" aria-label="Отправить команду"><i class="fa-solid fa-paper-plane"></i></button>
+            <input id="main-admin-command-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Введите команду администратора" data-i18n-placeholder="adminCommandPlaceholder" aria-label="Команда администратора" data-i18n-aria="adminCommandAria">
+            <button id="main-admin-command-send" class="btn btn--primary main-admin-command-send" type="button" aria-label="Отправить команду" data-i18n-aria="adminCommandSendAria"><i class="fa-solid fa-paper-plane"></i></button>
           </div>
           <div id="main-admin-command-hints" class="main-admin-command-hints" hidden></div>
           <div id="main-admin-command-status" class="hint" role="status" aria-live="polite" hidden></div>
@@ -230,19 +230,19 @@
             
             <!-- Format toolbar (compact) -->
             <div class="format-toolbar-modern">
-              <button type="button" class="format-btn-modern" id="format-bold" data-format="bold" aria-label="Bold" title="Жирный">
+              <button type="button" class="format-btn-modern" id="format-bold" data-format="bold" aria-label="Bold" title="Жирный" data-i18n-title="formatBoldTitle">
                 <i class="fa-solid fa-bold"></i>
               </button>
-              <button type="button" class="format-btn-modern" id="format-italic" data-format="italic" aria-label="Italic" title="Курсив">
+              <button type="button" class="format-btn-modern" id="format-italic" data-format="italic" aria-label="Italic" title="Курсив" data-i18n-title="formatItalicTitle">
                 <i class="fa-solid fa-italic"></i>
               </button>
-              <button type="button" class="format-btn-modern" id="format-monospace" data-format="monospace" aria-label="Code" title="Код">
+              <button type="button" class="format-btn-modern" id="format-monospace" data-format="monospace" aria-label="Code" title="Код" data-i18n-title="formatCodeTitle">
                 <i class="fa-solid fa-code"></i>
               </button>
-              <button type="button" class="format-btn-modern" id="format-strikethrough" data-format="strikethrough" aria-label="Strike" title="Зачеркнуть">
+              <button type="button" class="format-btn-modern" id="format-strikethrough" data-format="strikethrough" aria-label="Strike" title="Зачеркнуть" data-i18n-title="formatStrikeTitle">
                 <i class="fa-solid fa-strikethrough"></i>
               </button>
-              <button type="button" class="format-btn-modern" id="format-underline" data-format="underline" aria-label="Underline" title="Подчеркнуть">
+              <button type="button" class="format-btn-modern" id="format-underline" data-format="underline" aria-label="Underline" title="Подчеркнуть" data-i18n-title="formatUnderlineTitle">
                 <i class="fa-solid fa-underline"></i>
               </button>
             </div>
@@ -267,7 +267,7 @@
                 <span data-i18n="pickFile">Выберите файл</span>
               </button>
 
-              <button id="btn-video-size-upgrade" class="btn btn--ghost" type="button">+250 мб (200💎)</button>
+              <button id="btn-video-size-upgrade" class="btn btn--ghost" type="button" data-i18n="videoSizeUpgrade">+250 мб (200💎)</button>
 
               <button id="btn-remove-video" class="btn btn--ghost" type="button" hidden>
                 <i class="fa-solid fa-trash"></i>
@@ -407,12 +407,12 @@
           <div class="card ad-card">
             <div class="ad-card__head">
               <div class="ad-card__name">Ad_123...</div>
-              <div class="pill pill--pending">На проверке</div>
+              <div class="pill pill--pending" data-i18n="adPendingStatus">На проверке</div>
             </div>
             <div class="ad-card__meta">Площадка: ... • Приоритет: ...</div>
             <div class="row">
-              <button class="btn btn--ghost">Редактировать</button>
-              <button class="btn btn--danger">Удалить</button>
+              <button class="btn btn--ghost" data-i18n="editAdBtn">Редактировать</button>
+              <button class="btn btn--danger" data-i18n="deleteAdBtn">Удалить</button>
             </div>
           </div>
           -->
@@ -488,9 +488,9 @@
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="screen__title" data-i18n="referralTitle">Реферальная система</div>
-          <button id="refresh-referrals" class="btn btn--ghost referral-screen-refresh" type="button" aria-label="Обновить реферальную систему" title="Обновить">
+          <button id="refresh-referrals" class="btn btn--ghost referral-screen-refresh" type="button" aria-label="Обновить реферальную систему" data-i18n-aria="refreshReferralAria" title="Обновить" data-i18n-title="refreshAdsBtn">
             <i class="fa-solid fa-rotate"></i>
-            <span>Обновить</span>
+            <span data-i18n="refreshAdsBtn">Обновить</span>
           </button>
         </div>
         <div id="referral-screen-content" class="stack-sm"></div>
@@ -635,17 +635,17 @@
 
             <button id="admin-add-new" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-user-plus"></i></span>
-              <span class="menu__text">Добавить нового админа</span>
+              <span class="menu__text" data-i18n="adminAddBtn">Добавить нового админа</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
             <button id="admin-edit-admin" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-user-pen"></i></span>
-              <span class="menu__text">Изменить права админа</span>
+              <span class="menu__text" data-i18n="adminEditBtn">Изменить права админа</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
             <button id="admin-delete-admin" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-user-minus"></i></span>
-              <span class="menu__text">Удалить админа</span>
+              <span class="menu__text" data-i18n="adminDeleteBtn">Удалить админа</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
@@ -675,7 +675,7 @@
               <span class="menu__text" data-i18n="adminUnbanByIp">Разбанить пользователя по его IP-адресу</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
-            <div class="menu__group" id="admin-ip-history-heading" hidden>IP-АДРЕСЫ</div>
+            <div class="menu__group" id="admin-ip-history-heading" hidden data-i18n="ipAddressGroup">IP-АДРЕСЫ</div>
             <button id="admin-search-ip-history" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
               <span class="menu__text" data-i18n="adminSearchIpHistory">Поиск по IP</span>
@@ -696,7 +696,7 @@
 
             <button id="admin-view-own-ip" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-network-wired"></i></span>
-              <span class="menu__text">Посмотреть свой IP</span>
+              <span class="menu__text" data-i18n="adminViewOwnIp">Посмотреть свой IP</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
@@ -801,32 +801,32 @@
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
 
-            <div class="admin-main-command-heading">Другое</div>
+            <div class="admin-main-command-heading" data-i18n="adminOtherGroup">Другое</div>
             <button id="admin-kick-user" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-user-slash"></i></span>
-              <span class="menu__text">Кикнуть пользователя</span>
+              <span class="menu__text" data-i18n="adminKickUser">Кикнуть пользователя</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
             <button id="admin-available-commands" class="menu__item" type="button" hidden>
               <span class="menu__icon"><i class="fa-solid fa-terminal"></i></span>
-              <span class="menu__text">Доступные мне команды</span>
+              <span class="menu__text" data-i18n="adminAvailableCommands">Доступные мне команды</span>
               <span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>
             </button>
             <label id="admin-main-command-toggle-row" class="admin-main-command-toggle-row" for="admin-main-command-toggle">
               <span class="menu__icon"><i class="fa-solid fa-terminal"></i></span>
-              <span class="menu__text">Добавить чат в главное меню</span>
+              <span class="menu__text" data-i18n="adminAddChatMainMenu">Добавить чат в главное меню</span>
               <span class="admin-main-command-switch"><input id="admin-main-command-toggle" type="checkbox" aria-label="Добавить чат в главное меню"><span class="admin-main-command-slider"></span></span>
             </label>
           </div>
         </div>
         <div id="admin-ip-info-card" class="card" hidden>
-          <div class="card__title">Ваш IP-адрес</div>
-          <div class="hint">Ваш текущий IP-адрес</div>
+          <div class="card__title" data-i18n="ownIpTitle">Ваш IP-адрес</div>
+          <div class="hint" data-i18n="ownIpHint">Ваш текущий IP-адрес</div>
           <div class="tokenbox" style="margin-top:0.75rem;align-items:center;">
-            <code id="admin-own-ip-value">Определение IP…</code>
+            <code id="admin-own-ip-value" data-i18n="ownIpLoading">Определение IP…</code>
             <button id="admin-own-ip-copy" class="btn btn--ghost" type="button" disabled>
               <i class="fa-solid fa-copy"></i>
-              <span>Копировать</span>
+              <span data-i18n="copy">Копировать</span>
             </button>
           </div>
         </div>
@@ -875,14 +875,14 @@
       <div class="stack">
         <div class="screen__head">
           <button class="back-btn" id="back-from-ip-history-search" type="button" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>
-          <div class="screen__title">Поиск аккаунтов по IP</div>
+          <div class="screen__title" data-i18n="ipHistorySearchTitle">Поиск аккаунтов по IP</div>
         </div>
         <div class="card">
           <div class="field">
-            <div class="field__label">IP-адрес</div>
-            <input id="ip-history-search-input" class="textarea" type="text" inputmode="url" autocomplete="off" placeholder="Введите IPv4 или IPv6">
-            <div class="field__hint">Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.</div>
-            <div class="ip-search-actions"><button id="ip-history-search-submit" class="btn btn--primary" type="button">Найти аккаунты</button><button id="ip-history-paste" class="btn btn--ghost" type="button">Вставить</button></div>
+            <div class="field__label" data-i18n="ipAddressLabel">IP-адрес</div>
+            <input id="ip-history-search-input" class="textarea" type="text" inputmode="url" autocomplete="off" placeholder="Введите IPv4 или IPv6" data-i18n-placeholder="ipHistorySearchPlaceholder">
+            <div class="field__hint" data-i18n="ipHistorySearchHint">Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.</div>
+            <div class="ip-search-actions"><button id="ip-history-search-submit" class="btn btn--primary" type="button" data-i18n="ipHistorySearchButton">Найти аккаунты</button><button id="ip-history-paste" class="btn btn--ghost" type="button" data-i18n="paste">Вставить</button></div>
           </div>
         </div>
         <div id="ip-history-search-status" class="hint" role="status" aria-live="polite"></div>
