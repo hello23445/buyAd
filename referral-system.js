@@ -234,6 +234,8 @@
       'A referral link already exists.': 'You already have a referral link.',
       'A referral link does not exist.': 'Create a referral link first.',
       'Referral access is disabled while your account has an active warning or ban.': 'The referral system is disabled while your account has a warning or ban.',
+      'Есть активное предупреждение': 'There is an active warning.',
+      'Активное предупреждение': 'There is an active warning.': 'The referral system is disabled while your account has a warning or ban.',
       'This referral link is disabled or unavailable.': 'This referral link is disabled or unavailable.',
       'Referral self-registration is not allowed.': 'You cannot register through your own referral link.',
       'No first-visit record was found.': 'The first visit could not be verified.',
