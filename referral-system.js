@@ -1008,6 +1008,12 @@
     scheduleGiftCheck();
   }
 
+  window.addEventListener('buyad:user-warnings-updated', () => {
+    if (window.BuyAdWarnings?.isReferralDisabled?.() && screen() && !screen().hidden) {
+      setPageMessage(text('Реферальная система отключена: у аккаунта есть активное предупреждение. Она станет доступна после снятия всех предупреждений.', 'Referral system is disabled while your account has an active warning. It will become available after all warnings are removed.'), 'is-warning');
+    }
+  });
+
   window.BuyAdReferralSetGlobalEnabled = async function (enabled) {
     const result = await api('setGlobalEnabled', { enabled: enabled === true });
     referralLog('Глобальный статус реферальной системы изменён', { enabled: result.systemEnabled });
