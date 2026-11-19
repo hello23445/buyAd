@@ -582,9 +582,13 @@
       return;
     }
     const blockedByDailyLimit = rows.length >= 2 && dailyAdUsed();
-    setWarningDisabled(create, blockedByDailyLimit);
-    setWarningDisabled(createAd, blockedByDailyLimit);
-    if (create) create.title = blockedByDailyLimit ? (tx('При 2/3 предупреждениях доступно одно создание рекламы в день', 'With 2/3 warnings, only one ad can be created per day')) : '';
+    // Не блокируем вход в экран создания из главного меню:
+    // лимит объясняется пользователю при попытке отправить форму.
+    setWarningDisabled(create, false);
+    // Не блокируем кнопку формы только из-за дневного лимита —
+    // обработчик отправки покажет понятное уведомление.
+    setWarningDisabled(createAd, false);
+    if (create) create.title = '';
     const blockedScreen = document.getElementById('screen-blocked');
     if (blockedScreen?.dataset.warningLock === 'true') {
       delete blockedScreen.dataset.warningLock;
