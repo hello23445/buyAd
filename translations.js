@@ -512,6 +512,8 @@ const i18n = {
     ipHistorySearchHint: "Будут показаны аккаунты, для которых сервер ранее зафиксировал совпадающий IP. Совпадение адреса не доказывает принадлежность аккаунтов одному человеку.",
     ipHistorySearchButton: "Найти аккаунты",
     paste: "Вставить",
+    adminLevelAria: "Уровень администратора",
+    adminLevelSaveAria: "Сохранить уровень",
     footerLeft: "Слева",
     footerRight: "Справа",
   },
@@ -878,6 +880,8 @@ const i18n = {
     ipHistorySearchHint: "Accounts whose IP was previously recorded by the server will be shown. A matching address does not prove that the accounts belong to the same person.",
     ipHistorySearchButton: "Find accounts",
     paste: "Paste",
+    adminLevelAria: "Administrator level",
+    adminLevelSaveAria: "Save level",
     footerLeft: "Left",
     footerRight: "Right",
   }
