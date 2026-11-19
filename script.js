@@ -2557,8 +2557,8 @@ let previousEditScreen = null; // To track where edit was opened from
       window.__buyAdCrystalsNeedRefresh = false;
       await returnToMainMenuWithPreloader(refreshAds ? (refreshCrystals ? 'both' : 'ads') : (refreshCrystals ? 'crystals' : 'none'));
     } else if (id === 'back-from-crystals') {
-      // When returning from crystals menu - only update crystals count
-      await returnToMainMenuWithPreloader('crystals');
+      // Returning from crystals does not refresh the main-menu balance.
+      await returnToMainMenuWithPreloader('none');
     } else if (id === 'back-from-admin') {
       // Returning from admin does not refresh user counters.
       await returnToMainMenuWithPreloader('none');
