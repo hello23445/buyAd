@@ -877,9 +877,9 @@ const i18n = {
     ipHistorySearchPlaceholder: "Enter IPv4 or IPv6",
     ipHistorySearchHint: "Accounts whose IP was previously recorded by the server will be shown. A matching address does not prove that the accounts belong to the same person.",
     ipHistorySearchButton: "Find accounts",
-    paste: "Paste"    footerLeft: "Left",
+    paste: "Paste",
+    footerLeft: "Left",
     footerRight: "Right",
-,
   }
 };
 
