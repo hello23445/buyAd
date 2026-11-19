@@ -85,7 +85,7 @@ const ADMINS = [
     "admin_level": 1,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
-      "reviewAds": false,
+      "reviewAds": true,
       "viewRestricted": false,
       "viewUserStatistics": false,
       "banToken": false,
