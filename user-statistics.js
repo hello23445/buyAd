@@ -697,7 +697,7 @@
         console.warn('Live user statistics unavailable:', error);
       });
     } catch (error) {
-      if (sequence === searchSequence) setStatus(error.message || tx('Не удалось получить статистику.', 'Could not retrieve statistics.'), true);
+      if (sequence === searchSequence) setStatus((typeof buyAdUiTranslate === 'function' ? buyAdUiTranslate(error.message) : error.message) || tx('Не удалось получить статистику.', 'Could not retrieve statistics.'), true);
     } finally {
       if (sequence === searchSequence && button) button.disabled = false;
     }
