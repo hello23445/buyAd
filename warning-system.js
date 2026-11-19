@@ -127,6 +127,12 @@
   const currentToken = () => String(localStorage.getItem('get_UserToken') || localStorage.getItem('token') || localStorage.getItem('userToken') || '');
   const currentTelegramId = () => String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
   const currentLevel = () => Number(currentAdmin()?.admin_level || 0);
+  const hasWarningPermission = permission => {
+    try {
+      if (typeof adminHasPermission === 'function') return adminHasPermission(permission);
+    } catch (_) {}
+    return currentLevel() >= 2;
+  };
   const localDate = (date = new Date()) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -574,7 +580,7 @@
   async function issueWarning(targetValue, reasonValue, requestedAmount = 1) {
     const admin = currentAdmin();
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
-    if (!admin || currentLevel() < 2) return { error: tr('warningDeniedIssue', 'Выдавать предупреждения могут администраторы 2-го уровня и выше.', 'Only administrators level 2 and above can issue warnings.') };
+    if (!admin || !hasWarningPermission('issueWarnings')) return { error: tx('У вас нет права выдавать предупреждения.', 'You do not have permission to issue warnings.') };
     const reason = String(reasonValue || '').trim();
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
@@ -703,7 +709,7 @@
 
     async function removeWarnings(targetValue) {
     if (!cloudWarningsLoaded) return { error: currentLang() === 'ru' ? 'Подождите, пока загрузятся данные предупреждений из GitHub.' : 'Please wait while warnings load from GitHub.' };
-    if (currentLevel() < 2) return { error: tr('warningDeniedRemove', 'Снимать предупреждения могут администраторы со 2-го уровня.', 'Only administrators at level 2 or higher can remove warnings.') };
+    if (!hasWarningPermission('removeWarnings')) return { error: tx('У вас нет права снимать предупреждения.', 'You do not have permission to remove warnings.') };
     const target = targetFromInput(targetValue);
     if (!target) return { error: tr('warningTargetPlaceholder', 'Введите токен пользователя или Telegram ID.', 'Enter a user token or Telegram ID.') };
 
@@ -757,7 +763,7 @@
 
   function openIssueWarningModal() {
     const lang = currentLang();
-    if (currentLevel() < 2) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedIssue', 'Выдавать предупреждения могут администраторы 2-го уровня и выше.', 'Only administrators level 2 and above can issue warnings.'));
+    if (!hasWarningPermission('issueWarnings')) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tx('У вас нет права выдавать предупреждения.', 'You do not have permission to issue warnings.'));
     openForm(tr('warningIssueButton', 'Выдать предупреждение (warn)', 'Issue warning (warn)'), body => {
       const controls = {
         target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true }),
@@ -819,7 +825,7 @@
   }
 
   function openRemoveWarningsModal() {
-    if (currentLevel() < 2) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tr('warningDeniedRemove', 'Снимать предупреждения могут администраторы со 2-го уровня.', 'Only administrators at level 2 or higher can remove warnings.'));
+    if (!hasWarningPermission('removeWarnings')) return showMessage(tr('warningDeniedTitle', 'Недостаточно прав', 'Permission denied'), tx('У вас нет права снимать предупреждения.', 'You do not have permission to remove warnings.'));
     openForm(tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'), body => ({
       target: field(body, tr('warningTargetLabel', 'Telegram ID или токен пользователя', 'Telegram ID or user token'), { placeholder: tr('warningTargetPlaceholder', 'Введите Telegram ID или токен', 'Enter Telegram ID or token'), required: true })
     }), controls => removeWarnings(controls.target.value), tr('warningRemoveButton', 'Снять предупреждения', 'Remove warnings'));
@@ -1165,23 +1171,23 @@
     // Both warning actions are available from level 2 upwards.
     // Set each button explicitly so a stale data-min-level or hidden parent
     // cannot keep them hidden after the level is raised again.
-    const level = Number(currentLevel()) || 1;
-    const canUseWarnings = level >= 2;
+    const canIssueWarnings = hasWarningPermission('issueWarnings');
+    const canRemoveWarnings = hasWarningPermission('removeWarnings');
     const issue = document.getElementById('warn-issue');
     const remove = document.getElementById('warn-remove');
     const group = document.getElementById('warn-tools-group');
     if (issue) {
-      issue.hidden = !canUseWarnings;
+      issue.hidden = !canIssueWarnings;
       issue.removeAttribute('aria-hidden');
       issue.style.removeProperty('display');
     }
     if (remove) {
-      remove.hidden = !canUseWarnings;
+      remove.hidden = !canRemoveWarnings;
       remove.removeAttribute('aria-hidden');
       remove.style.removeProperty('display');
     }
     if (group) {
-      group.hidden = !canUseWarnings;
+      group.hidden = !canIssueWarnings && !canRemoveWarnings;
       group.removeAttribute('aria-hidden');
       group.style.removeProperty('display');
     }
