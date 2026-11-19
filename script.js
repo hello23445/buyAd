@@ -1723,6 +1723,7 @@ function applyLang(lang) {
   if (window.BuyAdWarnings?.applyLanguage) window.BuyAdWarnings.applyLanguage(lang);
   if (window.BuyAdRefreshReferralLanguage) window.BuyAdRefreshReferralLanguage();
   if (! $('screen-main').hidden) showMainMenu();
+  window.dispatchEvent(new Event('buyad:language-changed'));
   if (! $('screen-crystals').hidden) loadCrystals();
   if (! $('screen-myads').hidden) loadMyAds();
   if (! $('screen-settings').hidden) {
@@ -5808,7 +5809,7 @@ document.addEventListener('click', (e) => {
     hideLabel.appendChild(hideSelect);
     body.append(targetLabel, reasonLabel, hideLabel);
     openModal(buyAdUiText('Кикнуть пользователя','Disconnect user'), body, [
-      { text:'Отмена', class:'btn btn--ghost', onClick:() => {} },
+      { text:buyAdUiText('Отмена','Cancel'), class:'btn btn--ghost', onClick:() => {} }, 
       { text:'Отключить', class:'btn btn--danger', onClick:() => {
         const identifier = target.value.trim();
         const why = reason.value.trim();
