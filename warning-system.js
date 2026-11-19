@@ -761,30 +761,53 @@
 
     const rows = warnings().map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
     const originalRows = rows.map(row => row && typeof row === 'object' ? JSON.parse(JSON.stringify(row)) : row);
-    const removed = rows.filter(row => targetMatches(row, target));
-    if (!removed.length) return { error: tr('warningNoneForUser', 'У пользователя нет предупреждений.', 'The user has no warnings.') };
-    try { await writeWarnings(rows.filter(row => !removed.includes(row))); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждений не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
+    const matched = rows.filter(row => targetMatches(row, target));
+    const now = Date.now();
+    const active = matched.filter(row => {
+      const lockUntil = Date.parse(row.lockUntil || '');
+      const removeAt = Date.parse(row.removeAt || '');
+      return (Number.isFinite(lockUntil) && lockUntil > now) ||
+        (Number.isFinite(removeAt) && removeAt > now) ||
+        (!row.lockUntil && !row.removeAt);
+    }).sort((a, b) => warningTime(b) - warningTime(a));
+    const removed = active.slice(0, 1);
+    if (!removed.length) return { error: tr('warningNoneForUser', 'У пользователя нет активных предупреждений.', 'The user has no active warnings.') };
+    const removedWarning = removed[0];
+    const remaining = rows.filter(row => !removed.includes(row));
+    // Если снимается последнее предупреждение, которое вызвало блокировку 3/3,
+    // убрать lock-метаданные с оставшихся предупреждений и вернуть им обычный срок.
+    const unlock = !!removedWarning.lockUntil && Date.parse(removedWarning.lockUntil) > now;
+    if (unlock) {
+      remaining.forEach(row => {
+        if (targetMatches(row, target) && row.lockUntil) {
+          const issued = warningTime(row) || now;
+          row.lockUntil = '';
+          row.removeAt = new Date(issued + TWO_DAYS).toISOString();
+        }
+      });
+    }
+    try { await writeWarnings(remaining); } catch (error) { safeWrite(WARN_KEY, originalRows); return { error: (currentLang() === 'ru' ? 'Снятие предупреждения не сохранено в GitHub: ' : 'Warning removal was not saved to GitHub: ') + (error.message || error) }; }
     if (targetAdmin && actorLevel === 4) recordAdminWarningDailyCount('removed');
     const details = {
       targetToken: target.token || '',
       targetTelegramId: target.telegramId || '',
-      removedCount: removed.length,
-      removedWarningIds: removed.map(row => row.id),
-      reason: removed.some(row => row.lockUntil) ? 'Снятие варнов и разблокировка аккаунта 3/3' : 'Ручное снятие предупреждений'
+      removedCount: 1,
+      removedWarningIds: [removedWarning.id],
+      reason: unlock ? 'Снятие последнего предупреждения и разблокировка аккаунта 3/3' : 'Ручное снятие одного последнего активного предупреждения'
     };
     logAdmin('warnings_removed', details);
     logUser(target, 'warnings_removed', {
-      removedCount: removed.length,
+      removedCount: 1,
       removedWarningIds: details.removedWarningIds,
       reason: details.reason,
       adminName: adminName(),
       adminNameHidden: adminNameHidden(),
-      unlocked: removed.some(row => row.lockUntil)
+      unlocked: unlock
     });
     refresh();
-    const successText = removed.some(row => row.lockUntil)
-      ? tr('warningRemovedUnlock', 'Все предупреждения сняты. Блокировка 3/3 отменена.', 'All warnings removed. The 3/3 lock has been lifted.')
-      : tr('warningRemovedSuccess', 'Снято предупреждений: {count}.', 'Warnings removed: {count}.').replace('{count}', String(removed.length));
+    const successText = unlock
+      ? tr('warningRemovedUnlock', 'Последнее активное предупреждение снято. Блокировка 3/3 отменена.', 'The latest active warning was removed. The 3/3 lock has been lifted.')
+      : tr('warningRemovedSuccess', 'Снято 1 последнее активное предупреждение.', 'Removed the latest active warning (1).');
     return { message: successText };
   }
 
