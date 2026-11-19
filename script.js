@@ -2107,6 +2107,7 @@ async function showMainMenu(updateWhat = 'both', accessPrechecked = false) {
 
   hideAllScreens();
   show($('screen-main'));
+  window.dispatchEvent(new Event('buyad:main-menu-shown'));
   $('nav-admin').hidden = !isAdmin;
   updateAdminLevelBadge();
 
