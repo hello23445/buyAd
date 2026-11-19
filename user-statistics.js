@@ -2,6 +2,7 @@
 (() => {
   'use strict';
 
+  const tx = (ru, en) => (localStorage.getItem('lang') || 'ru') === 'ru' ? ru : en;
   const REPOSITORY = 'hello23445/buyAd';
   const FILE_PATH = 'data/user-statistics.json';
   const TOKEN_BROKER = 'https://script.google.com/macros/s/AKfycbzTDNI5q2qAUWHoXsm5KJWlnrv0ivvK5LI6Gbevp9A-u31L48D0wZbWuDnD-X52vo-MOA/exec';
@@ -261,7 +262,7 @@
       issuedAt: nowIso(),
       expiresAt: expiresAt || '',
       durationDays: durationDays == null ? null : Number(durationDays),
-      reason: String(reason || 'Не указана'),
+      reason: String(reason || tx('Не указана', 'Not specified')),
       adminName: admin.adminName,
       adminNameHidden: admin.adminNameHidden,
       adminLevel: admin.adminLevel
@@ -277,7 +278,7 @@
   function recordIpAdminAction(action, details) {
     const value = String(details && details.targetIp || '').trim();
     if (!value) return;
-    const reason = details.reason || 'Не указана';
+    const reason = details.reason || tx('Не указана', 'Not specified');
     const duration = details.durationDays == null ? null : details.durationDays;
     const expires = details.expiresAt || '';
     return recordPunishment('ip_ban', value, reason, duration, expires, action === 'ip_unbanned');
@@ -312,7 +313,7 @@
           identifierType: telegramId ? 'telegram_id' : 'token',
           issuedAt: row.issuedAt || '',
           expiresAt: row.lockUntil || row.removeAt || '',
-          reason: String(row.reason || 'Не указана'),
+          reason: String(row.reason || tx('Не указана', 'Not specified')),
           adminName: row.adminNameHidden ? '' : String(row.adminName || ''),
           adminNameHidden: row.adminNameHidden === true,
           adminLevel: Number(row.adminLevel || 0)
@@ -376,7 +377,7 @@
           identifierType: type || group.type,
           issuedAt: entry && typeof entry === 'object' ? entry.issuedAt || '' : '',
           expiresAt: entry && typeof entry === 'object' ? entry.expiresAt || '' : '',
-          reason: entry && typeof entry === 'object' ? entry.reason || 'Не указана' : 'Не указана',
+          reason: entry && typeof entry === 'object' ? entry.reason || tx('Не указана', 'Not specified') : tx('Не указана', 'Not specified'),
           adminName: entry && typeof entry === 'object' && !entry.adminNameHidden ? entry.adminName || '' : '',
           adminNameHidden: !!(entry && typeof entry === 'object' && entry.adminNameHidden)
         });
@@ -440,7 +441,7 @@
       else throw new Error('Clipboard is unavailable');
       if (button) {
         const original = button.textContent;
-        button.textContent = 'Скопировано';
+        button.textContent = tx('Скопировано', 'Copied');
         setTimeout(() => { button.textContent = original; }, 1600);
       }
     } catch (_) {
@@ -506,7 +507,7 @@
         identifier: row.telegramId || row.token || '',
         identifierType: row.telegramId ? 'telegram_id' : 'token',
         issuedAt: row.issuedAt || '',
-        reason: row.reason || 'Не указана',
+        reason: row.reason || tx('Не указана', 'Not specified'),
         adminName: row.adminNameHidden ? '' : row.adminName || '',
         adminNameHidden: row.adminNameHidden === true
       }))
@@ -528,7 +529,7 @@
     const rows = buildPunishmentHistory(profile);
     parent.replaceChildren();
     if (!rows.length) {
-      parent.appendChild(makeElement('div', 'hint', 'За последние два месяца наказаний с зафиксированной датой нет.'));
+      parent.appendChild(makeElement('div', 'hint', tx('За последние два месяца наказаний с зафиксированной датой нет.', 'No punishments with recorded dates in the last two months.')));
       return;
     }
     rows.forEach((row, index) => {
@@ -536,12 +537,12 @@
       card.style.marginTop = '8px';
       card.appendChild(makeElement('div', 'card__title', '№' + (index + 1) + ' · ' + punishmentLabel(row.kind)));
       const issued = makeElement('div', 'punishment-history-date', moscowDate(row.issuedAt));
-      issued.setAttribute('aria-label', 'Дата и время выдачи по Москве');
+      issued.setAttribute('aria-label', tx('Дата и время выдачи по Москве', 'Issued date and time (Moscow)'));
       card.appendChild(issued);
-      appendField(card, 'Администратор', row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName);
-      appendField(card, 'Причина', row.reason || 'Не указана');
-      if (row.expiresAt) appendField(card, 'Действует до (МСК)', moscowDate(row.expiresAt));
-      if (row.removedAt) appendField(card, 'Снято (МСК)', moscowDate(row.removedAt));
+      appendField(card, tx('Администратор', 'Administrator'), row.adminNameHidden || !row.adminName ? tx('Скрыто', 'Hidden') : row.adminName);
+      appendField(card, tx('Причина', 'Reason'), row.reason || tx('Не указана', 'Not specified'));
+      if (row.expiresAt) appendField(card, tx('Действует до (МСК)', 'Expires (MSK)'), moscowDate(row.expiresAt));
+      if (row.removedAt) appendField(card, tx('Снято (МСК)', 'Removed (MSK)'), moscowDate(row.removedAt));
       parent.appendChild(card);
     });
   }
@@ -566,28 +567,28 @@
     else if (warningCount >= 3) status = 'Забанен за 3 из 3 предупреждений';
 
     const identityCard = makeElement('div', 'card stats-overview');
-    identityCard.appendChild(makeElement('div', 'card__title', 'Общая информация'));
-    appendField(identityCard, 'Дата регистрации', moscowDate(profile.registeredAt));
-    appendField(identityCard, 'Последний вход', moscowDate(profile.lastLoginAt));
+    identityCard.appendChild(makeElement('div', 'card__title', tx('Общая информация', 'General information')));
+    appendField(identityCard, tx('Дата регистрации', 'Registration date'), moscowDate(profile.registeredAt));
+    appendField(identityCard, tx('Последний вход', 'Last login'), moscowDate(profile.lastLoginAt));
     const telegramIdField = appendField(identityCard, 'Telegram ID', profile.telegramId || '—');
-    const idCopy = makeElement('button', 'btn btn--ghost user-statistics-copy-id', 'Копировать Telegram ID');
+    const idCopy = makeElement('button', 'btn btn--ghost user-statistics-copy-id', tx('Копировать Telegram ID', 'Copy Telegram ID'));
     idCopy.type = 'button';
     idCopy.disabled = !profile.telegramId;
     idCopy.addEventListener('click', () => copyValue(profile.telegramId, idCopy));
     telegramIdField.appendChild(idCopy);
-    appendField(identityCard, 'Количество предупреждений', warningCount);
-    appendField(identityCard, 'Статус аккаунта', status);
-    appendField(identityCard, 'Кристаллы', live.crystals == null ? (profile.crystals == null ? 'Нет данных' : profile.crystals) : live.crystals);
-    appendField(identityCard, 'Создано реклам', profile.adCreatedCount != null ? profile.adCreatedCount : (live.adCount == null ? (profile.adCount == null ? 'Нет данных' : profile.adCount) : live.adCount));
+    appendField(identityCard, tx('Количество предупреждений', 'Warning count'), warningCount);
+    appendField(identityCard, tx('Статус аккаунта', 'Account status'), status);
+    appendField(identityCard, tx('Кристаллы', 'Crystals'), live.crystals == null ? (profile.crystals == null ? tx('Нет данных', 'No data') : profile.crystals) : live.crystals);
+    appendField(identityCard, tx('Создано реклам', 'Ads created'), profile.adCreatedCount != null ? profile.adCreatedCount : (live.adCount == null ? (profile.adCount == null ? tx('Нет данных', 'No data') : profile.adCount) : live.adCount));
 
-    identityCard.appendChild(makeElement('div', 'field__label', 'Все токены аккаунта'));
+    identityCard.appendChild(makeElement('div', 'field__label', tx('Все токены аккаунта', 'All account tokens')));
     const tokenList = makeElement('div', 'stack-sm');
     const tokens = Array.isArray(profile.tokens) ? profile.tokens : [];
-    if (!tokens.length) tokenList.appendChild(makeElement('div', 'hint', 'Токены ещё не попали в архив.'));
+    if (!tokens.length) tokenList.appendChild(makeElement('div', 'hint', tx('Токены ещё не попали в архив.', 'Tokens have not been archived yet.')));
     tokens.forEach(token => {
       const row = makeElement('div', 'tokenbox');
       const code = makeElement('code', '', token);
-      const button = makeElement('button', 'btn btn--ghost', 'Копировать');
+      const button = makeElement('button', 'btn btn--ghost', tx('Копировать', 'Copy'));
       button.type = 'button';
       button.addEventListener('click', () => copyValue(token, button));
       row.append(code, button);
@@ -598,35 +599,35 @@
 
     if (activeBans.length) {
       const banCard = makeElement('div', 'card');
-      banCard.appendChild(makeElement('div', 'card__title', 'Данные блокировки'));
+      banCard.appendChild(makeElement('div', 'card__title', tx('Данные блокировки', 'Ban details')));
       activeBans.forEach(row => {
-        appendField(banCard, 'Тип', row.identifierType === 'telegram_id' ? 'Telegram ID' : row.identifierType === 'ip' ? 'IP-адрес' : 'Токен');
-        appendField(banCard, 'Дата выдачи (МСК)', moscowDate(row.issuedAt));
-        appendField(banCard, 'Администратор', row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName);
-        appendField(banCard, 'Причина', row.reason || 'Не указана');
-        appendField(banCard, 'Окончание (МСК)', row.expiresAt ? moscowDate(row.expiresAt) : 'Навсегда');
+        appendField(banCard, tx('Тип', 'Type'), row.identifierType === 'telegram_id' ? 'Telegram ID' : row.identifierType === 'ip' ? tx('IP-адрес', 'IP address') : tx('Токен', 'Token'));
+        appendField(banCard, tx('Дата выдачи (МСК)', 'Issued (MSK)'), moscowDate(row.issuedAt));
+        appendField(banCard, tx('Администратор', 'Administrator'), row.adminNameHidden || !row.adminName ? tx('Скрыто', 'Hidden') : row.adminName);
+        appendField(banCard, tx('Причина', 'Reason'), row.reason || tx('Не указана', 'Not specified'));
+        appendField(banCard, tx('Окончание (МСК)', 'Ends (MSK)'), row.expiresAt ? moscowDate(row.expiresAt) : tx('Навсегда', 'Permanent'));
       });
       output.appendChild(banCard);
     }
 
     const restrictionCard = makeElement('div', 'card');
-    restrictionCard.appendChild(makeElement('div', 'card__title', 'Ограничения рекламы'));
+    restrictionCard.appendChild(makeElement('div', 'card__title', tx('Ограничения рекламы', 'Ad restrictions')));
     if (!adRestrictions.length) {
-      appendField(restrictionCard, 'Создание и редактирование', 'Ограничений нет');
+      appendField(restrictionCard, tx('Создание и редактирование', 'Creating and editing'), tx('Ограничений нет', 'No restrictions'));
     } else {
       adRestrictions.forEach(row => {
-        appendField(restrictionCard, 'Создание и редактирование', 'Заблокировано');
-        appendField(restrictionCard, 'Дата выдачи (МСК)', moscowDate(row.issuedAt));
-        appendField(restrictionCard, 'Дата окончания (МСК)', row.expiresAt ? moscowDate(row.expiresAt) : 'Навсегда');
-        appendField(restrictionCard, 'Администратор', row.adminNameHidden || !row.adminName ? 'Скрыто' : row.adminName);
-        appendField(restrictionCard, 'Причина', row.reason || 'Не указана');
+        appendField(restrictionCard, tx('Создание и редактирование', 'Creating and editing'), tx('Заблокировано', 'Blocked'));
+        appendField(restrictionCard, tx('Дата выдачи (МСК)', 'Issued (MSK)'), moscowDate(row.issuedAt));
+        appendField(restrictionCard, tx('Дата окончания (МСК)', 'End date (MSK)'), row.expiresAt ? moscowDate(row.expiresAt) : tx('Навсегда', 'Permanent'));
+        appendField(restrictionCard, tx('Администратор', 'Administrator'), row.adminNameHidden || !row.adminName ? tx('Скрыто', 'Hidden') : row.adminName);
+        appendField(restrictionCard, tx('Причина', 'Reason'), row.reason || tx('Не указана', 'Not specified'));
       });
     }
     output.appendChild(restrictionCard);
 
     const historyCard = makeElement('div', 'card stats-history');
-    historyCard.appendChild(makeElement('div', 'card__title', 'История наказаний'));
-    const historyButton = makeElement('button', 'btn btn--primary btn--full', 'Список наказаний за последние 2 месяца');
+    historyCard.appendChild(makeElement('div', 'card__title', tx('История наказаний', 'Punishment history')));
+    const historyButton = makeElement('button', 'btn btn--primary btn--full', tx('Список наказаний за последние 2 месяца', 'Punishments from the last 2 months'));
     historyButton.type = 'button';
     const historyContent = makeElement('div', 'stack-sm');
     historyContent.hidden = true;
@@ -639,7 +640,7 @@
   }
 
   async function getProfileByIdentifier(query) {
-    if (!hasAccess()) throw new Error('Просмотр статистики доступен только администраторам 2-го уровня и выше.');
+    if (!hasAccess()) throw new Error(tx('Просмотр статистики доступен только администраторам 2-го уровня и выше.', 'User statistics are available to level 2 administrators and above only.'));
     const value = String(query || '').trim();
     if (!value) return null;
     const result = await readArchive();
@@ -654,24 +655,24 @@
 
   async function searchUser() {
     if (!hasAccess()) {
-      setStatus('Доступ разрешён только администраторам 2-го уровня и выше.', true);
+      setStatus(tx('Доступ разрешён только администраторам 2-го уровня и выше.', 'Access is available to level 2 administrators and above only.'), true);
       return;
     }
     const input = document.getElementById('user-statistics-query');
     const query = String(input && input.value || '').trim();
     if (!query) {
-      setStatus('Введите Telegram ID или токен.', true);
+      setStatus(tx('Введите Telegram ID или токен.', 'Enter Telegram ID or token.'), true);
       return;
     }
     const button = document.getElementById('user-statistics-search');
     const sequence = ++searchSequence;
     if (button) button.disabled = true;
-    setStatus('Загружаю сохранённую статистику…');
+    setStatus(tx('Загружаю сохранённую статистику…', 'Loading saved statistics…'));
     try {
       const result = await readArchive();
       if (sequence !== searchSequence) return;
       const found = findArchiveProfile(result.archive, query);
-      if (!found) throw new Error('Пользователь не найден.');
+      if (!found) throw new Error(tx('Пользователь не найден.', 'User not found.'));
       const profile = { ...found.user };
       profile.tokens = Array.isArray(profile.tokens) ? profile.tokens : [];
       if (/^\d{4,}$/.test(query)) profile.telegramId = query;
@@ -679,7 +680,7 @@
 
       // Render the archived snapshot immediately. Live GAS requests run in background.
       renderProfile(profile, { crystals: null, adCount: null });
-      setStatus('Сохранённые данные показаны. Обновляю актуальные показатели…');
+      setStatus(tx('Сохранённые данные показаны. Обновляю актуальные показатели…', 'Saved data displayed. Updating live statistics…'));
       if (button) button.disabled = false;
 
       loadLiveStats(profile).then(live => {
@@ -690,13 +691,13 @@
           profile.adCreatedCount = Math.max(Number(profile.adCreatedCount || 0), Number(live.adCount));
         }
         renderProfile(profile, live);
-        setStatus('Статистика обновлена. Время в карточке указано по Москве.');
+        setStatus(tx('Статистика обновлена. Время в карточке указано по Москве.', 'Statistics updated. Times are shown in Moscow time.'));
       }).catch(error => {
-        if (sequence === searchSequence) setStatus('Показаны сохранённые данные; актуальная статистика временно недоступна.');
+        if (sequence === searchSequence) setStatus(tx('Показаны сохранённые данные; актуальная статистика временно недоступна.', 'Saved data is shown; live statistics are temporarily unavailable.'));
         console.warn('Live user statistics unavailable:', error);
       });
     } catch (error) {
-      if (sequence === searchSequence) setStatus(error.message || 'Не удалось получить статистику.', true);
+      if (sequence === searchSequence) setStatus(error.message || tx('Не удалось получить статистику.', 'Could not retrieve statistics.'), true);
     } finally {
       if (sequence === searchSequence && button) button.disabled = false;
     }
@@ -749,7 +750,7 @@
   function addScreenAndMenu() {
     const menu = document.querySelector('#screen-admin .menu');
     if (menu && !document.getElementById('admin-user-statistics')) {
-      const group = makeElement('div', 'menu__group', 'Пользователи');
+      const group = makeElement('div', 'menu__group', tx('Пользователи', 'Users'));
       group.id = 'admin-user-statistics-group';
       const button = makeElement('button', 'menu__item');
       button.id = 'admin-user-statistics';
@@ -759,7 +760,7 @@
         '<span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
       button.addEventListener('click', () => {
         if (!hasAccess()) {
-          setStatus('Доступ разрешён только администраторам 2-го уровня и выше.', true);
+          setStatus(tx('Доступ разрешён только администраторам 2-го уровня и выше.', 'Access is available to level 2 administrators and above only.'), true);
           return;
         }
         document.querySelectorAll('.screen').forEach(screen => { screen.hidden = true; });
