@@ -991,7 +991,7 @@
       return;
     }
     openModal(tx('Удаление предупреждения', 'Remove warning'), confirmBody, [
-      { text: tx('Отмена', 'Cancel'), class: 'btn--secondary' },
+      { text: tx('Отмена', 'Cancel'), class: 'btn btn--secondary' },
       { text: tx('Удалить за 250', 'Remove for 250'), onClick: () => { executeWarningRemoval(warningId); } }
     ]);
   }
@@ -1022,9 +1022,16 @@
       await window.BuyAdRefreshCrystals().catch(() => {});
       showMessage(tx('Предупреждение удалено', 'Warning removed'), tx('Предупреждение успешно удалено. Списано 250 кристаллов.', 'Warning successfully removed. 250 crystals were charged.'));
     } catch (error) {
-      await updateCrystalsInGAS(250, true).catch(() => false);
+      safeWriteCache(WARN_KEY, latest);
+      refresh();
+      renderWarningsScreen();
+      const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
       await window.BuyAdRefreshCrystals().catch(() => {});
-      showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения. Списанные кристаллы возвращены.', 'Could not save warning removal. The charged crystals were refunded.') + '\n' + (error?.message || String(error)));
+      const refundText = refunded
+        ? tx('Списанные кристаллы возвращены.', 'The charged crystals were refunded.')
+        : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'The crystals could not be refunded automatically. Contact support.');
+      showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения.', 'Could not save warning removal.') + '\n' + refundText + '\n' + (error?.message || String(error)));
+
     }
   }
 
