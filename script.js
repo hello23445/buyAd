@@ -1,3 +1,4 @@
+function buyAdUiText(ru, en) { return (localStorage.getItem('lang') || 'ru') === 'ru' ? ru : en; }
 ﻿// script.js 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
@@ -683,11 +684,11 @@ $('admin-level-save')?.addEventListener('click', () => {
   const level = value === '' ? 5 : Number(value);
   const base = getBaseAdminByToken();
   if (Number(base?.admin_level) !== 5 || base?.permissions?.changeOwnLevelLocally !== true) {
-    alert('Нет разрешения');
+    alert(buyAdUiText('Нет разрешения', 'Permission denied'));
     return;
   }
   if (!Number.isInteger(level) || level < 1 || level > 5) {
-    alert('Укажите уровень от 1 до 5');
+    alert(buyAdUiText('Укажите уровень от 1 до 5', 'Enter a level from 1 to 5'));
     return;
   }
   localStorage.setItem(ADMIN_LEVEL_LOCAL_KEY, String(level));
@@ -787,14 +788,14 @@ async function persistAdminRegistry(nextAdmins, commitMessage) {
 
 function openAdminRegistryResult(title, message) {
   openModal(title, message, [
-    { text: 'Перезагрузить приложение', onClick: () => location.reload() }
+    { text: buyAdUiText('Перезагрузить приложение', 'Restart app'), onClick: () => location.reload() }
   ]);
 }
 
 async function saveAdminRegistryChanges(nextAdmins, commitMessage, successTitle, successMessage) {
   if (!canManageAdminRegistry()) {
     closeModal();
-    openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+    openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Управлять администраторами может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can manage administrators.'));
     return;
   }
   closeModal();
@@ -805,7 +806,7 @@ async function saveAdminRegistryChanges(nextAdmins, commitMessage, successTitle,
     openAdminRegistryResult(successTitle, successMessage + ' Перезагрузите приложение, чтобы применить изменения.');
   } catch (error) {
     hidePreloader();
-    openModal('Не удалось сохранить изменения', error?.message || 'Произошла ошибка при сохранении.');
+    openModal(buyAdUiText('Не удалось сохранить изменения', 'Could not save changes'), error?.message || buyAdUiText('Произошла ошибка при сохранении.', 'An error occurred while saving.'));
   }
 }
 
@@ -813,7 +814,7 @@ function openAddAdminModal() {
   const base = getBaseAdminByToken();
   const active = getCurrentAdmin();
   if (Number(base?.admin_level) !== 5 || Number(active?.admin_level) !== 5 || !adminHasPermission('manageAdmins')) {
-    openModal('Недостаточно прав', 'Добавлять администраторов может только администратор 5-го уровня с соответствующим правом.');
+    openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Добавлять администраторов может только администратор 5-го уровня с соответствующим правом.', 'Only a level 5 administrator with the required permission can add administrators.'));
     return;
   }
 
@@ -823,37 +824,37 @@ function openAddAdminModal() {
   const nameLabel = document.createElement('label');
   nameLabel.className = 'admin-create-field';
   const nameTitle = document.createElement('span');
-  nameTitle.textContent = 'Имя нового админа';
+  nameTitle.textContent = buyAdUiText(buyAdUiText('Имя нового админа', 'New administrator name'), 'New administrator name');
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.required = true;
   nameInput.autocomplete = 'off';
   nameInput.maxLength = 80;
-  nameInput.placeholder = 'Введите имя администратора';
+  nameInput.placeholder = buyAdUiText(buyAdUiText('Введите имя администратора', 'Enter administrator name'), 'Enter administrator name');
   nameLabel.append(nameTitle, nameInput);
   form.appendChild(nameLabel);
 
   const tokenLabel = document.createElement('label');
   tokenLabel.className = 'admin-create-field';
   const tokenTitle = document.createElement('span');
-  tokenTitle.textContent = 'Токен нового админа';
+  tokenTitle.textContent = buyAdUiText('Токен нового админа', 'New administrator token');
   const tokenInput = document.createElement('input');
   tokenInput.type = 'text';
   tokenInput.autocomplete = 'off';
   tokenInput.spellcheck = false;
-  tokenInput.placeholder = 'Введите токен';
+  tokenInput.placeholder = buyAdUiText('Введите токен', 'Enter token');
   tokenLabel.append(tokenTitle, tokenInput);
   form.appendChild(tokenLabel);
 
   const levelLabel = document.createElement('label');
   levelLabel.className = 'admin-create-field';
   const levelTitle = document.createElement('span');
-  levelTitle.textContent = 'Уровень админа';
+  levelTitle.textContent = buyAdUiText('Уровень админа', 'Administrator level');
   const levelSelect = document.createElement('select');
   for (let level = 1; level <= 5; level++) {
     const option = document.createElement('option');
     option.value = String(level);
-    option.textContent = level + '-й уровень';
+    option.textContent = buyAdUiText(level + '-й уровень', 'Level ' + level);
     levelSelect.appendChild(option);
   }
   levelSelect.value = '1';
@@ -862,7 +863,7 @@ function openAddAdminModal() {
 
   const permissionsTitle = document.createElement('div');
   permissionsTitle.className = 'admin-permissions-heading';
-  permissionsTitle.textContent = 'Права доступа';
+  permissionsTitle.textContent = buyAdUiText('Права доступа', 'Permissions');
   form.appendChild(permissionsTitle);
 
   const permissionsList = document.createElement('div');
@@ -891,35 +892,35 @@ function openAddAdminModal() {
   levelSelect.addEventListener('change', applyLevelPermissions);
   applyLevelPermissions();
 
-  openModal('Добавить нового админа', form, []);
+  openModal(buyAdUiText('Добавить нового админа', 'Add administrator'), form, []);
   const actions = $('modal-actions');
   if (actions) actions.innerHTML = '';
 
   const cancelButton = document.createElement('button');
   cancelButton.type = 'button';
   cancelButton.className = 'btn btn--ghost';
-  cancelButton.textContent = 'Отмена';
+  cancelButton.textContent = buyAdUiText('Отмена', 'Cancel');
   cancelButton.onclick = () => closeModal();
 
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
   saveButton.className = 'btn btn--primary';
-  saveButton.textContent = 'Создать администратора';
+  saveButton.textContent = buyAdUiText('Создать администратора', 'Create administrator');
   saveButton.onclick = async () => {
     const adminName = String(nameInput.value || '').trim();
     if (!adminName) {
-      alert('Введите имя нового администратора.');
+      alert(buyAdUiText('Введите имя нового администратора.', 'Enter the new administrator name.'));
       nameInput.focus();
       return;
     }
     const token = String(tokenInput.value || '').trim();
     if (!token) {
-      alert('Введите токен нового администратора.');
+      alert(buyAdUiText('Введите токен нового администратора.', 'Enter the new administrator token.'));
       tokenInput.focus();
       return;
     }
     if ((typeof ADMINS !== 'undefined' ? ADMINS : []).some(item => item.admin_token === token)) {
-      alert('Такой токен уже используется.');
+      alert(buyAdUiText('Такой токен уже используется.', 'This token is already in use.'));
       tokenInput.focus();
       return;
     }
@@ -938,7 +939,7 @@ function openAddAdminModal() {
     };
 
     if (!canManageAdminRegistry()) {
-      alert('Добавлять администраторов может только главный администратор 5-го уровня.');
+      alert(buyAdUiText('Добавлять администраторов может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can add administrators.'));
       closeModal();
       return;
     }
@@ -964,7 +965,7 @@ function appendAdminModalActions(cancelText, actionText, actionHandler, actionCl
   const cancelButton = document.createElement('button');
   cancelButton.type = 'button';
   cancelButton.className = 'btn btn--ghost';
-  cancelButton.textContent = 'Отмена';
+  cancelButton.textContent = buyAdUiText('Отмена', 'Cancel');
   cancelButton.onclick = () => closeModal();
   const actionButton = document.createElement('button');
   actionButton.type = 'button';
@@ -978,7 +979,7 @@ function appendAdminOption(select, admin) {
   const option = document.createElement('option');
   option.value = admin.admin_token;
   const tokenSuffix = String(admin.admin_token || '').slice(-4);
-  option.textContent = (admin.admin_name || 'Администратор') + ' — ' + admin.admin_level + '-й уровень' + (tokenSuffix ? ' (…' + tokenSuffix + ')' : '');
+  option.textContent = (admin.admin_name || buyAdUiText('Администратор', 'Administrator')) + ' — ' + buyAdUiText(admin.admin_level + '-й уровень', 'Level ' + admin.admin_level) + (tokenSuffix ? ' (…' + tokenSuffix + ')' : '');
   select.appendChild(option);
 }
 
@@ -986,12 +987,12 @@ function createAdminPermissionEditor(initialLevel, initialPermissions = {}) {
   const levelLabel = document.createElement('label');
   levelLabel.className = 'admin-create-field';
   const levelTitle = document.createElement('span');
-  levelTitle.textContent = 'Уровень админа';
+  levelTitle.textContent = buyAdUiText('Уровень админа', 'Administrator level');
   const levelSelect = document.createElement('select');
   for (let level = 1; level <= 5; level++) {
     const option = document.createElement('option');
     option.value = String(level);
-    option.textContent = level + '-й уровень';
+    option.textContent = buyAdUiText(level + '-й уровень', 'Level ' + level);
     levelSelect.appendChild(option);
   }
   levelSelect.value = String(initialLevel);
@@ -999,7 +1000,7 @@ function createAdminPermissionEditor(initialLevel, initialPermissions = {}) {
 
   const permissionsTitle = document.createElement('div');
   permissionsTitle.className = 'admin-permissions-heading';
-  permissionsTitle.textContent = 'Права доступа';
+  permissionsTitle.textContent = buyAdUiText('Права доступа', 'Permissions');
   const permissionsList = document.createElement('div');
   permissionsList.className = 'admin-permissions-list';
   const permissionInputs = {};
@@ -1034,13 +1035,13 @@ function createAdminPermissionEditor(initialLevel, initialPermissions = {}) {
 
 function openEditAdminModal() {
   if (!canManageAdminRegistry()) {
-    openModal('Недостаточно прав', 'Изменять администраторов может только главный администратор 5-го уровня.');
+    openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Изменять администраторов может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can edit administrators.'));
     return;
   }
   const currentAdmin = getBaseAdminByToken();
   const manageableAdmins = (typeof ADMINS !== 'undefined' ? ADMINS : []).filter(item => item.admin_token !== currentAdmin?.admin_token);
   if (!manageableAdmins.length) {
-    openModal('Нет других администраторов', 'Для изменения прав должен существовать хотя бы один другой администратор.');
+    openModal(buyAdUiText('Нет других администраторов', 'No other administrators'), buyAdUiText('Для изменения прав должен существовать хотя бы один другой администратор.', 'At least one other administrator must exist to edit permissions.'));
     return;
   }
 
@@ -1049,7 +1050,7 @@ function openEditAdminModal() {
   const targetLabel = document.createElement('label');
   targetLabel.className = 'admin-create-field';
   const targetTitle = document.createElement('span');
-  targetTitle.textContent = 'Выберите администратора';
+  targetTitle.textContent = buyAdUiText('Выберите администратора', 'Select administrator');
   const targetSelect = document.createElement('select');
   manageableAdmins.forEach(item => appendAdminOption(targetSelect, item));
   targetLabel.append(targetTitle, targetSelect);
@@ -1064,16 +1065,16 @@ function openEditAdminModal() {
     editor.setPermissions(target.permissions || {});
   });
 
-  openModal('Изменить права админа', form, []);
+  openModal(buyAdUiText('Изменить права админа', 'Edit administrator permissions'), form, []);
   appendAdminModalActions('Отмена', 'Сохранить изменения', async () => {
     if (!canManageAdminRegistry()) {
       closeModal();
-      openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+      openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Управлять администраторами может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can manage administrators.'));
       return;
     }
     const target = manageableAdmins.find(item => item.admin_token === targetSelect.value);
     if (!target || target.admin_token === getBaseAdminByToken()?.admin_token) {
-      openModal('Неверный выбор', 'Нельзя изменить текущего администратора.');
+      openModal(buyAdUiText('Неверный выбор', 'Invalid selection'), buyAdUiText('Нельзя изменить текущего администратора.', 'You cannot edit the current administrator.'));
       return;
     }
     const nextLevel = Number(editor.levelSelect.value);
@@ -1098,13 +1099,13 @@ $('admin-edit-admin')?.addEventListener('click', openEditAdminModal);
 
 function openDeleteAdminModal() {
   if (!canManageAdminRegistry()) {
-    openModal('Недостаточно прав', 'Удалять администраторов может только главный администратор 5-го уровня.');
+    openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Удалять администраторов может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can delete administrators.'));
     return;
   }
   const currentAdmin = getBaseAdminByToken();
   const manageableAdmins = (typeof ADMINS !== 'undefined' ? ADMINS : []).filter(item => item.admin_token !== currentAdmin?.admin_token);
   if (!manageableAdmins.length) {
-    openModal('Нет других администраторов', 'Для удаления должен существовать хотя бы один другой администратор.');
+    openModal(buyAdUiText('Нет других администраторов', 'No other administrators'), buyAdUiText('Для удаления должен существовать хотя бы один другой администратор.', 'At least one other administrator must exist to delete an administrator.'));
     return;
   }
 
@@ -1113,7 +1114,7 @@ function openDeleteAdminModal() {
   const targetLabel = document.createElement('label');
   targetLabel.className = 'admin-create-field';
   const targetTitle = document.createElement('span');
-  targetTitle.textContent = 'Выберите администратора';
+  targetTitle.textContent = buyAdUiText('Выберите администратора', 'Select administrator');
   const targetSelect = document.createElement('select');
   manageableAdmins.forEach(item => appendAdminOption(targetSelect, item));
   targetLabel.append(targetTitle, targetSelect);
@@ -1121,19 +1122,19 @@ function openDeleteAdminModal() {
 
   const warning = document.createElement('p');
   warning.className = 'hint';
-  warning.textContent = 'Удаление необратимо. Текущий главный администратор недоступен для удаления.';
+  warning.textContent = buyAdUiText('Удаление необратимо. Текущий главный администратор недоступен для удаления.', 'Deletion cannot be undone. The current chief administrator cannot be deleted.');
   form.appendChild(warning);
 
-  openModal('Удалить админа', form, []);
+  openModal(buyAdUiText('Удалить админа', 'Delete administrator'), form, []);
   appendAdminModalActions('Отмена', 'Удалить админа', async () => {
     if (!canManageAdminRegistry()) {
       closeModal();
-      openModal('Недостаточно прав', 'Управлять администраторами может только главный администратор 5-го уровня.');
+      openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Управлять администраторами может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can manage administrators.'));
       return;
     }
     const target = manageableAdmins.find(item => item.admin_token === targetSelect.value);
     if (!target || target.admin_token === getBaseAdminByToken()?.admin_token) {
-      openModal('Неверный выбор', 'Нельзя удалить текущего администратора.');
+      openModal(buyAdUiText('Неверный выбор', 'Invalid selection'), buyAdUiText('Нельзя удалить текущего администратора.', 'You cannot delete the current administrator.'));
       return;
     }
     const confirmed = await confirmAdminMenuAction(
@@ -1156,7 +1157,7 @@ $('admin-delete-admin')?.addEventListener('click', openDeleteAdminModal);
 $('admin-clear-localstorage')?.addEventListener('click', async () => {
  const token=localStorage.getItem(LS.token)||'', base=(typeof ADMINS!=='undefined'?ADMINS:[]).find(x=>x.admin_token===token);
  if (Number(base?.admin_level) !== 5 || Number(getCurrentAdmin()?.admin_level) !== 5) {
-   openModal('Недостаточно прав', 'Очистить локальные данные может только главный администратор 5-го уровня.');
+   openModal(buyAdUiText('Недостаточно прав', 'Insufficient permissions'), buyAdUiText('Очистить локальные данные может только главный администратор 5-го уровня.', 'Only the level 5 chief administrator can clear local data.'));
    return;
  }
  const confirmed = await confirmAdminMenuAction(
