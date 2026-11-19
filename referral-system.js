@@ -214,9 +214,9 @@
       'Not enough crystals. 25 crystals are required.': 'Для создания ссылки необходимо минимум 25 кристаллов.',
       'A referral link already exists.': 'У вас уже есть реферальная ссылка.',
       'A referral link does not exist.': 'Сначала создайте реферальную ссылку.',
-      'Referral access is disabled while your account has an active warning or ban.'
-      'Есть активное предупреждение': 'Есть активное предупреждение',
-      'Активное предупреждение': 'Активное предупреждение',: 'Реферальная система отключена: у аккаунта есть предупреждение или блокировка.',
+      'Referral access is disabled while your account has an active warning or ban.': 'Реферальная система отключена: у аккаунта есть предупреждение или блокировка.',
+      'Есть активное предупреждение': 'Реферальная система отключена: у аккаунта есть активное предупреждение.',
+      'Активное предупреждение': 'Реферальная система отключена: у аккаунта есть активное предупреждение.',
       'This referral link is disabled or unavailable.': 'Эта реферальная ссылка отключена или недоступна.',
       'Referral self-registration is not allowed.': 'Нельзя перейти по собственной реферальной ссылке.',
       'No first-visit record was found.': 'Не удалось подтвердить первый вход по ссылке.',
@@ -234,8 +234,8 @@
       'A referral link already exists.': 'You already have a referral link.',
       'A referral link does not exist.': 'Create a referral link first.',
       'Referral access is disabled while your account has an active warning or ban.': 'The referral system is disabled while your account has a warning or ban.',
-      'Есть активное предупреждение': 'There is an active warning.',
-      'Активное предупреждение': 'There is an active warning.',
+      'Есть активное предупреждение': 'The referral system is disabled while your account has an active warning.',
+      'Активное предупреждение': 'The referral system is disabled while your account has an active warning.',
       'This referral link is disabled or unavailable.': 'This referral link is disabled or unavailable.',
       'Referral self-registration is not allowed.': 'You cannot register through your own referral link.',
       'No first-visit record was found.': 'The first visit could not be verified.',
@@ -243,7 +243,11 @@
       'The referral service is not configured. Add TELEGRAM_BOT_TOKEN in Apps Script project properties.': 'The backend is not configured. Add the bot token to Apps Script project properties.',
       'Could not update the Google Sheets balance. Please try again.': 'Could not update the Google Sheets balance. Please try again.'
     };
-    const dictionary = isRussian() ? ru : en;
+    const dictionary = currentLanguage() === 'ru' ? ru : en;
+    return dictionary[String(message || '')] || String(message || '');
+  }
+
+const dictionary = isRussian() ? ru : en;
     return dictionary[message] || message;
   }
 
