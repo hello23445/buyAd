@@ -430,14 +430,14 @@
         try { ok = document.execCommand('copy'); } catch (_) {}
         area.remove();
         if (!ok) {
-          if (typeof openModal === 'function') openModal(currentLang() === 'ru' ? 'Ошибка копирования' : 'Copy failed', currentLang() === 'ru' ? 'Не удалось скопировать Telegram ID.' : 'Could not copy Telegram ID.');
+          if (typeof openModal === 'function') openModal(tx('Ошибка копирования', 'Copy failed'), tx('Не удалось скопировать Telegram ID.', 'Could not copy Telegram ID.'));
           return;
         }
       }
       const label = copyTelegramButton.querySelector('span');
       if (label) {
         const oldText = label.textContent;
-        label.textContent = currentLang() === 'ru' ? 'Скопировано' : 'Copied';
+        label.textContent = tx('Скопировано', 'Copied');
         setTimeout(() => { label.textContent = oldText; }, 2500);
       }
     };
@@ -464,14 +464,14 @@
         try { ok = document.execCommand('copy'); } catch (_) {}
         area.remove();
         if (!ok) {
-          if (typeof openModal === 'function') openModal(currentLang() === 'ru' ? 'Ошибка копирования' : 'Copy failed', currentLang() === 'ru' ? 'Не удалось скопировать токен. Вы можете выделить и скопировать его вручную.' : 'Could not copy the token. You can select and copy it manually.');
+          if (typeof openModal === 'function') openModal(tx('Ошибка копирования', 'Copy failed'), tx('Не удалось скопировать токен. Вы можете выделить и скопировать его вручную.', 'Could not copy the token. You can select and copy it manually.'));
           return;
         }
       }
       const label = copyButton.querySelector('span');
       if (label) {
         const oldText = label.textContent;
-        label.textContent = currentLang() === 'ru' ? 'Скопировано' : 'Copied';
+        label.textContent = tx('Скопировано', 'Copied');
         setTimeout(() => { label.textContent = oldText; }, 2500);
       }
     };
@@ -501,7 +501,7 @@
       button.disabled = shouldBlock;
       if (shouldBlock) {
         button.setAttribute('aria-disabled', 'true');
-        button.title = currentLang() === 'ru' ? 'Недоступно при наличии предупреждения' : 'Unavailable while a warning is active';
+        button.title = tx('Недоступно при наличии предупреждения', 'Unavailable while a warning is active');
       } else {
         button.removeAttribute('aria-disabled');
         if (button.title === 'Недоступно при наличии предупреждения' || button.title === 'Unavailable while a warning is active') button.removeAttribute('title');
@@ -511,7 +511,7 @@
       const shouldBlock = blocked && denied(row.dataset.value || row.textContent);
       row.setAttribute('aria-disabled', shouldBlock ? 'true' : 'false');
       row.classList.toggle('platform-row--warning-blocked', shouldBlock);
-      row.title = shouldBlock ? (currentLang() === 'ru' ? 'Недоступно при наличии предупреждения' : 'Unavailable while a warning is active') : '';
+      row.title = shouldBlock ? (tx('Недоступно при наличии предупреждения', 'Unavailable while a warning is active')) : '';
     });
   }
 
@@ -555,7 +555,7 @@
     const blockedByDailyLimit = rows.length >= 2 && dailyAdUsed();
     setWarningDisabled(create, blockedByDailyLimit);
     setWarningDisabled(createAd, blockedByDailyLimit);
-    if (create) create.title = blockedByDailyLimit ? (currentLang() === 'ru' ? 'При 2/3 предупреждениях доступно одно создание рекламы в день' : 'With 2/3 warnings, only one ad can be created per day') : '';
+    if (create) create.title = blockedByDailyLimit ? (tx('При 2/3 предупреждениях доступно одно создание рекламы в день', 'With 2/3 warnings, only one ad can be created per day')) : '';
     const blockedScreen = document.getElementById('screen-blocked');
     if (blockedScreen?.dataset.warningLock === 'true') {
       delete blockedScreen.dataset.warningLock;
@@ -768,7 +768,7 @@
         amountWrap.className = 'admin-create-field';
         amountWrap.style.cssText = 'display:grid;gap:6px;margin-bottom:10px;';
         const amountLabel = document.createElement('span');
-        amountLabel.textContent = lang === 'ru' ? 'Количество предупреждений' : 'Number of warnings';
+        amountLabel.textContent = tx('Количество предупреждений', 'Number of warnings');
         amountLabel.style.fontWeight = '600';
         const amountSelect = document.createElement('select');
         amountSelect.style.cssText = 'width:100%;box-sizing:border-box;padding:0.75rem;border:1px solid rgba(128,128,128,.45);border-radius:10px;font:inherit;background:var(--card-bg, #111a2f);color:inherit;';
@@ -986,7 +986,7 @@
       '<div class="screen__head">' +
       '<button class="back-btn" id="back-from-warnings" type="button" aria-label="' + escapeHtml(tr('reviewBack', 'Назад', 'Back')) + '"><i class="fa-solid fa-arrow-left"></i></button>' +
       '<div class="screen__title" id="warning-screen-title">' + escapeHtml(tr('warningTitle', 'Список предупреждений', 'Warning list')) + '</div>' +
-      '<button id="refresh-warning-list" class="btn btn--ghost" type="button" title="Обновить"><i class="fa-solid fa-rotate"></i></button>' +
+      '<button id="refresh-warning-list" class="btn btn--ghost" type="button" title="' + escapeHtml(tx('Обновить', 'Refresh')) + '"><i class="fa-solid fa-rotate"></i></button>' +
       '</div><div id="warning-list-content" class="stack-sm"></div></div>';
     document.querySelector('main').appendChild(warningScreen);
     warningScreenList = warningScreen.querySelector('#warning-list-content');
@@ -1002,11 +1002,11 @@
     if (!warningScreen) return;
     document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== warningScreen; });
     warningScreen.hidden = false;
-    if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(currentLang() === 'ru' ? 'Загрузка предупреждений…' : 'Loading warnings…') + '</div></div>';
+    if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(tx('Загрузка предупреждений…', 'Loading warnings…')) + '</div></div>';
     if (typeof refreshBackButton === 'function') refreshBackButton();
     const latest = await loadCloudWarnings();
     if (latest === null) {
-      if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(currentLang() === 'ru' ? 'Не удалось загрузить список предупреждений. Попробуйте обновить.' : 'Could not load warnings. Please try again.') + '</div></div>';
+      if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(tx('Не удалось загрузить список предупреждений. Попробуйте обновить.', 'Could not load warnings. Please try again.')) + '</div></div>';
       return;
     }
     renderWarningsScreen();
