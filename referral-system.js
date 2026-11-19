@@ -971,7 +971,20 @@
     const nav = document.getElementById('nav-referral');
     const back = document.getElementById('back-from-referrals');
     const refresh = document.getElementById('refresh-referrals');
-    if (nav) nav.addEventListener('click', () => { openReferralScreen(); });
+    if (nav) {
+      nav.onclick = async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        nav.disabled = false;
+        try {
+          await openReferralScreen();
+        } catch (error) {
+          referralLog('Ошибка открытия реферального экрана', { message: error?.message || String(error) });
+          showScreen();
+          setPageMessage(error?.message || text('Не удалось открыть реферальную систему. Попробуйте ещё раз.', 'Could not open referral system. Please try again.'), 'is-error');
+        }
+      };
+    }
     if (back) back.addEventListener('click', backToMain);
     if (refresh) refresh.addEventListener('click', refreshReferralScreen);
     applyRefreshCooldown();
