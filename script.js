@@ -2494,7 +2494,7 @@ $('nav-crystals').onclick = () => {
   loadCrystals();
 };
 
-async function returnToMainMenuWithPreloader(updateWhat = 'both') {
+async function returnToMainMenuWithPreloader(updateWhat = 'none') {
   // Do not wait for network-based access checks or counters before displaying the main menu.
   await showMainMenu(updateWhat, true);
   const token = localStorage.getItem(LS.token);
@@ -2547,17 +2547,21 @@ let previousEditScreen = null; // To track where edit was opened from
         }
         previousEditScreen = null;
       } else {
-        await returnToMainMenuWithPreloader();
+        await returnToMainMenuWithPreloader('none');
       }
     } else if (id === 'back-from-myads') {
-      // When returning from ads menu - only update ads count
-      await returnToMainMenuWithPreloader('ads');
+      // Refresh only counters that changed during this visit.
+      const refreshAds = !!window.__buyAdAdsCountNeedsRefresh;
+      const refreshCrystals = !!window.__buyAdCrystalsNeedRefresh;
+      window.__buyAdAdsCountNeedsRefresh = false;
+      window.__buyAdCrystalsNeedRefresh = false;
+      await returnToMainMenuWithPreloader(refreshAds ? (refreshCrystals ? 'both' : 'ads') : (refreshCrystals ? 'crystals' : 'none'));
     } else if (id === 'back-from-crystals') {
       // When returning from crystals menu - only update crystals count
       await returnToMainMenuWithPreloader('crystals');
     } else if (id === 'back-from-admin') {
-      // Refresh both counters without blocking the main menu.
-      await returnToMainMenuWithPreloader('both');
+      // Returning from admin does not refresh user counters.
+      await returnToMainMenuWithPreloader('none');
     }
   };
 });
@@ -3165,6 +3169,7 @@ $('btn-create-ad').onclick = async () => {
 
     if (editMode && editStatus !== 'rejected') {
       if (costDifference > 0) {
+        window.__buyAdCrystalsNeedRefresh = true;
         if (!await updateCrystalsInGAS(costDifference, false)) {
           throw new Error('Failed to deduct crystals');
         }
@@ -3936,6 +3941,7 @@ ${hasStoredRejection ? `<p><strong>${i18n[lang].rejectedReasonLabel || 'Прич
             }
 
             console.log(`[SUCCESS] Ad "${ad.name}" deletion verified`);
+            window.__buyAdAdsCountNeedsRefresh = true;
             await updateAdsCount();
           } catch (e) {
             console.error(`Failed to delete ad "${ad.name}":`, e);
