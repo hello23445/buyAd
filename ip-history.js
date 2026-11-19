@@ -220,7 +220,7 @@
         results.appendChild(card);
       }
     } catch (error) {
-      status.textContent = error.message || tx("Не удалось выполнить поиск.", "Search failed.");
+      status.textContent = (typeof buyAdUiTranslate === 'function' ? buyAdUiTranslate(error.message) : error.message) || tx("Не удалось выполнить поиск.", "Search failed.");
     } finally {
       button.disabled = false;
     }
@@ -252,7 +252,7 @@
         data.note || tx("Значения IP не отображаются и не сохраняются.", "IP values are not displayed or stored.")
       ].join(String.fromCharCode(10));
     } catch (error) {
-      status.textContent = error.message || tx("Не удалось выполнить диагностику.", "Diagnostics failed.");
+      status.textContent = (typeof buyAdUiTranslate === 'function' ? buyAdUiTranslate(error.message) : error.message) || tx("Не удалось выполнить диагностику.", "Diagnostics failed.");
     } finally {
       button.disabled = false;
     }
