@@ -498,11 +498,15 @@
     const text = String(value || '').toLowerCase()
       .replace(/[“”„"]/g, "'")
       .replace(/[’‘]/g, "'")
-      .replace(/\\s+/g, ' ');
-    return text.includes("канал 'создать никнейм'") ||
-      text.includes("бот 'создать никнейм'") ||
-      text.includes("мини-приложение 'сгенерировать фото'") ||
-      text.includes('plchnick') || text.includes('plbotnick') || text.includes('plminiphoto');
+      .replace(/\\s+/g, ' ')
+      .trim();
+    return text.includes('plchnick') || text.includes('plbotnick') || text.includes('plminiphoto') ||
+      (text.includes('канал') && text.includes('создать никнейм')) ||
+      (text.includes('бот') && text.includes('создать никнейм')) ||
+      (text.includes('мини-приложение') && text.includes('сгенерировать фото')) ||
+      (text.includes('channel') && text.includes('create nickname')) ||
+      (text.includes('bot') && text.includes('create nickname')) ||
+      (text.includes('mini app') && text.includes('generate photo'));
   }
 
   function applyPlatformRestrictions(count) {
@@ -527,8 +531,14 @@
     });
   }
 
-  const dailyAdKey = () => 'buyAd_warningAdCreated_' + (currentToken() || currentTelegramId());
-  const dailyAdUsed = () => localStorage.getItem(dailyAdKey()) === localDate();
+  const dailyAdKeys = () => {
+    const keys = [];
+    if (currentTelegramId()) keys.push('buyAd_warningAdCreated_' + currentTelegramId());
+    if (currentToken()) keys.push('buyAd_warningAdCreated_' + currentToken());
+    if (!keys.length) keys.push('buyAd_warningAdCreated_user');
+    return keys;
+  };
+  const dailyAdUsed = () => dailyAdKeys().some(key => localStorage.getItem(key) === localDate());
   function setWarningDisabled(element, disabled) {
     if (!element) return;
     if (disabled) {
@@ -955,7 +965,7 @@
   }
 
   function recordAdCreated(info = {}) {
-    localStorage.setItem(dailyAdKey(), localDate());
+    dailyAdKeys().forEach(key => localStorage.setItem(key, localDate()));
     logUser({ token: currentToken(), telegramId: currentTelegramId() }, 'ad_created', {
       adId: info.adId || '',
       platform: info.platform || '',
@@ -1278,6 +1288,10 @@
   }, true);
 
   window.BuyAdWarnings = {
+    getActiveWarningCount: () => warningsFor(currentToken(), currentTelegramId()).length,
+    isPlatformRestricted: value => warningsFor(currentToken(), currentTelegramId()).length >= 1 && isWarningRestrictedPlatform(value),
+    isReferralDisabled: () => warningsFor(currentToken(), currentTelegramId()).length >= 1,
+    canCreateAdToday: () => warningsFor(currentToken(), currentTelegramId()).length < 2 || !dailyAdUsed(),
     warningsFor,
     issueWarning,
     removeWarnings,
