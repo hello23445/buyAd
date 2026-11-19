@@ -104,7 +104,7 @@
     async function loadCloudWarnings() {
     try {
       const current = await githubGet('admin2.js');
-      const match = current.content.match(/(?:export\\s+)?const UserWarnings\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
+      const match = current.content.match(/(?:export\s+)?const UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
       const remoteWarnings = match ? JSON.parse(match[1]) : [];
       const normalized = Array.isArray(remoteWarnings) ? remoteWarnings : [];
       safeWriteCache(WARN_KEY, normalized);
