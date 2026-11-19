@@ -10,7 +10,7 @@
   const ready = (requireEnabled = true) => (!requireEnabled || config().enabled === true) && /^https:\/\//.test(config().url || "") && !!config().anonKey && !!tg?.initData;
 
   async function callFunction(name, payload, requireEnabled = true) {
-    if (!ready(requireEnabled)) throw new Error("Supabase ещё не настроен.");
+    if (!ready(requireEnabled)) throw new Error(tx("Supabase ещё не настроен.", "Supabase is not configured yet."));
     const response = await fetch(endpoint(name), {
       method: "POST",
       headers: {
@@ -21,7 +21,7 @@
       body: JSON.stringify({ ...payload, initData: tg.initData })
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Ошибка Supabase: " + response.status);
+    if (!response.ok) throw new Error(data.error || tx("Ошибка Supabase: ", "Supabase error: ") + response.status);
     return data;
   }
 
