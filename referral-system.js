@@ -2,6 +2,9 @@
 (() => {
   'use strict';
 
+  // Set a marker immediately: admin diagnostics can distinguish a missing script from a backend failure.
+  window.__BuyAdReferralModuleLoaded = true;
+
   const defaultShareText = () => text('В этом боте можно быстро и эффективно продвигать свои ресурсы абсолютно бесплатно!', 'Promote your resources quickly and effectively in this bot — absolutely free!');
   const REFERRAL_BASE_URL = 'https://t.me/buyAdss_bot/buy?startapp=';
   const screen = () => document.getElementById('screen-referrals');
@@ -972,7 +975,7 @@
     const back = document.getElementById('back-from-referrals');
     const refresh = document.getElementById('refresh-referrals');
     if (nav) {
-      nav.onclick = async event => {
+      nav.addEventListener('click', async event => {
         event.preventDefault();
         event.stopPropagation();
         nav.disabled = false;
@@ -983,7 +986,7 @@
           showScreen();
           setPageMessage(error?.message || text('Не удалось открыть реферальную систему. Попробуйте ещё раз.', 'Could not open referral system. Please try again.'), 'is-error');
         }
-      };
+      }, { capture: true });
     }
     if (back) back.addEventListener('click', backToMain);
     if (refresh) refresh.addEventListener('click', refreshReferralScreen);
@@ -1028,9 +1031,17 @@
     return bootstrapPromise;
   };
 
+  const safeInstall = () => {
+    try { install(); }
+    catch (error) {
+      referralLog('Ошибка инициализации модуля', { message: error?.message || String(error), stack: error?.stack });
+      const host = content();
+      if (host) setPageMessage(text('Не удалось инициализировать реферальную систему. Перезапустите приложение.', 'Could not initialize referrals. Restart the app.'), 'is-error');
+    }
+  };
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', install, { once: true });
+    document.addEventListener('DOMContentLoaded', safeInstall, { once: true });
   } else {
-    install();
+    safeInstall();
   }
 })();
