@@ -12,6 +12,55 @@ function buyAdUiTranslate(message) {
   }
   return value;
 }
+// Translate dynamically-created interface text using the same i18n dictionary.
+if (!window.__buyAdDynamicTranslationInstalled) {
+  window.__buyAdDynamicTranslationInstalled = true;
+  const translateDynamicValue = value => {
+    const lang = localStorage.getItem('lang') || 'ru';
+    const text = String(value ?? '');
+    if (!text.trim()) return text;
+    const trimmed = text.trim();
+    const dictRu = window.i18n?.ru || (typeof i18n !== 'undefined' ? i18n.ru : null) || {};
+    const dictEn = window.i18n?.en || (typeof i18n !== 'undefined' ? i18n.en : null) || {};
+    if (lang === 'en') {
+      for (const key of Object.keys(dictRu)) if (dictRu[key] === trimmed && dictEn[key]) return text.replace(trimmed, dictEn[key]);
+      return buyAdUiTranslate(text);
+    }
+    for (const key of Object.keys(dictEn)) if (dictEn[key] === trimmed && dictRu[key]) return text.replace(trimmed, dictRu[key]);
+    return buyAdUiTranslate(text);
+  };
+  const translateDynamicNode = node => {
+    if (!node) return;
+    if (node.nodeType === Node.TEXT_NODE) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest('script,style,code,[data-i18n]')) return;
+      const next = translateDynamicValue(node.nodeValue);
+      if (next !== node.nodeValue) node.nodeValue = next;
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    if (node.matches('script,style')) return;
+    if (!node.hasAttribute('data-i18n')) {
+      for (const attr of ['placeholder','title','aria-label']) {
+        if (node.hasAttribute(attr)) {
+          const next = translateDynamicValue(node.getAttribute(attr));
+          if (next !== node.getAttribute(attr)) node.setAttribute(attr, next);
+        }
+      }
+    }
+    node.childNodes.forEach(translateDynamicNode);
+  };
+  const translateDynamicTree = root => translateDynamicNode(root || document.body);
+  document.addEventListener('DOMContentLoaded', () => translateDynamicTree(document.body));
+  window.addEventListener('buyad:language-changed', () => translateDynamicTree(document.body));
+  if (document.body && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(records => records.forEach(record => {
+      record.addedNodes.forEach(translateDynamicNode);
+      if (record.type === 'characterData') translateDynamicNode(record.target);
+    }));
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+}
 if (!window.__buyAdAlertTranslationInstalled) {
   window.__buyAdAlertTranslationInstalled = true;
   const originalAlert = window.alert.bind(window);
