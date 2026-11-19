@@ -1708,6 +1708,14 @@ function applyLang(lang) {
       el.placeholder = i18n[lang][key];
     }
   });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    if (i18n[lang]?.[key]) el.title = i18n[lang][key];
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    const key = el.dataset.i18nAria;
+    if (i18n[lang]?.[key]) el.setAttribute('aria-label', i18n[lang][key]);
+  });
   document.title = i18n[lang].appTitle;
   const reviewBack = $('back-from-review-ads');
   if (reviewBack) reviewBack.setAttribute('aria-label', i18n[lang].reviewBack || (lang === 'ru' ? 'Назад' : 'Back'));
