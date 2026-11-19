@@ -1787,6 +1787,32 @@ function applyLang(lang) {
   }
 }
 
+// Translate dynamically-created controls that carry localization keys, without re-running screen loaders.
+if (!window.__buyAdLocalizedNodesObserverInstalled) {
+  window.__buyAdLocalizedNodesObserverInstalled = true;
+  const translateLocalizedNode = (root, lang = localStorage.getItem(LS.lang) || 'ru') => {
+    if (!root || !i18n[lang]) return;
+    const nodes = [];
+    if (root.nodeType === 1) {
+      if (root.matches('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]')) nodes.push(root);
+      root.querySelectorAll?.('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]').forEach(el => nodes.push(el));
+    }
+    nodes.forEach(el => {
+      const dict = i18n[lang];
+      if (el.dataset.i18n && dict[el.dataset.i18n]) el.textContent = dict[el.dataset.i18n];
+      if (el.dataset.i18nPlaceholder && dict[el.dataset.i18nPlaceholder]) el.placeholder = dict[el.dataset.i18nPlaceholder];
+      if (el.dataset.i18nTitle && dict[el.dataset.i18nTitle]) el.title = dict[el.dataset.i18nTitle];
+      if (el.dataset.i18nAria && dict[el.dataset.i18nAria]) el.setAttribute('aria-label', dict[el.dataset.i18nAria]);
+    });
+  };
+  const localizedObserver = new MutationObserver(records => {
+    records.forEach(record => record.addedNodes.forEach(node => {
+      if (node.nodeType === 1) translateLocalizedNode(node);
+    }));
+  });
+  if (document.body) localizedObserver.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('buyad:language-changed', () => translateLocalizedNode(document.body));
+}
 /* ========== USER TOKEN / ID (исправленный) ========== */
 function generateRandomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
