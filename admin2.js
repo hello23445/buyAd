@@ -3,7 +3,7 @@ export const BanForever = []; // { value, reason, adminName, expiresAt, duration
 export const BlockCreateAds = []; // { value, reason, adminName, expiresAt, durationDays }; без expiresAt = бессрочно
 export const BlockedUsersTelegramID = []; // { value, reason, adminName, expiresAt, durationDays }
 export const BlockedUsersIPadresses = []; // { value, reason, adminName, expiresAt, durationDays }
-export const UserWarnings = [{"id":"warn_1795108665870_0_do7nr","telegramId":"8085105056","reason":"2.5","issuedAt":"2026-11-19T17:17:45.870Z","adminToken":"1Y6QLQHT0JZRS2GK","adminTelegramId":"6434781065","adminName":"Главный администратор","adminNameHidden":false,"count":1,"removeAt":"2026-11-21T17:17:45.870Z"},{"id":"warn_1795108717355_0_1h36j","telegramId":"8085105056","reason":"2.4","issuedAt":"2026-11-19T17:18:37.355Z","adminToken":"1Y6QLQHT0JZRS2GK","adminTelegramId":"6434781065","adminName":"Главный администратор","adminNameHidden":false,"count":2,"removeAt":"2026-11-23T17:17:45.870Z"}]; // { id, token, telegramId, reason, issuedAt, removeAt, adminToken, adminTelegramId, adminName, adminNameHidden, count, lockUntil }
+export const UserWarnings = []; // { id, token, telegramId, reason, issuedAt, removeAt, adminToken, adminTelegramId, adminName, adminNameHidden, count, lockUntil }
 export const UserLogs = []; // IP history is stored privately in Supabase, never in this public file.
 //Общее
 export const CloseApp = "not_closed"; // '' или 'closed' — если 'closed' тогда приложение будет закрыто для всех кроме админов.
