@@ -41,6 +41,13 @@
       "reason": "",
       "adminName": "Администратор 3 уровня",
       "updatedAt": "2026-11-19T18:27:12.986Z"
+    },
+    "8085105056::ad_tgcsr754ncan": {
+      "userID": "8085105056",
+      "adName": "Ad_TGCSR754NCAN",
+      "reason": "2.1",
+      "adminName": "Администратор 3 уровня",
+      "updatedAt": "2026-11-19T18:45:25.984Z"
     }
   }
 }
