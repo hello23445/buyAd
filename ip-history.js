@@ -4,6 +4,8 @@
   const CONSENT_KEY = "buyAdIpHistoryConsent";
   const config = () => window.BUYAD_SUPABASE_CONFIG || {};
   const tg = window.Telegram?.WebApp;
+  const tx = (ru, en) => (localStorage.getItem("lang") || "ru") === "ru" ? ru : en;
+
   const endpoint = name => String(config().url || "").replace(/\/$/, "") + "/functions/v1/" + name;
   const ready = (requireEnabled = true) => (!requireEnabled || config().enabled === true) && /^https:\/\//.test(config().url || "") && !!config().anonKey && !!tg?.initData;
 
@@ -191,14 +193,14 @@
     if (!input || !status || !results || !button) return;
     const lang = localStorage.getItem("lang") || "ru";
     const ip = input.value.trim();
-    if (!ip) { status.textContent = "Введите IP-адрес."; return; }
-    status.textContent = "Поиск…";
+    if (!ip) { status.textContent = tx("Введите IP-адрес.", "Enter an IP address."); return; }
+    status.textContent = tx("Поиск…", "Searching…");
     results.replaceChildren();
     button.disabled = true;
     try {
       const data = await callFunction("search-users-by-ip", { ip });
       const rows = Array.isArray(data.results) ? data.results : [];
-      status.textContent = rows.length ? "Найдено аккаунтов: " + rows.length : "Совпадений не найдено.";
+      status.textContent = rows.length ? tx("Найдено аккаунтов: ", "Accounts found: ") + rows.length : tx("Совпадений не найдено.", "No matches found.");
       for (const row of rows) {
         const card = document.createElement("button");
         card.type = "button";
@@ -208,7 +210,7 @@
         id.textContent = "Telegram ID: " + row.telegramId;
         const details = document.createElement("div");
         details.className = "field__hint";
-        details.textContent = "Событий: " + row.events + " · Первое: " + new Date(row.firstSeen).toLocaleString() + "\nПоследнее: " + new Date(row.lastSeen).toLocaleString();
+        details.textContent = tx("Событий: ", "Events: ") + row.events + tx(" · Первое: ", " · First: ") + new Date(row.firstSeen).toLocaleString() + tx("\nПоследнее: ", "\nLast: ") + new Date(row.lastSeen).toLocaleString();
         details.style.whiteSpace = "pre-line";
         const hint = document.createElement("div");
         hint.className = "field__hint";
@@ -218,7 +220,7 @@
         results.appendChild(card);
       }
     } catch (error) {
-      status.textContent = error.message || "Не удалось выполнить поиск.";
+      status.textContent = error.message || tx("Не удалось выполнить поиск.", "Search failed.");
     } finally {
       button.disabled = false;
     }
@@ -230,27 +232,27 @@
     const status = document.getElementById("ip-history-diagnose-status");
     if (!button || !status) return;
     button.disabled = true;
-    status.textContent = "Проверка заголовков…";
+    status.textContent = tx("Проверка заголовков…", "Checking headers…");
     try {
       // This endpoint is read-only with respect to IP history and works while collection is disabled.
       const data = await callFunction("diagnose-ip-headers", {}, false);
       const h = data.headers || {};
-      const yesNo = value => value ? "Да" : "Нет";
+      const yesNo = value => value ? tx("Да", "Yes") : tx("Нет", "No");
       status.textContent = [
-        "Авторизация: " + (data.authorized ? "успешна" : "не подтверждена"),
-        "CF-Connecting-IP: " + yesNo(h.cfConnectingIpPresent) + (h.cfConnectingIpPresent ? " (корректный IP: " + yesNo(h.cfConnectingIpIsValidIp) + ")" : ""),
-        "X-Real-IP: " + yesNo(h.xRealIpPresent) + (h.xRealIpPresent ? " (корректный IP: " + yesNo(h.xRealIpIsValidIp) + ")" : ""),
-        "X-Forwarded-For: " + yesNo(h.xForwardedForPresent) + " (записей: " + Number(h.xForwardedForEntryCount || 0) + ")",
-        "XFF первая запись корректна: " + yesNo(h.xForwardedForFirstIsValidIp),
-        "XFF последняя запись корректна: " + yesNo(h.xForwardedForLastIsValidIp),
-        "CF совпадает с XFF первой: " + yesNo(h.cfEqualsXForwardedForFirst),
-        "CF совпадает с XFF последней: " + yesNo(h.cfEqualsXForwardedForLast),
-        "CF совпадает с X-Real-IP: " + yesNo(h.cfEqualsXRealIp),
+        tx("Авторизация: ", "Authorization: ") + (data.authorized ? tx("успешна", "successful") : tx("не подтверждена", "not verified")),
+        "CF-Connecting-IP: " + yesNo(h.cfConnectingIpPresent) + (h.cfConnectingIpPresent ? " (" + tx("корректный IP: ", "valid IP: ") + yesNo(h.cfConnectingIpIsValidIp) + ")" : ""),
+        "X-Real-IP: " + yesNo(h.xRealIpPresent) + (h.xRealIpPresent ? " (" + tx("корректный IP: ", "valid IP: ") + yesNo(h.xRealIpIsValidIp) + ")" : ""),
+        "X-Forwarded-For: " + yesNo(h.xForwardedForPresent) + " (" + tx("записей: ", "entries: ") + Number(h.xForwardedForEntryCount || 0) + ")",
+        tx("XFF первая запись корректна: ", "XFF first entry is valid: ") + yesNo(h.xForwardedForFirstIsValidIp),
+        tx("XFF последняя запись корректна: ", "XFF last entry is valid: ") + yesNo(h.xForwardedForLastIsValidIp),
+        tx("CF совпадает с XFF первой: ", "CF matches first XFF entry: ") + yesNo(h.cfEqualsXForwardedForFirst),
+        tx("CF совпадает с XFF последней: ", "CF matches last XFF entry: ") + yesNo(h.cfEqualsXForwardedForLast),
+        tx("CF совпадает с X-Real-IP: ", "CF matches X-Real-IP: ") + yesNo(h.cfEqualsXRealIp),
         "",
-        data.note || "Значения IP не отображаются и не сохраняются."
+        data.note || tx("Значения IP не отображаются и не сохраняются.", "IP values are not displayed or stored.")
       ].join(String.fromCharCode(10));
     } catch (error) {
-      status.textContent = error.message || "Не удалось выполнить диагностику.";
+      status.textContent = error.message || tx("Не удалось выполнить диагностику.", "Diagnostics failed.");
     } finally {
       button.disabled = false;
     }
@@ -282,10 +284,10 @@
       if (tg?.BackButton) tg.BackButton.show();
     });
     submitButton?.addEventListener("click", search);
-    document.getElementById("ip-history-paste")?.addEventListener("click", async () => { const input=document.getElementById("ip-history-search-input"); try { const value=await navigator.clipboard.readText(); if(input) input.value=value.trim(); } catch (_) { const status=document.getElementById("ip-history-search-status"); if(status) status.textContent="Не удалось прочитать буфер обмена. Разрешите доступ или вставьте адрес вручную."; } });
+    document.getElementById("ip-history-paste")?.addEventListener("click", async () => { const input=document.getElementById("ip-history-search-input"); try { const value=await navigator.clipboard.readText(); if(input) input.value=value.trim(); } catch (_) { const status=document.getElementById("ip-history-search-status"); if(status) status.textContent=tx("Не удалось прочитать буфер обмена. Разрешите доступ или вставьте адрес вручную.", "Could not read clipboard. Allow access or paste the address manually."); } });
     diagnoseMenuButton?.addEventListener("click", () => {
       if (diagnoseCard) diagnoseCard.hidden = false;
-      document.getElementById("ip-history-diagnose-status").textContent = "Нажмите «Запустить проверку».";
+      document.getElementById("ip-history-diagnose-status").textContent = tx("Нажмите «Запустить проверку».", "Tap ‘Run diagnostics’.");
       diagnoseCard?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
     diagnoseButton?.addEventListener("click", diagnoseHeaders);
