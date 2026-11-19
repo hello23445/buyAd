@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-19T19:33:00.739Z",
+  "updatedAt": "2026-11-19T19:34:37.792Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -257,6 +257,18 @@
           "reason": "2.5",
           "adminName": "",
           "adminNameHidden": true,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795116875447_0_uropx",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-19T19:34:35.447Z",
+          "expiresAt": "2026-11-21T19:34:35.448Z",
+          "reason": "2.1",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
           "adminLevel": 0
         }
       ],
