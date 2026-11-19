@@ -214,7 +214,9 @@
       'Not enough crystals. 25 crystals are required.': 'Для создания ссылки необходимо минимум 25 кристаллов.',
       'A referral link already exists.': 'У вас уже есть реферальная ссылка.',
       'A referral link does not exist.': 'Сначала создайте реферальную ссылку.',
-      'Referral access is disabled while your account has an active warning or ban.': 'Реферальная система отключена: у аккаунта есть предупреждение или блокировка.',
+      'Referral access is disabled while your account has an active warning or ban.'
+      'Есть активное предупреждение': 'There is an active warning.',
+      'Активное предупреждение': 'There is an active warning.',: 'Реферальная система отключена: у аккаунта есть предупреждение или блокировка.',
       'This referral link is disabled or unavailable.': 'Эта реферальная ссылка отключена или недоступна.',
       'Referral self-registration is not allowed.': 'Нельзя перейти по собственной реферальной ссылке.',
       'No first-visit record was found.': 'Не удалось подтвердить первый вход по ссылке.',
