@@ -1006,7 +1006,7 @@
       warningRemovalModalOpen = true;
       openModal(tx('Удаление предупреждения', 'Remove warning'), confirmBody, [
         { text: tx('Отмена', 'Cancel'), class: 'btn--secondary', onClick: () => { warningRemovalModalOpen = false; } },
-        { text: tx('Удалить за 250💎', 'Remove for 250💎'), onClick: () => { warningRemovalModalOpen = false; executeWarningRemoval(warningId); } }
+        { text: tx('Удалить предупреждение за 250💎', 'Remove warn for 250💎'), onClick: () => { warningRemovalModalOpen = false; executeWarningRemoval(warningId); } }
       ]);
     } finally {
       warningRemovalCheckInProgress = false;
