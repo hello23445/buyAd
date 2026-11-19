@@ -1,4 +1,22 @@
 function buyAdUiText(ru, en) { return (localStorage.getItem('lang') || 'ru') === 'ru' ? ru : en; }
+function buyAdUiTranslate(message) {
+  if (message == null) return message;
+  const value = String(message);
+  const pairs = [["Управлять списком администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can manage the administrator list."],["В списке должен оставаться хотя бы один администратор.","At least one administrator must remain in the list."],["У каждого администратора должен быть уникальный непустой токен.","Each administrator must have a unique, non-empty token."],["Уровень администратора должен быть от 1 до 5.","Administrator level must be between 1 and 5."],["Не удалось получить разрешение на сохранение администраторов.","Could not obtain permission to save administrators."],["Не удалось прочитать список администраторов: ","Could not read administrator list: "],["Не удалось определить список ADMINS в admin.js.","Could not locate the ADMINS list in admin.js."],["GitHub не сохранил список администраторов: ","GitHub did not save the administrator list: "],["Не удалось загрузить публичные настройки: HTTP ","Could not load public settings: HTTP "],["Не удалось получить разрешение GitHub.","Could not obtain GitHub permission."],["Не удалось прочитать файл причин отказа в GitHub.","Could not read rejection reasons file from GitHub."],["Не удалось сохранить причину отказа в GitHub: ","Could not save rejection reason to GitHub: "],["Файл причин отказа изменился одновременно. Повторите отклонение рекламы.","The rejection reasons file changed concurrently. Please retry."],["Ошибка получения токена","Token retrieval error"],["Не удалось определить IP-адрес.","Could not detect IP address."],["Последний параметр должен быть no или yes.","The last parameter must be no or yes."],["Скрывать имя при блокировке может только администратор 5-го уровня с соответствующим правом.","Only a level 5 administrator with the required permission can hide their name when blocking."],["Срок должен быть целым числом от 1 до 60 или -1 для бессрочной блокировки.","Duration must be a whole number from 1 to 60, or -1 for a permanent block."],["Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в kick-config.js.","The disconnect service is not configured. Deploy google-apps-script/kick/Code.gs and set GAS_KICK_URL in kick-config.js first."],["Команды доступны только администраторам.","Commands are available to administrators only."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["GAS не подтвердил отключение пользователя.","GAS did not confirm user disconnection."],["GAS не подтвердил массовое отключение.","GAS did not confirm bulk disconnection."],["Укажите Telegram ID, токен или корректный IP-адрес.","Enter a Telegram ID, token, or valid IP address."],["GAS не подтвердил создание перезапуска.","GAS did not confirm creating the restart."],["Соответствующий раздел недоступен для вашего уровня прав.","This section is unavailable for your permission level."],["Добавлять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can add administrators."],["Изменять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can edit administrators."],["Удалять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can delete administrators."],["Такой токен уже используется.","This token is already in use."],["Администратор с таким именем или токеном не найден.","Administrator with that name or token was not found."],["В реестре должен остаться хотя бы один администратор.","At least one administrator must remain in the registry."],["Укажите корректный IPv4 или IPv6 адрес.","Enter a valid IPv4 or IPv6 address."],["Telegram ID должен содержать только цифры.","Telegram ID must contain digits only."],["Тип идентификатора должен быть 1, 2 или 3.","Identifier type must be 1, 2, or 3."],["Модуль реферальной системы не загружен.","Referral system module is not loaded."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["Время показа должно быть целым числом от 1 до 86400 секунд.","Display duration must be an integer from 1 to 86400 seconds."],["Сервер не подтвердил отправку уведомления.","Server did not confirm sending the notification."],["Команда /app доступна только администраторам 4-го и 5-го уровня.","The /app command is available only to level 4 and 5 administrators."],["Модуль реферальной системы не загружен; остальные настройки уже могли сохраниться.","Referral system module is not loaded; other settings may already have been saved."],["Просмотр статистики доступен администраторам с соответствующим правом.","User statistics are available only to administrators with the required permission."],["Раздел статистики ещё не загружен.","Statistics section is not loaded yet."],["Просмотр списка наказаний доступен администраторам с соответствующим правом.","Punishment history is available only to administrators with the required permission."],["Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.","User profile not found in statistics. Check Telegram ID or token."]];
+  const lang = localStorage.getItem('lang') || 'ru';
+  for (const [ru, en] of pairs) {
+    if (lang === 'en' && value === ru) return en;
+    if (lang === 'ru' && value === en) return ru;
+    if (lang === 'en' && value.startsWith(ru)) return en + value.slice(ru.length);
+    if (lang === 'ru' && value.startsWith(en)) return ru + value.slice(en.length);
+  }
+  return value;
+}
+if (!window.__buyAdAlertTranslationInstalled) {
+  window.__buyAdAlertTranslationInstalled = true;
+  const originalAlert = window.alert.bind(window);
+  window.alert = message => originalAlert(buyAdUiTranslate(message));
+}
 ﻿// script.js 
 /* ========== TELEGRAM ========== */
 const tg = window.Telegram?.WebApp;
@@ -242,11 +260,11 @@ function formatNumber(num) {
 /* ========== MODAL ========== */
 function openModal(title, body, actions = [], opts = {}) {
   if (!$('modal-overlay') || $('modal-overlay').hidden) { window.__buyAdModalScrollY = window.scrollY || 0; document.body.classList.add('modal-scroll-locked'); }
-  $('modal-title').textContent = title;
+  $('modal-title').textContent = buyAdUiTranslate(title);
   const modalBody = $('modal-body');
   if (modalBody) modalBody.innerHTML = '';
   if (typeof body === 'string') {
-    if (modalBody) modalBody.textContent = body;
+    if (modalBody) modalBody.textContent = buyAdUiTranslate(body);
   } else {
     if (modalBody) modalBody.appendChild(body);
   }
