@@ -1045,14 +1045,6 @@
         showMessage(tx('Ошибка загрузки', 'Load error'), tx('Не удалось загрузить предупреждения. Попробуйте позже.', 'Could not load warnings. Please try again later.'));
         return;
       }
-      const warning = latest.find(row => String(row?.id || '') === String(warningId));
-      const belongsToUser = warning && ((userTelegramId && String(warning.telegramId || '') === userTelegramId) || (userToken && String(warning.token || '') === userToken));
-      if (!belongsToUser) {
-        showMessage(tx('Предупреждение не найдено', 'Warning not found'), tx('Это предупреждение уже удалено или не принадлежит вашему аккаунту.', 'This warning was removed or does not belong to your account.'));
-        renderWarningsScreen();
-        return;
-      }
-
       const confirmBody = tx('Удалить это предупреждение за 250💎? Действие необратимо.', 'Remove this warning for 250💎? This cannot be undone.');
       if (typeof openModal !== 'function') {
         if (!confirm(confirmBody)) return;
