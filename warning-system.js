@@ -955,23 +955,12 @@
 
   let warningScreen = null;
   let warningScreenList = null;
-  let warningRemovalBusy = false;
 
   async function purchaseWarningRemoval(warningId) {
     const userToken = currentToken();
     const userTelegramId = currentTelegramId();
     if (!userToken && !userTelegramId) {
       showMessage(tx('Ошибка аккаунта', 'Account error'), tx('Не удалось определить ваш аккаунт Telegram.', 'Could not identify your Telegram account.'));
-      return;
-    }
-    if (typeof updateCrystalsInGAS !== 'function' || typeof window.BuyAdRefreshCrystals !== 'function' || (typeof isGasDisabled === 'function' && isGasDisabled())) {
-      showMessage(tx('Покупка недоступна', 'Purchase unavailable'), tx('Сервис кристаллов временно недоступен.', 'The crystal service is temporarily unavailable.'));
-      return;
-    }
-    // Check the balance immediately before fetching the warning list.
-    const balance = await window.BuyAdRefreshCrystals().catch(() => null);
-    if (balance === null || balance === undefined || !Number.isFinite(Number(balance)) || Number(balance) < 250) {
-      showMessage(tx('Недостаточно кристаллов', 'Not enough crystals'), tx('Для удаления предупреждения требуется 250 кристаллов.', 'Removing a warning costs 250 crystals.'));
       return;
     }
     const latest = await loadCloudWarnings();
@@ -986,66 +975,58 @@
       renderWarningsScreen();
       return;
     }
-    const confirmBody = tx('Удалить это предупреждение за 250💎? Действие необратимо.', 'Remove this warning for 250💎? This cannot be undone.');
+    if (typeof updateCrystalsInGAS !== 'function' || typeof window.BuyAdRefreshCrystals !== 'function' || (typeof isGasDisabled === 'function' && isGasDisabled())) {
+      showMessage(tx('Покупка недоступна', 'Purchase unavailable'), tx('Сервис кристаллов временно недоступен.', 'The crystal service is temporarily unavailable.'));
+      return;
+    }
+    const balance = await window.BuyAdRefreshCrystals().catch(() => null);
+    if (balance === null || Number(balance) < 250) {
+      showMessage(tx('Недостаточно кристаллов', 'Not enough crystals'), tx('Для удаления предупреждения требуется 250 кристаллов.', 'Removing a warning costs 250 crystals.'));
+      return;
+    }
+    const confirmBody = tx('Удалить это предупреждение за 250 кристаллов? Действие необратимо.', 'Remove this warning for 250 crystals? This cannot be undone.');
     if (typeof openModal !== 'function') {
       if (!confirm(confirmBody)) return;
       await executeWarningRemoval(warningId);
       return;
     }
     openModal(tx('Удаление предупреждения', 'Remove warning'), confirmBody, [
-      { text: tx('Отмена', 'Cancel'), class: 'btn btn--secondary' },
-      { text: tx('Удалить предупреждение за 250💎', 'Remove warn for 250💎'), onClick: () => { executeWarningRemoval(warningId); } }
+      { text: tx('Отмена', 'Cancel'), class: 'btn--secondary' },
+      { text: tx('Удалить за 250', 'Remove for 250'), onClick: () => { executeWarningRemoval(warningId); } }
     ]);
   }
 
   async function executeWarningRemoval(warningId) {
-    if (warningRemovalBusy) return;
-    warningRemovalBusy = true;
+    const deducted = await updateCrystalsInGAS(250, false);
+    if (!deducted) {
+      showMessage(tx('Не удалось списать кристаллы', 'Could not deduct crystals'), tx('Кристаллы не списаны. Попробуйте ещё раз.', 'Crystals were not deducted. Please try again.'));
+      return;
+    }
+    const latest = await loadCloudWarnings();
+    const userToken = currentToken();
+    const userTelegramId = currentTelegramId();
+    const warning = latest && latest.find(row => String(row?.id || '') === String(warningId));
+    const belongsToUser = warning && ((userTelegramId && String(warning.telegramId || '') === userTelegramId) || (userToken && String(warning.token || '') === userToken));
+    if (!belongsToUser) {
+      await updateCrystalsInGAS(250, true).catch(() => false);
+      showMessage(tx('Предупреждение не найдено', 'Warning not found'), tx('Предупреждение уже удалено или не принадлежит вашему аккаунту. Списание отменено.', 'The warning was removed or does not belong to your account. The charge was refunded.'));
+      renderWarningsScreen();
+      return;
+    }
+    const rows = latest.filter(row => String(row?.id || '') !== String(warningId));
     try {
-      const deducted = await updateCrystalsInGAS(250, false);
-      if (!deducted) {
-        showMessage(tx('Не удалось списать кристаллы', 'Could not deduct crystals'), tx('Кристаллы не списаны. Попробуйте ещё раз.', 'Crystals were not deducted. Please try again.'));
-        return;
-      }
-      const latest = await loadCloudWarnings();
-      const userToken = currentToken();
-      const userTelegramId = currentTelegramId();
-      const warning = latest && latest.find(row => String(row?.id || '') === String(warningId));
-      const belongsToUser = warning && ((userTelegramId && String(warning.telegramId || '') === userTelegramId) || (userToken && String(warning.token || '') === userToken));
-      if (!belongsToUser) {
-        const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
-        await window.BuyAdRefreshCrystals().catch(() => {});
-        const refundMessage = refunded
-          ? tx('Списание отменено, кристаллы возвращены.', 'Charge cancelled; crystals refunded.')
-          : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'Could not automatically refund crystals. Contact support.');
-        showMessage(tx('Предупреждение не найдено', 'Warning not found'), tx('Предупреждение уже удалено или не принадлежит вашему аккаунту.', 'The warning was removed or does not belong to your account.') + '\n' + refundMessage);
-        renderWarningsScreen();
-        return;
-      }
-      const rows = latest.filter(row => String(row?.id || '') !== String(warningId));
-      try {
-        await writeWarnings(rows);
-        safeWriteCache(WARN_KEY, rows);
-        refresh();
-        renderWarningsScreen();
-        await window.BuyAdRefreshCrystals().catch(() => {});
-        showMessage(tx('Предупреждение удалено', 'Warning removed'), tx('Предупреждение успешно удалено. Списано 250 кристаллов.', 'Warning successfully removed. 250 crystals were charged.'));
-      } catch (error) {
-        safeWriteCache(WARN_KEY, latest);
-        refresh();
-        renderWarningsScreen();
-        const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
-        await window.BuyAdRefreshCrystals().catch(() => {});
-        const refundText = refunded
-          ? tx('Списанные кристаллы возвращены.', 'The charged crystals were refunded.')
-          : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'The crystals could not be refunded automatically. Contact support.');
-        showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения.', 'Could not save warning removal.') + '\n' + refundText + '\n' + (error?.message || String(error)));
-      }
-    } finally {
-      warningRemovalBusy = false;
+      await writeWarnings(rows);
+      safeWriteCache(WARN_KEY, rows);
+      refresh();
+      renderWarningsScreen();
+      await window.BuyAdRefreshCrystals().catch(() => {});
+      showMessage(tx('Предупреждение удалено', 'Warning removed'), tx('Предупреждение успешно удалено. Списано 250 кристаллов.', 'Warning successfully removed. 250 crystals were charged.'));
+    } catch (error) {
+      await updateCrystalsInGAS(250, true).catch(() => false);
+      await window.BuyAdRefreshCrystals().catch(() => {});
+      showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения. Списанные кристаллы возвращены.', 'Could not save warning removal. The charged crystals were refunded.') + '\n' + (error?.message || String(error)));
     }
   }
-
 
   function renderWarningsScreen() {
     if (!warningScreenList) return;
@@ -1063,7 +1044,7 @@
         '<p>' + escapeHtml(tr('warningRemoveAtLabel', 'Снятие', 'Removal')) + ': ' + escapeHtml(formatDate(row.removeAt)) + '</p>' +
         '<p>' + escapeHtml(tr('warningReasonPrefix', 'Причина', 'Reason')) + ': ' + escapeHtml(row.reason || tr('warningNotSpecified', 'Не указана', 'Not specified')) + '</p>' +
         '<p>' + escapeHtml(tr('warningByLabel', 'Выдал', 'Issued by')) + ': ' + escapeHtml(name) + '</p>' +
-        '<button type="button" class="btn btn--primary warning-remove-own" data-warning-id="' + escapeHtml(row.id || '') + '">' + escapeHtml(tx('Удалить предупреждение за 250💎', 'Remove warn for 250💎')) + '</button>' +
+        '<button type="button" class="btn btn--primary warning-remove-own" data-warning-id="' + escapeHtml(row.id || '') + '">' + escapeHtml(tx('Удалить за 250 кристаллов', 'Remove for 250 crystals')) + '</button>' +
       '</article>';
     }).join('');
   }
@@ -1078,7 +1059,7 @@
       '<div class="screen__head">' +
       '<button class="back-btn" id="back-from-warnings" type="button" aria-label="' + escapeHtml(tr('reviewBack', 'Назад', 'Back')) + '"><i class="fa-solid fa-arrow-left"></i></button>' +
       '<div class="screen__title" id="warning-screen-title">' + escapeHtml(tr('warningTitle', 'Список предупреждений', 'Warning list')) + '</div>' +
-      '<button id="refresh-warning-list" class="btn btn--ghost" type="button" title="' + escapeHtml(tx('Обновить', 'Refresh')) + '"><i class="fa-solid fa-rotate"></i><span>' + escapeHtml(tx('Обновить', 'Refresh')) + '</span></button>' +
+      '<button id="refresh-warning-list" class="btn btn--ghost" type="button" title="' + escapeHtml(tx('Обновить', 'Refresh')) + '"><i class="fa-solid fa-rotate"></i></button>' +
       '</div><div id="warning-list-content" class="stack-sm"></div></div>';
     document.querySelector('main').appendChild(warningScreen);
     warningScreenList = warningScreen.querySelector('#warning-list-content');
@@ -1103,7 +1084,6 @@
     if (!warningScreen) return;
     document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== warningScreen; });
     warningScreen.hidden = false;
-    if (typeof setTelegramSettingsButtonVisible === 'function') setTelegramSettingsButtonVisible(false);
     if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(tx('Загрузка предупреждений…', 'Loading warnings…')) + '</div></div>';
     if (typeof refreshBackButton === 'function') refreshBackButton();
     const latest = await loadCloudWarnings();
@@ -1242,7 +1222,7 @@
     const button = event.target.closest('button,[role="button"]');
     if (!button) return;
     const lock = activeLock(rows);
-    if (lock && !['btn-support', 'btn-copy-token-blocked', 'btn-copy-telegram-id-blocked', 'nav-warnings', 'nav-referral', 'blocked-warning-list', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
+    if (lock && !['btn-support', 'btn-copy-token-blocked', 'btn-copy-telegram-id-blocked', 'nav-warnings', 'blocked-warning-list', 'back-from-warnings'].includes(button.id) && !button.closest('#blocked-lang-buttons')) {
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
