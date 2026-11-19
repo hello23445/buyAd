@@ -1787,6 +1787,18 @@ function applyLang(lang) {
   }
 }
 
+// Translate dynamically inserted UI elements that use localization attributes.
+if (!window.__buyAdDynamicTranslationObserver) {
+  window.__buyAdDynamicTranslationObserver = new MutationObserver(mutations => {
+    const found = mutations.some(mutation => Array.from(mutation.addedNodes || []).some(node =>
+      node.nodeType === 1 && (node.matches?.('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]') ||
+      node.querySelector?.('[data-i18n], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria]')
+    ));
+    if (found) applyLang(localStorage.getItem(LS.lang) || 'ru');
+  });
+  window.__buyAdDynamicTranslationObserver.observe(document.body, { childList: true, subtree: true });
+}
+
 /* ========== USER TOKEN / ID (исправленный) ========== */
 function generateRandomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
