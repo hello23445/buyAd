@@ -134,6 +134,7 @@
     return y + '-' + m + '-' + d;
   };
   const currentLang = () => localStorage.getItem('lang') === 'en' ? 'en' : 'ru';
+  const tx = (ru, en) => currentLang() === 'ru' ? ru : en;
   const tr = (key, fallbackRu, fallbackEn) => {
     const lang = currentLang();
     return (typeof i18n !== 'undefined' && i18n[lang] && i18n[lang][key]) || (lang === 'ru' ? fallbackRu : fallbackEn);
@@ -252,7 +253,7 @@
     return input;
   }
 
-  function openForm(title, build, submit, submitText = tr('Посмотреть логи', 'View logs')) {
+  function openForm(title, build, submit, submitText = tx('Посмотреть логи', 'View logs')) {
     const body = document.createElement('div');
     body.style.display = 'grid';
     body.style.gap = '2px';
@@ -271,7 +272,7 @@
             if (result && result.error) {
               showMessage(tr('warningActionFailedTitle', 'Не удалось выполнить действие', 'Action failed'), result.error);
             } else if (result && result.message) {
-              showMessage(result.title || tr('Готово', 'Done'), result.message);
+              showMessage(result.title || tx('Готово', 'Done'), result.message);
             }
           }).catch(error => {
             showMessage(tr('warningSaveFailedTitle', 'Не удалось сохранить в GitHub', 'Could not save to GitHub'), error && error.message ? error.message : String(error));
@@ -400,7 +401,7 @@
     }
     if (byAdmin) {
       byAdmin.hidden = false;
-      byAdmin.textContent = tr('Выдал: ', 'Issued by: ') + adminLabel;
+      byAdmin.textContent = tx('Выдал: ', 'Issued by: ') + adminLabel;
     }
     // Remove the legacy Telegram ID node formerly injected into the token box.
     document.getElementById('blocked-telegram-id')?.remove();
@@ -840,7 +841,7 @@
   function openUserLogModal() {
     if (currentLevel() < 5) return showMessage('Недостаточно прав', 'Просмотр журналов пользователей доступен только администраторам 5-го уровня.');
     openForm('Смотреть лог пользователя', body => ({
-      target: field(body, tr('Токен или Telegram ID пользователя', 'User token or Telegram ID'), { placeholder: tr('Введите токен или Telegram ID', 'Enter token or Telegram ID'), required: true }),
+      target: field(body, tx('Токен или Telegram ID пользователя', 'User token or Telegram ID'), { placeholder: tx('Введите токен или Telegram ID', 'Enter token or Telegram ID'), required: true }),
       ...dateFields(body)
     }), controls => {
       const target = targetFromInput(controls.target.value);
@@ -849,7 +850,7 @@
       const rows = readLogRows(USER_LOG_KEY).filter(row =>
         targetMatches(row, target) && withinDates(row.timestamp, controls.from.value, controls.to.value)
       );
-      return { title: tr('Лог пользователя', 'User log'), message: rows.length
+      return { title: tx('Лог пользователя', 'User log'), message: rows.length
         ? rows.map(formatLog).join('\n\n────────────────────\n\n')
         : 'За выбранный период записей нет.' };
     }, 'Посмотреть логи');
@@ -857,7 +858,7 @@
   function openAdminLogModal() {
     if (currentLevel() < 5) return showMessage('Недостаточно прав', 'Просмотр журнала администраторов доступен только администраторам 5-го уровня.');
     openForm('Смотреть лог администратора', body => ({
-      target: field(body, tr('Токен или Telegram ID администратора', 'Administrator token or Telegram ID'), { placeholder: tr('Введите токен или Telegram ID', 'Enter token or Telegram ID'), required: true }),
+      target: field(body, tx('Токен или Telegram ID администратора', 'Administrator token or Telegram ID'), { placeholder: tx('Введите токен или Telegram ID', 'Enter token or Telegram ID'), required: true }),
       ...dateFields(body)
     }), controls => {
       const value = String(controls.target.value || '').trim();
@@ -867,7 +868,7 @@
         (row.adminToken === value || row.adminTelegramId === value) &&
         withinDates(row.timestamp, controls.from.value, controls.to.value)
       );
-      return { title: tr('Лог администратора', 'Administrator log'), message: rows.length
+      return { title: tx('Лог администратора', 'Administrator log'), message: rows.length
         ? rows.map(formatLog).join('\n\n────────────────────\n\n')
         : 'За выбранный период записей нет.' };
     }, 'Посмотреть логи');
