@@ -494,14 +494,20 @@
     });
   }
 
+  function isWarningRestrictedPlatform(value) {
+    const text = String(value || '').toLowerCase()
+      .replace(/[“”„"]/g, "'")
+      .replace(/[’‘]/g, "'")
+      .replace(/\\s+/g, ' ');
+    return text.includes("канал 'создать никнейм'") ||
+      text.includes("бот 'создать никнейм'") ||
+      text.includes("мини-приложение 'сгенерировать фото'") ||
+      text.includes('plchnick') || text.includes('plbotnick') || text.includes('plminiphoto');
+  }
+
   function applyPlatformRestrictions(count) {
     const blocked = count >= 1;
-    const denied = value => {
-      const text = String(value || '').toLowerCase();
-      return text.includes("канал 'создать никнейм'") ||
-        text.includes("бот 'создать никнейм'") ||
-        text.includes("мини-приложение 'сгенерировать фото'");
-    };
+    const denied = isWarningRestrictedPlatform;
     document.querySelectorAll('#platform-buttons .seg').forEach(button => {
       const shouldBlock = blocked && denied(button.dataset.value || button.textContent);
       button.disabled = shouldBlock;
@@ -1214,6 +1220,7 @@
     refresh();
     renderWarningsScreen();
   });
+  window.addEventListener('buyad:user-warnings-updated', () => refresh());
 
   window.addEventListener('buyad:admin2-config-loaded', event => {
     const detail = event.detail || {};
@@ -1229,21 +1236,15 @@
   });
 
   document.addEventListener('click', event => {
-    const platformRow = event.target.closest('.platform-row');
     const rows = warningsFor(currentToken(), currentTelegramId());
-    const blockedPlatformNames = [
-      "канал 'создать никнейм'",
-      "бот 'создать никнейм'",
-      "мини-приложение 'сгенерировать фото'"
-    ];
-    if (platformRow && rows.length >= 1) {
-      const platform = String(platformRow.dataset.value || platformRow.textContent || '').toLowerCase();
-      if (blockedPlatformNames.some(name => platform.includes(name))) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        showMessage(currentLang() === 'ru' ? 'Функция недоступна' : 'Feature unavailable', currentLang() === 'ru' ? 'Эта площадка заблокирована при наличии предупреждения.' : 'This platform is blocked while a warning is active.');
-        return;
-      }
+    const platformRow = event.target.closest('.platform-row');
+    const platformButton = event.target.closest('#platform-buttons .seg');
+    const platformTarget = platformRow || platformButton;
+    if (platformTarget && rows.length >= 1 && isWarningRestrictedPlatform(platformTarget.dataset.value || platformTarget.textContent)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showMessage(currentLang() === 'ru' ? 'Функция недоступна' : 'Feature unavailable', currentLang() === 'ru' ? 'Эта площадка заблокирована при наличии предупреждения.' : 'This platform is blocked while a warning is active.');
+      return;
     }
 
     const button = event.target.closest('button,[role="button"]');
