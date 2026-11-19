@@ -2523,7 +2523,7 @@ function resetCreateForm() {
   videoSizeUpgrade = false;
   editingFrozenAd = false;
   const upgradeBtn = $('btn-video-size-upgrade');
-  if (upgradeBtn) { upgradeBtn.classList.remove('active'); upgradeBtn.textContent = '+250 мб (200💎)'; }
+  if (upgradeBtn) { upgradeBtn.classList.remove('active'); upgradeBtn.textContent = buyAdUiText('+250 мб (200💎)', '+250 MB (200💎)'); }
   document.querySelectorAll('#platform-buttons .seg').forEach(btn => { btn.disabled = false; btn.title = ''; });
   $('ad-text').innerHTML = '';
   videoFile = null;
@@ -2697,7 +2697,7 @@ $('btn-video-size-upgrade').onclick = () => {
   } else {
     videoSizeUpgrade = false;
     $('btn-video-size-upgrade').classList.remove('active');
-    $('btn-video-size-upgrade').textContent = '+250 мб (200💎)';
+    $('btn-video-size-upgrade').textContent = buyAdUiText('+250 мб (200💎)', '+250 MB (200💎)');
     const file = $('video-input').files[0];
     if (file && file.size > 250 * 1024 * 1024) {
       videoFile = null; $('video-input').value = ''; hide($('video-meta')); hide($('btn-remove-video'));
