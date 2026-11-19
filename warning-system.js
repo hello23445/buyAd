@@ -104,12 +104,17 @@
     async function loadCloudWarnings() {
     try {
       const current = await githubGet('admin2.js');
-      const match = current.content.match(/(?:export\s+)?const\s+UserWarnings\s*=\s*(\[[\s\S]*?\])\s*;/);
+      const match = current.content.match(/(?:export\\s+)?const UserWarnings\\s*=\\s*(\\[[\\s\\S]*?\\])\\s*;/);
       const remoteWarnings = match ? JSON.parse(match[1]) : [];
-      safeWriteCache(WARN_KEY, Array.isArray(remoteWarnings) ? remoteWarnings : []);
+      const normalized = Array.isArray(remoteWarnings) ? remoteWarnings : [];
+      safeWriteCache(WARN_KEY, normalized);
       cloudWarningsLoaded = true;
       refresh();
-    } catch (error) { console.error('Не удалось загрузить предупреждения из GitHub:', error); }
+      return normalized;
+    } catch (error) {
+      console.error('Не удалось загрузить предупреждения из GitHub:', error);
+      return null;
+    }
   }
   const safeWriteCache = (key, value) => {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; }
@@ -980,24 +985,30 @@
       '<div class="screen__head">' +
       '<button class="back-btn" id="back-from-warnings" type="button" aria-label="' + escapeHtml(tr('reviewBack', 'Назад', 'Back')) + '"><i class="fa-solid fa-arrow-left"></i></button>' +
       '<div class="screen__title" id="warning-screen-title">' + escapeHtml(tr('warningTitle', 'Список предупреждений', 'Warning list')) + '</div>' +
+      '<button id="refresh-warning-list" class="btn btn--ghost" type="button" title="Обновить"><i class="fa-solid fa-rotate"></i></button>' +
       '</div><div id="warning-list-content" class="stack-sm"></div></div>';
     document.querySelector('main').appendChild(warningScreen);
     warningScreenList = warningScreen.querySelector('#warning-list-content');
     warningScreen.querySelector('#back-from-warnings').addEventListener('click', () => {
-      const locked = !!activeLock(warningsFor(currentToken(), currentTelegramId()));
-      const returnScreen = locked ? 'screen-blocked' : 'screen-main';
-      document.querySelectorAll('.screen').forEach(item => { item.hidden = item.id !== returnScreen; });
+      document.querySelectorAll('.screen').forEach(item => { item.hidden = item.id !== 'screen-settings'; });
       if (typeof refreshBackButton === 'function') refreshBackButton();
     });
+    warningScreen.querySelector('#refresh-warning-list').addEventListener('click', openWarningsScreen);
   }
 
-  function openWarningsScreen() {
+  async function openWarningsScreen() {
     createWarningScreen();
     if (!warningScreen) return;
     document.querySelectorAll('.screen').forEach(item => { item.hidden = item !== warningScreen; });
     warningScreen.hidden = false;
-    renderWarningsScreen();
+    if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(currentLang() === 'ru' ? 'Загрузка предупреждений…' : 'Loading warnings…') + '</div></div>';
     if (typeof refreshBackButton === 'function') refreshBackButton();
+    const latest = await loadCloudWarnings();
+    if (latest === null) {
+      if (warningScreenList) warningScreenList.innerHTML = '<div class="card"><div class="hint">' + escapeHtml(currentLang() === 'ru' ? 'Не удалось загрузить список предупреждений. Попробуйте обновить.' : 'Could not load warnings. Please try again.') + '</div></div>';
+      return;
+    }
+    renderWarningsScreen();
   }
 
   function applyLanguage(lang = currentLang()) {
@@ -1010,8 +1021,8 @@
     if (group) group.textContent = (dict && dict.warningSection) || (lang === 'ru' ? 'Предупреждения' : 'Warnings');
     setLabel('warn-issue', 'warningIssueButton', 'Выдать предупреждение (warn)', 'Issue warning (warn)');
     setLabel('warn-remove', 'warningRemoveButton', 'Снять предупреждения', 'Remove warnings');
-    const nav = document.querySelector('#nav-warnings .menu__text');
-    if (nav) nav.textContent = (dict && dict.warningTitle) || (lang === 'ru' ? 'Список предупреждений' : 'Warning list');
+    const settingsNav = document.querySelector('#settings-nav-warnings .menu__text');
+    if (settingsNav) settingsNav.textContent = (dict && dict.warningTitle) || (lang === 'ru' ? 'Список предупреждений' : 'Warning list');
     const back = document.getElementById('back-from-warnings');
     if (back) back.setAttribute('aria-label', (dict && dict.reviewBack) || (lang === 'ru' ? 'Назад' : 'Back'));
     const title = document.getElementById('warning-screen-title');
@@ -1079,19 +1090,7 @@
 
   function install() {
     createWarningScreen();
-    const crystals = document.getElementById('nav-crystals');
-    if (crystals && !document.getElementById('nav-warnings')) {
-      const button = document.createElement('button');
-      button.id = 'nav-warnings';
-      button.type = 'button';
-      button.className = crystals.className;
-      button.hidden = true;
-      button.innerHTML = '<span class="menu__icon"><i class="fa-solid fa-triangle-exclamation"></i></span>' +
-        '<span class="menu__text"></span>' +
-        '<span class="menu__chev"><i class="fa-solid fa-chevron-right"></i></span>';
-      crystals.insertAdjacentElement('afterend', button);
-      button.addEventListener('click', openWarningsScreen);
-    }
+    document.getElementById('settings-nav-warnings')?.addEventListener('click', openWarningsScreen);
     addAdminButtons();
     applyLanguage();
     updateAdminButtonVisibility();
