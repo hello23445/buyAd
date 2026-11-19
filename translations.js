@@ -525,6 +525,8 @@ const i18n = {
     btnSettings: 'Settings',
     appClosed: 'App is closed for maintenance',
     createDisabled: 'Ad creation is disabled',
+    appUnavailable: 'The app is temporarily unavailable',
+    editDisabled: 'Ad editing is temporarily disabled.',
     chooseLangTitle: 'Choose language',
     chooseLangSubtitle: 'Language can be changed in settings.',
     adsCreatedLabel: 'Ads created',
