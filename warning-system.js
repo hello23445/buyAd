@@ -970,7 +970,7 @@
     }
     // Check the balance immediately before fetching the warning list.
     const balance = await window.BuyAdRefreshCrystals().catch(() => null);
-    if (balance === null || Number(balance) < 250) {
+    if (balance === null || balance === undefined || !Number.isFinite(Number(balance)) || Number(balance) < 250) {
       showMessage(tx('Недостаточно кристаллов', 'Not enough crystals'), tx('Для удаления предупреждения требуется 250 кристаллов.', 'Removing a warning costs 250 crystals.'));
       return;
     }
