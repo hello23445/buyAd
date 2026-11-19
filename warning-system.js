@@ -957,8 +957,9 @@
   let warningScreenList = null;
 
   let warningRemovalCheckInProgress = false;
+  let warningRemovalModalOpen = false;
   async function purchaseWarningRemoval(warningId) {
-    if (warningRemovalCheckInProgress) return;
+    if (warningRemovalCheckInProgress || warningRemovalModalOpen) return;
     warningRemovalCheckInProgress = true;
     try {
       const userToken = currentToken();
@@ -1002,9 +1003,10 @@
         await executeWarningRemoval(warningId);
         return;
       }
+      warningRemovalModalOpen = true;
       openModal(tx('Удаление предупреждения', 'Remove warning'), confirmBody, [
-        { text: tx('Отмена', 'Cancel'), class: 'btn--secondary' },
-        { text: tx('Удалить за 250💎', 'Remove for 250💎'), onClick: () => { executeWarningRemoval(warningId); } }
+        { text: tx('Отмена', 'Cancel'), class: 'btn--secondary', onClick: () => { warningRemovalModalOpen = false; } },
+        { text: tx('Удалить за 250💎', 'Remove for 250💎'), onClick: () => { warningRemovalModalOpen = false; executeWarningRemoval(warningId); } }
       ]);
     } finally {
       warningRemovalCheckInProgress = false;
