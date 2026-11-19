@@ -824,13 +824,13 @@ function openAddAdminModal() {
   const nameLabel = document.createElement('label');
   nameLabel.className = 'admin-create-field';
   const nameTitle = document.createElement('span');
-  nameTitle.textContent = buyAdUiText(buyAdUiText('Имя нового админа', 'New administrator name'), 'New administrator name');
+  nameTitle.textContent = buyAdUiText('Имя нового админа', 'New administrator name');
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.required = true;
   nameInput.autocomplete = 'off';
   nameInput.maxLength = 80;
-  nameInput.placeholder = buyAdUiText(buyAdUiText('Введите имя администратора', 'Enter administrator name'), 'Enter administrator name');
+  nameInput.placeholder = buyAdUiText('Введите имя администратора', 'Enter administrator name');
   nameLabel.append(nameTitle, nameInput);
   form.appendChild(nameLabel);
 
@@ -4621,27 +4621,27 @@ async function updateVariable(action, value, quiet = false) {
     return result;
 }
 
-function openAdminPunishmentModal(title, onSubmit, placeholder = 'Введите токен пользователя', punishmentType = 'account') {
+function openAdminPunishmentModal(title, onSubmit, placeholder = buyAdUiText('Введите токен пользователя', 'Enter user token'), punishmentType = 'account') {
   const body=document.createElement('div');body.style.display='grid';body.style.gap='0.75rem';
   const label=document.createElement('label');label.textContent=title;label.style.fontWeight='600';body.appendChild(label);
   const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.className='admin-modal-control';body.appendChild(input);
   const lang=localStorage.getItem(LS.lang)||'ru',admin=getCurrentAdmin();
-  const reasonLabel=document.createElement('label');reasonLabel.textContent=lang==='ru'?'Причина блокировки'+(Number(admin?.admin_level)===1?' (обязательно)':' (необязательно)'):'Reason for block'+(Number(admin?.admin_level)===1?' (required)':' (optional)');reasonLabel.style.fontWeight='600';body.appendChild(reasonLabel);
-  const reason=document.createElement('textarea');reason.placeholder=lang==='ru'?'Введите причину блокировки':'Enter the reason for the block';reason.rows=3;reason.className='admin-modal-control';reason.style.resize='vertical';body.appendChild(reason);
-  const dl=document.createElement('label');dl.textContent=lang==='ru'?'Срок блокировки':'Ban duration';dl.style.fontWeight='600';body.appendChild(dl);
+  const reasonLabel=document.createElement('label');reasonLabel.textContent=buyAdUiText('Причина блокировки'+(Number(admin?.admin_level)===1?' (обязательно)':' (необязательно)'), 'Reason for block'+(Number(admin?.admin_level)===1?' (required)':' (optional)'));reasonLabel.style.fontWeight='600';body.appendChild(reasonLabel);
+  const reason=document.createElement('textarea');reason.placeholder=buyAdUiText('Введите причину блокировки','Enter the reason for the block');reason.rows=3;reason.className='admin-modal-control';reason.style.resize='vertical';body.appendChild(reason);
+  const dl=document.createElement('label');dl.textContent=buyAdUiText('Срок блокировки','Ban duration');dl.style.fontWeight='600';body.appendChild(dl);
   const duration=document.createElement('select');duration.className='admin-modal-control';
   (punishmentType==='ads'?[1,2,4,5,10,15,30,40,50,60]:[1,2,5,10,15,30,40,50,60]).forEach(days=>{const o=document.createElement('option');o.value=String(days);o.textContent=lang==='ru'?days+' '+(days===1?'день':[2,3,4].includes(days)?'дня':'дней'):days+(days===1?' day':' days');duration.appendChild(o)});
-  const custom=document.createElement('option');custom.value='custom';custom.textContent=lang==='ru'?'Указать вручную (1–60 дней)':'Custom (1–60 days)';duration.appendChild(custom);
-  const forever=document.createElement('option');forever.value='forever';forever.textContent=lang==='ru'?'Навсегда (админ 3-го уровня и выше)':'Forever (admin level 3 or higher)';forever.disabled=Number(admin?.admin_level)<3;duration.appendChild(forever);body.appendChild(duration);
-  const customDays=document.createElement('input');customDays.type='number';customDays.min='1';customDays.max='60';customDays.step='1';customDays.placeholder=lang==='ru'?'Количество дней (1–60)':'Number of days (1–60)';customDays.className='admin-modal-control';customDays.style.display='none';body.appendChild(customDays);
+  const custom=document.createElement('option');custom.value='custom';custom.textContent=buyAdUiText('Указать вручную (1–60 дней)','Custom (1–60 days)');duration.appendChild(custom);
+  const forever=document.createElement('option');forever.value='forever';forever.textContent=buyAdUiText('Навсегда (админ 3-го уровня и выше)','Permanent (level 3+ administrator)');forever.disabled=Number(admin?.admin_level)<3;duration.appendChild(forever);body.appendChild(duration);
+  const customDays=document.createElement('input');customDays.type='number';customDays.min='1';customDays.max='60';customDays.step='1';customDays.placeholder=buyAdUiText('Количество дней (1–60)','Number of days (1–60)');customDays.className='admin-modal-control';customDays.style.display='none';body.appendChild(customDays);
   duration.addEventListener('change',()=>{customDays.style.display=duration.value==='custom'?'':'none'});
   if(Number(admin?.admin_level)===5&&adminHasPermission('hideNameOnBan')){const wrap=document.createElement('label');wrap.style.display='flex';wrap.style.gap='0.5rem';wrap.style.alignItems='center';const cb=document.createElement('input');cb.type='checkbox';cb.checked=localStorage.getItem('hideAdminNameOnBan')==='true';cb.addEventListener('change',()=>localStorage.setItem('hideAdminNameOnBan',cb.checked?'true':'false'));wrap.appendChild(cb);wrap.appendChild(document.createTextNode(lang==='ru'?'Скрывать моё имя при блокировке':'Hide my name when blocking'));body.appendChild(wrap)}
   openModal(title,body,[
     {text:lang==='ru'?'Отправить':'Submit',onClick:()=>{
-      if(Number(admin?.admin_level)===1&&!reason.value.trim()){openModal(lang==='ru'?'Причина обязательна':'Reason required',lang==='ru'?'Укажите причину блокировки.':'Please enter a reason for the block.');return}
+      if(Number(admin?.admin_level)===1&&!reason.value.trim()){openModal(buyAdUiText('Причина обязательна','Reason required'),buyAdUiText('Укажите причину блокировки.','Please enter a reason for the block.'));return}
       let durationDays=null;
-      if(duration.value==='forever'){if(Number(admin?.admin_level)<3){openModal(lang==='ru'?'Недостаточно прав':'Insufficient permissions',lang==='ru'?'Бессрочную блокировку могут выдавать только администраторы 3-го уровня и выше.':'Only level 3+ administrators can issue permanent bans.');return}}
-      else if(duration.value==='custom'){durationDays=Number(customDays.value);if(!Number.isInteger(durationDays)||durationDays<1||durationDays>60){openModal(lang==='ru'?'Неверный срок':'Invalid duration',lang==='ru'?'Укажите целое число дней от 1 до 60.':'Enter a whole number from 1 to 60 days.');return}}
+      if(duration.value==='forever'){if(Number(admin?.admin_level)<3){openModal(buyAdUiText('Недостаточно прав','Insufficient permissions'),buyAdUiText('Бессрочную блокировку могут выдавать только администраторы 3-го уровня и выше.','Only level 3+ administrators can issue permanent bans.'));return}}
+      else if(duration.value==='custom'){durationDays=Number(customDays.value);if(!Number.isInteger(durationDays)||durationDays<1||durationDays>60){openModal(buyAdUiText('Неверный срок','Invalid duration'),buyAdUiText('Укажите целое число дней от 1 до 60.','Enter a whole number from 1 to 60 days.'));return}}
       else durationDays=Number(duration.value);
       if(onSubmit)onSubmit(input.value.trim(),reason.value.trim(),durationDays);
     }},
@@ -4649,7 +4649,7 @@ function openAdminPunishmentModal(title, onSubmit, placeholder = 'Введите
   ]);
 }
 
-function openAdminTokenModal(title, onSubmit, placeholder = 'Введите токен пользователя') {
+function openAdminTokenModal(title, onSubmit, placeholder = buyAdUiText('Введите токен пользователя', 'Enter user token')) {
   const body = document.createElement('div');
   body.className = 'admin-punishment-form';
   body.style.display = 'grid';
@@ -4683,7 +4683,7 @@ function openAdminTokenModal(title, onSubmit, placeholder = 'Введите то
 $('admin-block-user').onclick = () => {
   openAdminPunishmentModal('Заблокировать пользователя по токену', async (token, reason, durationDays) => {
     if (!token) {
-      alert('Введите токен пользователя');
+      alert(buyAdUiText('Введите токен пользователя','Enter user token'));
       return;
     }
     try {
@@ -4694,7 +4694,7 @@ $('admin-block-user').onclick = () => {
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'banAdmin' : 'banToken');
       window.BuyAdWarnings?.recordPunishmentIssued('account_ban', token, reason, durationDays, expiresAt);
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -4704,7 +4704,7 @@ $('admin-block-user').onclick = () => {
 $('admin-unblock-user').onclick = () => {
   openAdminTokenModal('Разблокировать пользователя по токену', async token => {
     if (!token) {
-      alert('Введите токен пользователя');
+      alert(buyAdUiText('Введите токен пользователя','Enter user token'));
       return;
     }
     try {
@@ -4714,7 +4714,7 @@ $('admin-unblock-user').onclick = () => {
       recordAdminAction((ADMINS || []).some(admin => admin.admin_token === token) ? 'unbanAdmin' : 'unbanToken');
       window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', token);
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -4728,7 +4728,7 @@ function createAdsRestrictionTargetFields(actionLabel) {
   body.style.gap = '.65rem';
 
   const typeLabel = document.createElement('label');
-  typeLabel.textContent = 'Тип идентификатора';
+  typeLabel.textContent = buyAdUiText('Тип идентификатора','Identifier type');
   typeLabel.style.fontWeight = '600';
   const type = document.createElement('select');
   type.className = 'admin-modal-control';
@@ -4745,17 +4745,17 @@ function createAdsRestrictionTargetFields(actionLabel) {
   });
 
   const valueLabel = document.createElement('label');
-  valueLabel.textContent = 'Идентификатор пользователя';
+  valueLabel.textContent = buyAdUiText('Идентификатор пользователя','User identifier');
   valueLabel.style.fontWeight = '600';
   const input = document.createElement('input');
   input.type = 'text';
-  input.placeholder = 'Сначала выберите тип идентификатора';
+  input.placeholder = buyAdUiText('Сначала выберите тип идентификатора','Select identifier type first');
   input.className = 'admin-modal-control';
   input.disabled = true;
   type.addEventListener('change', () => {
     input.disabled = !type.value;
     input.value = '';
-    input.placeholder = type.value === 'token' ? 'Введите токен пользователя'
+    input.placeholder = type.value === 'token' ? buyAdUiText('Введите токен пользователя','Enter user token')
       : type.value === 'telegramId' ? 'Введите Telegram ID'
       : type.value === 'ip' ? 'Введите IPv4 или IPv6' : 'Сначала выберите тип идентификатора';
     input.inputMode = type.value === 'telegramId' ? 'numeric' : 'text';
@@ -4766,10 +4766,10 @@ function createAdsRestrictionTargetFields(actionLabel) {
 }
 
 function validateCreateAdsRestrictionTarget(type, value) {
-  if (!type) return 'Выберите тип идентификатора.';
-  if (!value) return 'Введите идентификатор пользователя.';
-  if (type === 'telegramId' && !/^\d+$/.test(value)) return 'Telegram ID должен содержать только цифры.';
-  if (type === 'ip' && !isIpAddressValue(value)) return 'Введите корректный IPv4 или IPv6 адрес.';
+  if (!type) return buyAdUiText('Выберите тип идентификатора.','Select identifier type.');
+  if (!value) return buyAdUiText('Введите идентификатор пользователя.','Enter user identifier.');
+  if (type === 'telegramId' && !/^\d+$/.test(value)) return buyAdUiText('Telegram ID должен содержать только цифры.','Telegram ID must contain digits only.');
+  if (type === 'ip' && !isIpAddressValue(value)) return buyAdUiText('Введите корректный IPv4 или IPv6 адрес.','Enter a valid IPv4 or IPv6 address.');
   return '';
 }
 
@@ -4777,14 +4777,14 @@ $('admin-ban-create-edit').onclick = () => {
   const fields = createAdsRestrictionTargetFields('block');
   const { body, type, input } = fields;
   const reasonLabel = document.createElement('label');
-  reasonLabel.textContent = 'Причина блокировки';
+  reasonLabel.textContent = buyAdUiText('Причина блокировки','Block reason');
   reasonLabel.style.fontWeight = '600';
   const reason = document.createElement('textarea');
   reason.rows = 3;
-  reason.placeholder = 'Укажите причину блокировки';
+  reason.placeholder = buyAdUiText('Укажите причину блокировки','Enter block reason');
   reason.className = 'admin-modal-control';
   const durationLabel = document.createElement('label');
-  durationLabel.textContent = 'Срок блокировки';
+  durationLabel.textContent = buyAdUiText('Срок блокировки','Ban duration');
   durationLabel.style.fontWeight = '600';
   const duration = document.createElement('select');
   duration.className = 'admin-modal-control';
@@ -4796,11 +4796,11 @@ $('admin-ban-create-edit').onclick = () => {
   });
   const custom = document.createElement('option');
   custom.value = 'custom';
-  custom.textContent = 'Указать вручную';
+  custom.textContent = buyAdUiText('Указать вручную','Custom');
   duration.appendChild(custom);
   const forever = document.createElement('option');
   forever.value = 'forever';
-  forever.textContent = 'Навсегда (админ 3-го уровня и выше)';
+  forever.textContent = buyAdUiText('Навсегда (админ 3-го уровня и выше)','Permanent (level 3+ administrator)');
   forever.disabled = Number(getCurrentAdmin()?.admin_level) < 3;
   duration.appendChild(forever);
 
@@ -4808,13 +4808,13 @@ $('admin-ban-create-edit').onclick = () => {
   customDurationWrap.style.display = 'none';
   customDurationWrap.style.gap = '.4rem';
   const customDurationLabel = document.createElement('label');
-  customDurationLabel.textContent = 'Укажите срок в днях';
+  customDurationLabel.textContent = buyAdUiText('Укажите срок в днях','Specify duration in days');
   customDurationLabel.style.fontWeight = '600';
   const customDuration = document.createElement('input');
   customDuration.type = 'number';
   customDuration.min = '1';
   customDuration.step = '1';
-  customDuration.placeholder = 'Количество дней';
+  customDuration.placeholder = buyAdUiText('Количество дней','Number of days');
   customDuration.className = 'admin-modal-control';
   customDurationWrap.append(customDurationLabel, customDuration);
   duration.addEventListener('change', () => {
@@ -4832,7 +4832,7 @@ $('admin-ban-create-edit').onclick = () => {
     hideNameInput.type = 'checkbox';
     hideNameInput.checked = false;
     const hideNameText = document.createElement('span');
-    hideNameText.textContent = 'Скрыть моё имя при блокировке';
+    hideNameText.textContent = buyAdUiText('Скрыть моё имя при блокировке','Hide my name when blocking');
     hideNameLabel.append(hideNameInput, hideNameText);
     hideName = hideNameInput;
     body.append(reasonLabel, reason, durationLabel, duration, customDurationWrap, hideNameLabel);
@@ -4840,12 +4840,12 @@ $('admin-ban-create-edit').onclick = () => {
     body.append(reasonLabel, reason, durationLabel, duration, customDurationWrap);
   }
 
-  openModal('Заблокировать пользователю возможность создавать и редактировать рекламу', body, [
+  openModal(buyAdUiText('Заблокировать пользователю возможность создавать и редактировать рекламу','Block user from creating and editing ads'), body, [
     { text: 'Заблокировать', onClick: async () => {
       const value = input.value.trim();
       const validationError = validateCreateAdsRestrictionTarget(type.value, value);
       if (validationError) {
-        openModal('Проверьте данные', validationError);
+        openModal(buyAdUiText('Проверьте данные','Check details'), validationError);
         return;
       }
       if (!adminGuard('restrictAds', value)) return;
@@ -4855,7 +4855,7 @@ $('admin-ban-create-edit').onclick = () => {
       } else if (duration.value === 'custom') {
         durationDays = Number(customDuration.value);
         if (!Number.isInteger(durationDays) || durationDays < 1) {
-          openModal('Некорректный срок', 'Укажите целое количество дней — не менее 1.');
+          openModal(buyAdUiText('Некорректный срок','Invalid duration'), buyAdUiText('Укажите целое количество дней — не менее 1.','Enter a whole number of days, at least 1.'));
           return;
         }
       } else {
@@ -4885,7 +4885,7 @@ $('admin-ban-create-edit').onclick = () => {
             .filter(Boolean).map(String).includes(String(value))) ? 'banAdmin' : 'restrictAds');
         window.BuyAdWarnings?.recordPunishmentIssued('ads_restriction', value, entry.reason, durationDays, expiresAt);
       } catch (error) {
-        alert(error.message || 'Ошибка при обновлении переменной');
+        alert(error.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
       } finally {
         hidePreloader();
       }
@@ -4896,12 +4896,12 @@ $('admin-ban-create-edit').onclick = () => {
 
 $('admin-unban-create-edit').onclick = () => {
   const { body, type, input } = createAdsRestrictionTargetFields('unblock');
-  openModal('Разблокировать пользователю возможность создавать и редактировать рекламу', body, [
+  openModal(buyAdUiText('Разблокировать пользователю возможность создавать и редактировать рекламу','Unblock user from creating and editing ads'), body, [
     { text: 'Разблокировать', onClick: async () => {
       const value = input.value.trim();
       const validationError = validateCreateAdsRestrictionTarget(type.value, value);
       if (validationError) {
-        openModal('Проверьте данные', validationError);
+        openModal(buyAdUiText('Проверьте данные','Check details'), validationError);
         return;
       }
       try {
@@ -4918,7 +4918,7 @@ $('admin-unban-create-edit').onclick = () => {
           window.BuyAdWarnings?.recordPunishmentRemoved('ads_restriction', value);
         }
       } catch (error) {
-        alert(error.message || 'Ошибка при обновлении переменной');
+        alert(error.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
       } finally {
         hidePreloader();
       }
@@ -4930,7 +4930,7 @@ $('admin-unban-create-edit').onclick = () => {
 $('admin-ban-ip').onclick = () => {
   openAdminPunishmentModal('Забанить пользователя по его IP-адресу', async (ip, reason, durationDays) => {
     if (!ip) {
-      alert('Введите IP-адрес пользователя');
+      alert(buyAdUiText('Введите IP-адрес пользователя','Enter user IP address'));
       return;
     }
     try {
@@ -4941,7 +4941,7 @@ $('admin-ban-ip').onclick = () => {
       recordAdminAction('banIp');
       window.BuyAdWarnings?.recordAdminAction('ip_banned', { targetIp: ip, reason: reason || 'Не указана', durationDays, expiresAt });
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -4952,7 +4952,7 @@ async function loadAdminOwnIp() {
   const value = $('admin-own-ip-value');
   const copy = $('admin-own-ip-copy');
   if (!value || !adminHasPermission('viewOwnIp')) return;
-  value.textContent = 'Определение IP…';
+  value.textContent = buyAdUiText('Определение IP…','Detecting IP…');
   if (copy) copy.disabled = true;
   try {
     const ip = await getClientIp();
@@ -4977,19 +4977,19 @@ async function loadAdminOwnIp() {
         const span = copy.querySelector('span');
         if (span) {
           const oldText = span.textContent;
-          span.textContent = 'Скопировано';
+          span.textContent = buyAdUiText('Скопировано','Copied');
           setTimeout(() => { span.textContent = oldText; }, 1800);
         }
       };
     }
   } catch (error) {
-    value.textContent = error.message || 'Не удалось определить IP-адрес.';
+    value.textContent = error.message || buyAdUiText('Не удалось определить IP-адрес.','Could not detect IP address.');
   }
 }
 $('admin-unban-ip').onclick = () => {
   openAdminTokenModal('Разбанить пользователя по его IP-адресу', async ip => {
     if (!ip) {
-      alert('Введите IP-адрес пользователя');
+      alert(buyAdUiText('Введите IP-адрес пользователя','Enter user IP address'));
       return;
     }
     try {
@@ -4999,7 +4999,7 @@ $('admin-unban-ip').onclick = () => {
       recordAdminAction('banIp');
       window.BuyAdWarnings?.recordAdminAction('ip_unbanned', { targetIp: ip });
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -5009,7 +5009,7 @@ $('admin-unban-ip').onclick = () => {
 $('admin-ban-telegram-id').onclick = () => {
   openAdminPunishmentModal('Забанить пользователя по его Telegram ID', async (telegramId, reason, durationDays) => {
     if (!telegramId) {
-      alert('Введите Telegram ID пользователя');
+      alert(buyAdUiText('Введите Telegram ID пользователя','Enter user Telegram ID'));
       return;
     }
     try {
@@ -5020,7 +5020,7 @@ $('admin-ban-telegram-id').onclick = () => {
       recordAdminAction((ADMINS || []).some(admin => [admin.admin_token, admin.adminToken, admin.token, admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(telegramId))) ? 'banAdmin' : 'banTelegramId');
       window.BuyAdWarnings?.recordPunishmentIssued('account_ban', telegramId, reason, durationDays, expiresAt);
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -5030,7 +5030,7 @@ $('admin-ban-telegram-id').onclick = () => {
 $('admin-unban-telegram-id').onclick = () => {
   openAdminTokenModal('Разбанить пользователя по его Telegram ID', async telegramId => {
     if (!telegramId) {
-      alert('Введите Telegram ID пользователя');
+      alert(buyAdUiText('Введите Telegram ID пользователя','Enter user Telegram ID'));
       return;
     }
     try {
@@ -5040,7 +5040,7 @@ $('admin-unban-telegram-id').onclick = () => {
       recordAdminAction((ADMINS || []).some(admin => [admin.telegram_id, admin.telegramId, admin.admin_telegram_id, admin.adminTelegramId, admin.user_id, admin.userId].filter(Boolean).map(String).includes(String(telegramId))) ? 'unbanAdmin' : 'banTelegramId');
       window.BuyAdWarnings?.recordPunishmentRemoved('account_ban', telegramId);
     } catch (e) {
-      alert(e.message || 'Ошибка при обновлении переменной');
+      alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
     } finally {
       hidePreloader();
     }
@@ -5054,7 +5054,7 @@ $('admin-close-app').onclick = async () => {
     showPreloader();
     await updateVariable('CloseApp', 'closed');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5067,7 +5067,7 @@ $('admin-open-app').onclick = async () => {
     showPreloader();
     await updateVariable('UnCloseApp', 'not_closed');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5079,7 +5079,7 @@ $('admin-disable-gas').onclick = async () => {
     showPreloader();
     await updateVariable('GASESES', 'no');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5091,7 +5091,7 @@ $('admin-enable-gas').onclick = async () => {
     showPreloader();
     await updateVariable('UnGASESES', 'true');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5103,7 +5103,7 @@ $('admin-disable-payments').onclick = async () => {
     showPreloader();
     await updateVariable('Purchases2', 'no');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5115,7 +5115,7 @@ $('admin-enable-payments').onclick = async () => {
     showPreloader();
     await updateVariable('UnPurchases2', 'enabled');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5127,7 +5127,7 @@ $('admin-disable-create-all').onclick = async () => {
     showPreloader();
     await updateVariable('disableCreateAds2', 'disabled');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5139,7 +5139,7 @@ $('admin-enable-create-all').onclick = async () => {
     showPreloader();
     await updateVariable('UndisableCreateAds2', 'enabled');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5151,7 +5151,7 @@ $('admin-disable-edit-all').onclick = async () => {
     showPreloader();
     await updateVariable('disableEditingAds', 'disabled');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5163,7 +5163,7 @@ $('admin-enable-edit-all').onclick = async () => {
     showPreloader();
     await updateVariable('UndisableEditingAds', 'enabled');
   } catch (e) {
-    alert(e.message || 'Ошибка при обновлении переменной');
+    alert(e.message || buyAdUiText('Ошибка при обновлении переменной','Error updating variable'));
   } finally {
     hidePreloader();
   }
@@ -5375,7 +5375,7 @@ document.addEventListener('click', (e) => {
       clearTimeout(commandFormatTimer);
       status.hidden = false;
       status.style.color = '#e05b67';
-      status.textContent = (details ? details + '\n\n' : '') + 'Правильный формат:\n' + structure;
+      status.textContent = (details ? details + '\n\n' : '') + buyAdUiText('Правильный формат:\n','Correct format:\n') + structure;
       commandFormatTimer = setTimeout(() => { status.hidden = true; }, 5000);
     }
     return false;
@@ -5433,7 +5433,7 @@ document.addEventListener('click', (e) => {
     root.className = 'available-commands-list';
     const intro = document.createElement('p');
     intro.className = 'available-commands-intro';
-    intro.textContent = 'Показаны только команды, доступные с вашим текущим уровнем и разрешениями. Нажмите на команду, чтобы подставить её в поле ввода.';
+    intro.textContent = buyAdUiText('Показаны только команды, доступные с вашим текущим уровнем и разрешениями. Нажмите на команду, чтобы подставить её в поле ввода.','Only commands available to your current level and permissions are shown. Tap a command to insert it into the input field.');
     root.appendChild(intro);
     groups.forEach(group => {
       const available = group.commands.filter(command => commandAllowedForCurrentAdmin(command));
@@ -5471,7 +5471,7 @@ document.addEventListener('click', (e) => {
       });
       root.appendChild(section);
     });
-    openModal('Справочник команд', root);
+    openModal(buyAdUiText('Справочник команд','Command reference'), root);
   }
   function commandAllowedForCurrentAdmin(command) {
     const admin = getCurrentAdmin();
@@ -5545,8 +5545,8 @@ document.addEventListener('click', (e) => {
     const reason = String(data?.reason || '').trim() || 'Не указана';
     const adminNameHidden = data?.adminNameHidden === true || String(data?.adminNameHidden || '').toLowerCase() === 'true';
     const adminName = adminNameHidden ? 'Скрыто' : (String(data?.adminName || '').trim() || 'Не указан');
-    if ($('kicked-screen-reason')) $('kicked-screen-reason').textContent = 'Причина: ' + reason + '.';
-    if ($('kicked-screen-admin')) $('kicked-screen-admin').textContent = 'Админ: ' + adminName + '.';
+    if ($('kicked-screen-reason')) $('kicked-screen-reason').textContent = buyAdUiText('Причина: ','Reason: ') + reason + '.';
+    if ($('kicked-screen-admin')) $('kicked-screen-admin').textContent = buyAdUiText('Админ: ','Admin: ') + adminName + '.';
     hideAllScreens();
     show($('screen-kicked'));
     if (tg?.SettingsButton) tg.SettingsButton.hide();
@@ -5757,7 +5757,7 @@ document.addEventListener('click', (e) => {
     clearTimeout(activeNotificationTimer);
     const sender=banner.querySelector('.buyad-notice-sender');
     const message=banner.querySelector('.buyad-notice-message');
-    if(sender)sender.textContent=event.showChief===true?'Главный администратор':'Администрация';
+    if(sender)sender.textContent=event.showChief===true?buyAdUiText('Главный администратор','Chief administrator'):buyAdUiText('Администрация','Administration');
     if(message)message.textContent=String(event.message||'').replace(/\\n/g,'\n');
     banner.hidden=false;
     banner.style.animation='none';
@@ -5785,29 +5785,29 @@ document.addEventListener('click', (e) => {
     body.className = 'stack-sm';
     const targetLabel = document.createElement('label');
     targetLabel.className = 'field__label';
-    targetLabel.textContent = 'Telegram ID или токен пользователя';
+    targetLabel.textContent = buyAdUiText('Telegram ID или токен пользователя','User Telegram ID or token');
     const target = document.createElement('input');
     target.className = 'textarea';
-    target.placeholder = 'Введите Telegram ID или токен';
+    target.placeholder = buyAdUiText('Введите Telegram ID или токен','Enter Telegram ID or token');
     target.autocomplete = 'off';
     targetLabel.appendChild(target);
     const reasonLabel = document.createElement('label');
     reasonLabel.className = 'field__label';
-    reasonLabel.textContent = 'Причина (необязательно)';
+    reasonLabel.textContent = buyAdUiText('Причина (необязательно)','Reason (optional)');
     const reason = document.createElement('textarea');
     reason.className = 'textarea';
     reason.rows = 3;
-    reason.placeholder = 'Не указана';
+    reason.placeholder = buyAdUiText('Не указана','Not specified');
     reasonLabel.appendChild(reason);
     const hideLabel = document.createElement('label');
     hideLabel.className = 'field__label';
-    hideLabel.textContent = 'Отображение имени администратора';
+    hideLabel.textContent = buyAdUiText('Отображение имени администратора','Administrator name display');
     const hideSelect = document.createElement('select');
     hideSelect.className = 'textarea';
-    hideSelect.innerHTML = '<option value="no">Скрыть имя (только 5-й уровень)</option><option value="yes">Показывать имя</option>';
+    hideSelect.innerHTML = '<option value="no">'+buyAdUiText('Скрыть имя (только 5-й уровень)','Hide name (level 5 only)')+'</option><option value="yes">'+buyAdUiText('Показывать имя','Show name')+'</option>';
     hideLabel.appendChild(hideSelect);
     body.append(targetLabel, reasonLabel, hideLabel);
-    openModal('Кикнуть пользователя', body, [
+    openModal(buyAdUiText('Кикнуть пользователя','Disconnect user'), body, [
       { text:'Отмена', class:'btn btn--ghost', onClick:() => {} },
       { text:'Отключить', class:'btn btn--danger', onClick:() => {
         const identifier = target.value.trim();
@@ -5834,11 +5834,11 @@ document.addEventListener('click', (e) => {
     root.className = 'stack-sm';
     const summary = document.createElement('div');
     summary.className = 'hint';
-    summary.textContent = 'Записей: ' + total + (truncated ? ' (показана только первая часть списка)' : '');
+    summary.textContent = buyAdUiText('Записей: ','Records: ') + total + (truncated ? buyAdUiText(' (показана только первая часть списка)',' (only the first part of the list is shown)') : '');
     root.appendChild(summary);
     if (!rows.length) {
       const empty = document.createElement('p');
-      empty.textContent = 'Пользователи не найдены.';
+      empty.textContent = buyAdUiText('Пользователи не найдены.','No users found.');
       root.appendChild(empty);
       openModal(title, root);
       return;
@@ -6299,9 +6299,9 @@ document.addEventListener('click', (e) => {
         const history = document.createElement('div');
         history.className = 'stack-sm';
         const formatHistoryDate = value => {
-          if (!value) return 'Не зафиксирована';
+          if (!value) return buyAdUiText('Не зафиксирована','Not recorded');
           const date = new Date(value);
-          if (!Number.isFinite(date.getTime())) return 'Не зафиксирована';
+          if (!Number.isFinite(date.getTime())) return buyAdUiText('Не зафиксирована','Not recorded');
           return new Intl.DateTimeFormat('ru-RU', {
             timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit',
             day: '2-digit', hour: '2-digit', minute: '2-digit',
@@ -6328,7 +6328,7 @@ document.addEventListener('click', (e) => {
             card.style.marginTop = '8px';
             const heading = document.createElement('div');
             heading.className = 'card__title';
-            heading.textContent = '№' + (index + 1) + ' · ' + (labels[item.kind] || 'Наказание');
+            heading.textContent = '№' + (index + 1) + ' · ' + (labels[item.kind] || buyAdUiText('Наказание','Punishment'));
             card.appendChild(heading);
             const issued = document.createElement('div');
             issued.className = 'punishment-history-date';
@@ -6344,16 +6344,16 @@ document.addEventListener('click', (e) => {
         } else {
           const empty = document.createElement('div');
           empty.className = 'hint';
-          empty.textContent = 'За последние два месяца наказаний с зафиксированной датой нет.';
+          empty.textContent = buyAdUiText('За последние два месяца наказаний с зафиксированной датой нет.','No punishments with recorded dates in the last two months.');
           history.appendChild(empty);
         }
         const status = $('main-admin-command-status');
         if (status) {
           status.hidden = false;
           status.style.color = '';
-          status.textContent = rows.length ? 'Найдено наказаний: ' + rows.length : 'Наказаний за выбранный период нет.';
+          status.textContent = rows.length ? buyAdUiText('Найдено наказаний: ','Punishments found: ') + rows.length : buyAdUiText('Наказаний за выбранный период нет.','No punishments for the selected period.');
         }
-        openModal('Список наказаний', history);
+        openModal(buyAdUiText('Список наказаний','Punishment list'), history);
         return;
       }
     } catch (error) {
