@@ -85,9 +85,10 @@ if (tg) {
     // without its own hidden attribute must not keep SettingsButton hidden forever.
     const dialogOpen = !!document.querySelector('.modal-overlay:not([hidden]), .ip-consent-overlay:not([hidden])');
     const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
+    const warningsScreenVisible = $('screen-warnings') && !$('screen-warnings').hidden;
     const preloader = $('preloader');
     const loading = !!preloader && !preloader.hidden && getComputedStyle(preloader).display !== 'none';
-    if (dialogOpen || settingsScreenVisible || loading) setTelegramSettingsButtonVisible(false);
+    if (dialogOpen || settingsScreenVisible || warningsScreenVisible || loading) setTelegramSettingsButtonVisible(false);
     else if (window.__buyAdSettingsButtonReady) setTelegramSettingsButtonVisible(true);
   };
   new MutationObserver(syncTelegramSettingsButton).observe(document.documentElement, {
@@ -302,7 +303,8 @@ function closeModal() {
   if (!document.querySelector('.modal-overlay:not([hidden])')) { document.body.classList.remove('modal-scroll-locked'); window.scrollTo(0, Number(window.__buyAdModalScrollY || 0)); }
   if (tg?.SettingsButton) {
     const settingsScreenVisible = $('screen-settings') && !$('screen-settings').hidden;
-    if (!settingsScreenVisible && window.__buyAdSettingsButtonTimer) {
+    const warningsScreenVisible = $('screen-warnings') && !$('screen-warnings').hidden;
+    if (!settingsScreenVisible && !warningsScreenVisible && window.__buyAdSettingsButtonTimer) {
       setTelegramSettingsButtonVisible(true);
     }
   }
