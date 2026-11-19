@@ -75,8 +75,8 @@ const ADMINS = [
     }
   },
   {
-    "admin_name": "Администратор 2 уровня",
-    "admin_level": 2,
+    "admin_name": "Администратор 3 уровня",
+    "admin_level": 3,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
       "reviewAds": true,
@@ -84,10 +84,10 @@ const ADMINS = [
       "viewUserStatistics": true,
       "banToken": true,
       "unban": true,
-      "unbanTelegramId": false,
+      "unbanTelegramId": true,
       "unbanIp": false,
       "restrictAds": true,
-      "banTelegramId": false,
+      "banTelegramId": true,
       "banIp": false,
       "globalCreateToggle": false,
       "manageAdmins": false,
