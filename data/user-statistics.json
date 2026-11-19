@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-19T19:29:17.111Z",
+  "updatedAt": "2026-11-19T19:30:11.121Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -319,12 +319,13 @@
         "HO2R8Z7FI6708MI6",
         "RWYSKWU0KIOD3CNG",
         "E4J51YC2G6BZXQBD",
-        "QJT4HKK0GEOY4LD3"
+        "QJT4HKK0GEOY4LD3",
+        "JSFS7K1VDMX1X1FK"
       ],
       "firstSeenAt": "2026-11-05T10:23:48.001Z",
       "registeredAt": "2026-11-05T10:23:48.001Z",
-      "lastLoginAt": "2026-11-19T17:09:23.407Z",
-      "loginCount": 108,
+      "lastLoginAt": "2026-11-19T19:30:11.121Z",
+      "loginCount": 109,
       "punishments": [
         {
           "id": "warning:warn_1794296655196_0_kjl6o",
@@ -363,7 +364,7 @@
           "adminLevel": 0
         }
       ],
-      "lastSeenToken": "QJT4HKK0GEOY4LD3",
+      "lastSeenToken": "JSFS7K1VDMX1X1FK",
       "statsUpdatedAt": "2026-11-08T05:03:07.462Z"
     },
     "token:OAic3kfBMbI1zGwN": {
