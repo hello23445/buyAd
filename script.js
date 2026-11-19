@@ -3169,10 +3169,10 @@ $('btn-create-ad').onclick = async () => {
 
     if (editMode && editStatus !== 'rejected') {
       if (costDifference > 0) {
-        window.__buyAdCrystalsNeedRefresh = true;
         if (!await updateCrystalsInGAS(costDifference, false)) {
           throw new Error('Failed to deduct crystals');
         }
+        window.__buyAdCrystalsNeedRefresh = true;
       }
     } else {
       if (!await updateCrystalsInGAS(newTotalCost, false)) {
