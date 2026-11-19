@@ -955,6 +955,7 @@
 
   let warningScreen = null;
   let warningScreenList = null;
+  let warningRemovalBusy = false;
 
   async function purchaseWarningRemoval(warningId) {
     const userToken = currentToken();
@@ -997,43 +998,53 @@
   }
 
   async function executeWarningRemoval(warningId) {
-    const deducted = await updateCrystalsInGAS(250, false);
-    if (!deducted) {
-      showMessage(tx('Не удалось списать кристаллы', 'Could not deduct crystals'), tx('Кристаллы не списаны. Попробуйте ещё раз.', 'Crystals were not deducted. Please try again.'));
-      return;
-    }
-    const latest = await loadCloudWarnings();
-    const userToken = currentToken();
-    const userTelegramId = currentTelegramId();
-    const warning = latest && latest.find(row => String(row?.id || '') === String(warningId));
-    const belongsToUser = warning && ((userTelegramId && String(warning.telegramId || '') === userTelegramId) || (userToken && String(warning.token || '') === userToken));
-    if (!belongsToUser) {
-      await updateCrystalsInGAS(250, true).catch(() => false);
-      showMessage(tx('Предупреждение не найдено', 'Warning not found'), tx('Предупреждение уже удалено или не принадлежит вашему аккаунту. Списание отменено.', 'The warning was removed or does not belong to your account. The charge was refunded.'));
-      renderWarningsScreen();
-      return;
-    }
-    const rows = latest.filter(row => String(row?.id || '') !== String(warningId));
+    if (warningRemovalBusy) return;
+    warningRemovalBusy = true;
     try {
-      await writeWarnings(rows);
-      safeWriteCache(WARN_KEY, rows);
-      refresh();
-      renderWarningsScreen();
-      await window.BuyAdRefreshCrystals().catch(() => {});
-      showMessage(tx('Предупреждение удалено', 'Warning removed'), tx('Предупреждение успешно удалено. Списано 250 кристаллов.', 'Warning successfully removed. 250 crystals were charged.'));
-    } catch (error) {
-      safeWriteCache(WARN_KEY, latest);
-      refresh();
-      renderWarningsScreen();
-      const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
-      await window.BuyAdRefreshCrystals().catch(() => {});
-      const refundText = refunded
-        ? tx('Списанные кристаллы возвращены.', 'The charged crystals were refunded.')
-        : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'The crystals could not be refunded automatically. Contact support.');
-      showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения.', 'Could not save warning removal.') + '\n' + refundText + '\n' + (error?.message || String(error)));
-
+      const deducted = await updateCrystalsInGAS(250, false);
+      if (!deducted) {
+        showMessage(tx('Не удалось списать кристаллы', 'Could not deduct crystals'), tx('Кристаллы не списаны. Попробуйте ещё раз.', 'Crystals were not deducted. Please try again.'));
+        return;
+      }
+      const latest = await loadCloudWarnings();
+      const userToken = currentToken();
+      const userTelegramId = currentTelegramId();
+      const warning = latest && latest.find(row => String(row?.id || '') === String(warningId));
+      const belongsToUser = warning && ((userTelegramId && String(warning.telegramId || '') === userTelegramId) || (userToken && String(warning.token || '') === userToken));
+      if (!belongsToUser) {
+        const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
+        await window.BuyAdRefreshCrystals().catch(() => {});
+        const refundMessage = refunded
+          ? tx('Списание отменено, кристаллы возвращены.', 'Charge cancelled; crystals refunded.')
+          : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'Could not automatically refund crystals. Contact support.');
+        showMessage(tx('Предупреждение не найдено', 'Warning not found'), tx('Предупреждение уже удалено или не принадлежит вашему аккаунту.', 'The warning was removed or does not belong to your account.') + '\n' + refundMessage);
+        renderWarningsScreen();
+        return;
+      }
+      const rows = latest.filter(row => String(row?.id || '') !== String(warningId));
+      try {
+        await writeWarnings(rows);
+        safeWriteCache(WARN_KEY, rows);
+        refresh();
+        renderWarningsScreen();
+        await window.BuyAdRefreshCrystals().catch(() => {});
+        showMessage(tx('Предупреждение удалено', 'Warning removed'), tx('Предупреждение успешно удалено. Списано 250 кристаллов.', 'Warning successfully removed. 250 crystals were charged.'));
+      } catch (error) {
+        safeWriteCache(WARN_KEY, latest);
+        refresh();
+        renderWarningsScreen();
+        const refunded = await updateCrystalsInGAS(250, true).catch(() => false);
+        await window.BuyAdRefreshCrystals().catch(() => {});
+        const refundText = refunded
+          ? tx('Списанные кристаллы возвращены.', 'The charged crystals were refunded.')
+          : tx('Не удалось автоматически вернуть кристаллы. Обратитесь в поддержку.', 'The crystals could not be refunded automatically. Contact support.');
+        showMessage(tx('Ошибка удаления', 'Removal failed'), tx('Не удалось сохранить удаление предупреждения.', 'Could not save warning removal.') + '\n' + refundText + '\n' + (error?.message || String(error)));
+      }
+    } finally {
+      warningRemovalBusy = false;
     }
   }
+
 
   function renderWarningsScreen() {
     if (!warningScreenList) return;
