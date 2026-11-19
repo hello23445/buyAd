@@ -23,7 +23,9 @@ const ADMINS = [
       "hideNameOnRejection": true,
       "hideNameOnBan": true,
       "viewOwnIp": true,
-      "kickUser": true
+      "kickUser": true,
+      "issueWarnings": true,
+      "removeWarnings": true
     }
   },
   {
@@ -47,7 +49,9 @@ const ADMINS = [
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
       "viewOwnIp": false,
-      "kickUser": true
+      "kickUser": true,
+      "issueWarnings": true,
+      "removeWarnings": true
     }
   },
   {
@@ -71,23 +75,25 @@ const ADMINS = [
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
       "viewOwnIp": false,
-      "kickUser": true
+      "kickUser": true,
+      "issueWarnings": true,
+      "removeWarnings": true
     }
   },
   {
-    "admin_name": "Администратор 3 уровня",
-    "admin_level": 3,
+    "admin_name": "Администратор 1 уровня",
+    "admin_level": 1,
     "admin_token": "GoYy3n2oRheOiByJ",
     "permissions": {
-      "reviewAds": true,
-      "viewRestricted": true,
-      "viewUserStatistics": true,
-      "banToken": true,
-      "unban": true,
-      "unbanTelegramId": true,
+      "reviewAds": false,
+      "viewRestricted": false,
+      "viewUserStatistics": false,
+      "banToken": false,
+      "unban": false,
+      "unbanTelegramId": false,
       "unbanIp": false,
-      "restrictAds": true,
-      "banTelegramId": true,
+      "restrictAds": false,
+      "banTelegramId": false,
       "banIp": false,
       "globalCreateToggle": false,
       "manageAdmins": false,
@@ -95,7 +101,9 @@ const ADMINS = [
       "hideNameOnRejection": false,
       "hideNameOnBan": false,
       "viewOwnIp": false,
-      "kickUser": true
+      "kickUser": false,
+      "issueWarnings": false,
+      "removeWarnings": false
     },
     "custom_permissions": true
   }
