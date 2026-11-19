@@ -2198,14 +2198,12 @@ async function showMainMenu(updateWhat = 'both', accessPrechecked = false) {
 
   // Show cached values immediately. Network refreshes must never delay the main menu.
   if (updateWhat === 'both' || updateWhat === 'ads') {
-    $('ads-count').textContent = localStorage.getItem('adsCount') || '0';
+    $('ads-count').textContent = buyAdUiText('Загрузка…', 'Loading…');
     updateAdsCount().catch(error => console.warn('Failed to refresh ads count:', error));
   }
   if (updateWhat === 'both' || updateWhat === 'crystals') {
-    const cachedCrystals = Number(localStorage.getItem('crystals') || 0);
-    currentCrystals = Number.isFinite(cachedCrystals) ? cachedCrystals : 0;
-    $('crystals-count').textContent = formatNumber(currentCrystals);
-    $('crystals-now').textContent = formatNumber(currentCrystals);
+    $('crystals-count').textContent = buyAdUiText('Загрузка…', 'Loading…');
+    $('crystals-now').textContent = buyAdUiText('Загрузка…', 'Loading…');
     $('nav-crystals').disabled = false;
     fetchCrystals().then(crystals => {
       currentCrystals = crystals;
@@ -2497,12 +2495,8 @@ $('nav-crystals').onclick = () => {
 };
 
 async function returnToMainMenuWithPreloader(updateWhat = 'both') {
-  showPreloader();
-  try {
-    await showMainMenu(updateWhat);
-  } finally {
-    hidePreloader();
-  }
+  // Show the main menu immediately; refresh counters asynchronously in-place.
+  await showMainMenu(updateWhat);
 }
 
 /* BACK */
@@ -2546,8 +2540,8 @@ let previousEditScreen = null; // To track where edit was opened from
       // When returning from crystals menu - only update crystals count
       await returnToMainMenuWithPreloader('crystals');
     } else if (id === 'back-from-admin') {
-      // When returning from admin menu - don't update any counts
-      await returnToMainMenuWithPreloader('none');
+      // Refresh both counters without blocking the main menu.
+      await returnToMainMenuWithPreloader('both');
     }
   };
 });
