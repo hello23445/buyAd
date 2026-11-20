@@ -387,12 +387,31 @@
   }
 
   function getWarningsForProfile(profile) {
-    const tokens = new Set((profile.tokens || []).map(String));
+    const tokens = Array.from(new Set((profile.tokens || []).map(String).filter(Boolean)));
     const telegramId = String(profile.telegramId || '');
-    return warningRows().filter(row =>
-      (telegramId && String(row.telegramId || '') === telegramId) ||
-      (row.token && tokens.has(String(row.token)))
-    );
+    const api = window.BuyAdWarnings;
+    // Use the warning system's normalized/cleaned records where available,
+    // and merge matches by ID to avoid counting the same warning twice
+    // when it is linked to both Telegram ID and an older token.
+    let rows = [];
+    if (api && typeof api.warningsFor === 'function') {
+      tokens.forEach(token => {
+        rows = rows.concat(api.warningsFor(token, telegramId) || []);
+      });
+      if (!tokens.length && telegramId) rows = rows.concat(api.warningsFor('', telegramId) || []);
+    } else {
+      rows = warningRows().filter(row =>
+        (telegramId && String(row.telegramId || '') === telegramId) ||
+        (row.token && tokens.includes(String(row.token)))
+      );
+    }
+    const byId = new Map();
+    rows.forEach(row => {
+      if (!row || typeof row !== 'object') return;
+      const key = String(row.id || [row.telegramId, row.token, row.issuedAt, row.reason].join('|'));
+      if (!byId.has(key)) byId.set(key, row);
+    });
+    return Array.from(byId.values());
   }
 
   function punishmentLabel(kind) {
