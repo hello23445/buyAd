@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-20T12:59:42.285Z",
+  "updatedAt": "2026-11-20T13:02:38.331Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -484,7 +484,8 @@
           "reason": "2.6",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
-          "adminLevel": 5
+          "adminLevel": 5,
+          "removedAt": "2026-11-20T13:02:38.331Z"
         }
       ],
       "lastSeenToken": "FCT2BPIEM7U6A4CA",
