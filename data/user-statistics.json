@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-20T12:44:59.500Z",
+  "updatedAt": "2026-11-20T12:46:07.962Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -384,6 +384,42 @@
           "identifierType": "telegram_id",
           "issuedAt": "2026-11-11T17:36:22.549Z",
           "expiresAt": "2026-11-15T17:36:22.548Z",
+          "reason": "2.7",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795178767202_0_62eke",
+          "kind": "warning",
+          "identifier": "9163983319",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-20T12:46:07.202Z",
+          "expiresAt": "2026-11-25T12:46:07.202Z",
+          "reason": "2.7",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795178767202_1_2fxex",
+          "kind": "warning",
+          "identifier": "9163983319",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-20T12:46:07.203Z",
+          "expiresAt": "2026-11-25T12:46:07.202Z",
+          "reason": "2.7",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795178767202_2_5dxc5",
+          "kind": "warning",
+          "identifier": "9163983319",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-20T12:46:07.204Z",
+          "expiresAt": "2026-11-25T12:46:07.202Z",
           "reason": "2.7",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
