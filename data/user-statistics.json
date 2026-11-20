@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-20T12:58:38.021Z",
+  "updatedAt": "2026-11-20T12:59:19.071Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -472,6 +472,19 @@
           "adminName": "Главный администратор",
           "adminNameHidden": false,
           "adminLevel": 0
+        },
+        {
+          "id": "account_ban:9163983319:1795179559071",
+          "kind": "account_ban",
+          "identifier": "9163983319",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-20T12:59:19.071Z",
+          "expiresAt": "",
+          "durationDays": null,
+          "reason": "2.6",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 5
         }
       ],
       "lastSeenToken": "FCT2BPIEM7U6A4CA",
