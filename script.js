@@ -2,7 +2,7 @@ function buyAdUiText(ru, en) { return (localStorage.getItem('lang') || 'ru') ===
 function buyAdUiTranslate(message) {
   if (message == null) return message;
   const value = String(message);
-  const pairs = [["Отмена","Cancel"],["Подтвердить","Confirm"],["Сохранить изменения","Save changes"],["Сохранить","Save"],["Удалить админа","Delete administrator"],["Удалить","Delete"],["Создать администратора","Create administrator"],["Закрыть","Close"],["Продолжить","Continue"],["Да","Yes"],["Нет","No"],["Выбрать","Select"],["Назад","Back"],["Управлять списком администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can manage the administrator list."],["В списке должен оставаться хотя бы один администратор.","At least one administrator must remain in the list."],["У каждого администратора должен быть уникальный непустой токен.","Each administrator must have a unique, non-empty token."],["Уровень администратора должен быть от 1 до 5.","Administrator level must be between 1 and 5."],["Не удалось получить разрешение на сохранение администраторов.","Could not obtain permission to save administrators."],["Не удалось прочитать список администраторов: ","Could not read administrator list: "],["Не удалось определить список ADMINS в admin.js.","Could not locate the ADMINS list in admin.js."],["GitHub не сохранил список администраторов: ","GitHub did not save the administrator list: "],["Не удалось загрузить публичные настройки: HTTP ","Could not load public settings: HTTP "],["Не удалось получить разрешение GitHub.","Could not obtain GitHub permission."],["Не удалось прочитать файл причин отказа в GitHub.","Could not read rejection reasons file from GitHub."],["Не удалось сохранить причину отказа в GitHub: ","Could not save rejection reason to GitHub: "],["Файл причин отказа изменился одновременно. Повторите отклонение рекламы.","The rejection reasons file changed concurrently. Please retry."],["Ошибка получения токена","Token retrieval error"],["Не удалось определить IP-адрес.","Could not detect IP address."],["Последний параметр должен быть no или yes.","The last parameter must be no or yes."],["Скрывать имя при блокировке может только администратор 5-го уровня с соответствующим правом.","Only a level 5 administrator with the required permission can hide their name when blocking."],["Срок должен быть целым числом от 1 до 60 или -1 для бессрочной блокировки.","Duration must be a whole number from 1 to 60, or -1 for a permanent block."],["Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в kick-config.js.","The disconnect service is not configured. Deploy google-apps-script/kick/Code.gs and set GAS_KICK_URL in kick-config.js first."],["Команды доступны только администраторам.","Commands are available to administrators only."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["GAS не подтвердил отключение пользователя.","GAS did not confirm user disconnection."],["GAS не подтвердил массовое отключение.","GAS did not confirm bulk disconnection."],["Укажите Telegram ID, токен или корректный IP-адрес.","Enter a Telegram ID, token, or valid IP address."],["GAS не подтвердил создание перезапуска.","GAS did not confirm creating the restart."],["Соответствующий раздел недоступен для вашего уровня прав.","This section is unavailable for your permission level."],["Добавлять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can add administrators."],["Изменять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can edit administrators."],["Удалять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can delete administrators."],["Такой токен уже используется.","This token is already in use."],["Администратор с таким именем или токеном не найден.","Administrator with that name or token was not found."],["В реестре должен остаться хотя бы один администратор.","At least one administrator must remain in the registry."],["Укажите корректный IPv4 или IPv6 адрес.","Enter a valid IPv4 or IPv6 address."],["Telegram ID должен содержать только цифры.","Telegram ID must contain digits only."],["Тип идентификатора должен быть 1, 2 или 3.","Identifier type must be 1, 2, or 3."],["Модуль реферальной системы не загружен.","Referral system module is not loaded."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["Время показа должно быть целым числом от 1 до 86400 секунд.","Display duration must be an integer from 1 to 86400 seconds."],["Сервер не подтвердил отправку уведомления.","Server did not confirm sending the notification."],["Команда /app доступна только администраторам 4-го и 5-го уровня.","The /app command is available only to level 4 and 5 administrators."],["Модуль реферальной системы не загружен; остальные настройки уже могли сохраниться.","Referral system module is not loaded; other settings may already have been saved."],["Просмотр статистики доступен администраторам с соответствующим правом.","User statistics are available only to administrators with the required permission."],["Раздел статистики ещё не загружен.","Statistics section is not loaded yet."],["Просмотр списка наказаний доступен администраторам с соответствующим правом.","Punishment history is available only to administrators with the required permission."],["Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.","User profile not found in statistics. Check Telegram ID or token."],["Не удалось получить GitHub API token","Could not obtain GitHub API token"],["GitHub API token отсутствует","GitHub API token is missing"],["Не удалось сохранить ","Could not save "],["Данные предупреждений ещё не загружены из GitHub.","Warning data has not loaded from GitHub yet."],["Журнал пользователей ещё не загружен из GitHub.","User log has not loaded from GitHub yet."],["В admin2.js не найден массив ","Array not found in admin2.js: "],["Файл admin2.js постоянно меняется; не удалось сохранить данные после 3 попыток.","admin2.js keeps changing; failed to save after 3 attempts."],["Supabase ещё не настроен.","Supabase is not configured yet."],["Ошибка Supabase: ","Supabase error: "],["Введите IP-адрес.","Enter an IP address."],["Поиск…","Searching…"],["Найдено аккаунтов: ","Accounts found: "],["Совпадений не найдено.","No matches found."],["Не удалось выполнить поиск.","Search failed."],["Проверка заголовков…","Checking headers…"],["Не удалось выполнить диагностику.","Diagnostics failed."],["Не удалось прочитать буфер обмена. Разрешите доступ или вставьте адрес вручную.","Could not read clipboard. Allow access or paste the address manually."],["Нажмите «Запустить проверку».","Tap ‘Run diagnostics’."],["За последние два месяца наказаний с зафиксированной датой нет.","No punishments with recorded dates in the last two months."],["Токены ещё не попали в архив.","Tokens have not been archived yet."],["Не удалось получить статистику.","Could not retrieve statistics."],["Не удалось скопировать значение.","Could not copy value."]];
+  const pairs = [["Заблокировать пользователя по токену","Ban user by token"],["Разблокировать пользователя по токену","Unban user by token"],["Причина блокировки (необязательно)","Reason for block (optional)"],["Причина блокировки (обязательно)","Reason for block (required)"],["Причина блокировки","Block reason"],["Введите причину блокировки","Enter the reason for the block"],["Срок блокировки","Ban duration"],["Отправить","Submit"],["Отмена","Cancel"],["Подтвердить","Confirm"],["Сохранить изменения","Save changes"],["Сохранить","Save"],["Удалить админа","Delete administrator"],["Удалить","Delete"],["Создать администратора","Create administrator"],["Закрыть","Close"],["Продолжить","Continue"],["Да","Yes"],["Нет","No"],["Выбрать","Select"],["Назад","Back"],["Управлять списком администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can manage the administrator list."],["В списке должен оставаться хотя бы один администратор.","At least one administrator must remain in the list."],["У каждого администратора должен быть уникальный непустой токен.","Each administrator must have a unique, non-empty token."],["Уровень администратора должен быть от 1 до 5.","Administrator level must be between 1 and 5."],["Не удалось получить разрешение на сохранение администраторов.","Could not obtain permission to save administrators."],["Не удалось прочитать список администраторов: ","Could not read administrator list: "],["Не удалось определить список ADMINS в admin.js.","Could not locate the ADMINS list in admin.js."],["GitHub не сохранил список администраторов: ","GitHub did not save the administrator list: "],["Не удалось загрузить публичные настройки: HTTP ","Could not load public settings: HTTP "],["Не удалось получить разрешение GitHub.","Could not obtain GitHub permission."],["Не удалось прочитать файл причин отказа в GitHub.","Could not read rejection reasons file from GitHub."],["Не удалось сохранить причину отказа в GitHub: ","Could not save rejection reason to GitHub: "],["Файл причин отказа изменился одновременно. Повторите отклонение рекламы.","The rejection reasons file changed concurrently. Please retry."],["Ошибка получения токена","Token retrieval error"],["Не удалось определить IP-адрес.","Could not detect IP address."],["Последний параметр должен быть no или yes.","The last parameter must be no or yes."],["Скрывать имя при блокировке может только администратор 5-го уровня с соответствующим правом.","Only a level 5 administrator with the required permission can hide their name when blocking."],["Срок должен быть целым числом от 1 до 60 или -1 для бессрочной блокировки.","Duration must be a whole number from 1 to 60, or -1 for a permanent block."],["Сервис киков ещё не подключён. Сначала разверните google-apps-script/kick/Code.gs и укажите GAS_KICK_URL в kick-config.js.","The disconnect service is not configured. Deploy google-apps-script/kick/Code.gs and set GAS_KICK_URL in kick-config.js first."],["Команды доступны только администраторам.","Commands are available to administrators only."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["GAS не подтвердил отключение пользователя.","GAS did not confirm user disconnection."],["GAS не подтвердил массовое отключение.","GAS did not confirm bulk disconnection."],["Укажите Telegram ID, токен или корректный IP-адрес.","Enter a Telegram ID, token, or valid IP address."],["GAS не подтвердил создание перезапуска.","GAS did not confirm creating the restart."],["Соответствующий раздел недоступен для вашего уровня прав.","This section is unavailable for your permission level."],["Добавлять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can add administrators."],["Изменять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can edit administrators."],["Удалять администраторов может только главный администратор 5-го уровня.","Only the level 5 chief administrator can delete administrators."],["Такой токен уже используется.","This token is already in use."],["Администратор с таким именем или токеном не найден.","Administrator with that name or token was not found."],["В реестре должен остаться хотя бы один администратор.","At least one administrator must remain in the registry."],["Укажите корректный IPv4 или IPv6 адрес.","Enter a valid IPv4 or IPv6 address."],["Telegram ID должен содержать только цифры.","Telegram ID must contain digits only."],["Тип идентификатора должен быть 1, 2 или 3.","Identifier type must be 1, 2, or 3."],["Модуль реферальной системы не загружен.","Referral system module is not loaded."],["Укажите корректный Telegram ID или токен пользователя.","Enter a valid Telegram ID or user token."],["Время показа должно быть целым числом от 1 до 86400 секунд.","Display duration must be an integer from 1 to 86400 seconds."],["Сервер не подтвердил отправку уведомления.","Server did not confirm sending the notification."],["Команда /app доступна только администраторам 4-го и 5-го уровня.","The /app command is available only to level 4 and 5 administrators."],["Модуль реферальной системы не загружен; остальные настройки уже могли сохраниться.","Referral system module is not loaded; other settings may already have been saved."],["Просмотр статистики доступен администраторам с соответствующим правом.","User statistics are available only to administrators with the required permission."],["Раздел статистики ещё не загружен.","Statistics section is not loaded yet."],["Просмотр списка наказаний доступен администраторам с соответствующим правом.","Punishment history is available only to administrators with the required permission."],["Профиль пользователя не найден в статистике. Проверьте Telegram ID или токен.","User profile not found in statistics. Check Telegram ID or token."],["Не удалось получить GitHub API token","Could not obtain GitHub API token"],["GitHub API token отсутствует","GitHub API token is missing"],["Не удалось сохранить ","Could not save "],["Данные предупреждений ещё не загружены из GitHub.","Warning data has not loaded from GitHub yet."],["Журнал пользователей ещё не загружен из GitHub.","User log has not loaded from GitHub yet."],["В admin2.js не найден массив ","Array not found in admin2.js: "],["Файл admin2.js постоянно меняется; не удалось сохранить данные после 3 попыток.","admin2.js keeps changing; failed to save after 3 attempts."],["Supabase ещё не настроен.","Supabase is not configured yet."],["Ошибка Supabase: ","Supabase error: "],["Введите IP-адрес.","Enter an IP address."],["Поиск…","Searching…"],["Найдено аккаунтов: ","Accounts found: "],["Совпадений не найдено.","No matches found."],["Не удалось выполнить поиск.","Search failed."],["Проверка заголовков…","Checking headers…"],["Не удалось выполнить диагностику.","Diagnostics failed."],["Не удалось прочитать буфер обмена. Разрешите доступ или вставьте адрес вручную.","Could not read clipboard. Allow access or paste the address manually."],["Нажмите «Запустить проверку».","Tap ‘Run diagnostics’."],["За последние два месяца наказаний с зафиксированной датой нет.","No punishments with recorded dates in the last two months."],["Токены ещё не попали в архив.","Tokens have not been archived yet."],["Не удалось получить статистику.","Could not retrieve statistics."],["Не удалось скопировать значение.","Could not copy value."]];
   const lang = localStorage.getItem('lang') || 'ru';
   for (const [ru, en] of pairs) {
     if (lang === 'en' && value === ru) return en;
@@ -3076,6 +3076,18 @@ $('footer-remove').onclick = async () => {
 $('btn-create-ad').onclick = async () => {
   const lang = localStorage.getItem(LS.lang) || 'ru';
 
+  // Recheck account bans and user restrictions before submitting either create or edit.
+  if (await applyRuntimeBlockings()) return;
+  if (blockInApp.includes(localStorage.getItem(LS.token) || '')) {
+    hideAllScreens();
+    show($('screen-blocked'));
+    return;
+  }
+  if (findCreateRestrictionEntry()) {
+    showFeatureBlockedModal(editMode ? 'edit' : 'create');
+    return;
+  }
+
   if (!editMode && window.BuyAdWarnings?.getActiveWarningCount?.() >= 2 && !window.BuyAdWarnings?.canCreateAdToday?.()) {
     openModal(buyAdUiText('Лимит создания рекламы', 'Ad creation limit'), buyAdUiText('При 2/3 предупреждениях можно создать только одну рекламу в день. Вы уже использовали дневной лимит.', 'With 2/3 warnings, only one ad can be created per day. You have already used today’s limit.'));
     return;
@@ -3149,10 +3161,26 @@ $('btn-create-ad').onclick = async () => {
       params.append('videoFilename', videoFile.name);
     }
 
-    // Re-check restrictions immediately before sending the create/update request.
-    if (editMode ? isEditingDisabledGlobally() : isCreateAdsDisabledGlobally()) {
+    // Recheck bans, user restrictions and warning limits immediately before sending.
+    if (await applyRuntimeBlockings()) {
+      hidePreloader();
+      return;
+    }
+    if (blockInApp.includes(localStorage.getItem(LS.token) || '') ||
+        findCreateRestrictionEntry() ||
+        (editMode ? isEditingDisabledGlobally() : isCreateAdsDisabledGlobally())) {
       hidePreloader();
       showFeatureBlockedModal(editMode ? 'edit' : 'create');
+      return;
+    }
+    if (!editMode && window.BuyAdWarnings?.getActiveWarningCount?.() >= 2 && !window.BuyAdWarnings?.canCreateAdToday?.()) {
+      hidePreloader();
+      openModal(buyAdUiText('Лимит создания рекламы', 'Ad creation limit'), buyAdUiText('При 2/3 предупреждениях можно создать только одну рекламу в день. Вы уже использовали дневной лимит.', 'With 2/3 warnings, only one ad can be created per day. You have already used today’s limit.'));
+      return;
+    }
+    if (!editMode && window.BuyAdWarnings?.isPlatformRestricted?.(selectedPlatform)) {
+      hidePreloader();
+      openModal(buyAdUiText('Функция недоступна. Эта площадка заблокирована при наличии предупреждения.', 'Feature unavailable. This platform is blocked while a warning is active.'), '');
       return;
     }
 
@@ -4742,6 +4770,7 @@ async function updateVariable(action, value, quiet = false) {
 
 function openAdminPunishmentModal(title, onSubmit, placeholder = buyAdUiText('Введите токен пользователя', 'Enter user token'), punishmentType = 'account') {
   const body=document.createElement('div');body.style.display='grid';body.style.gap='0.75rem';
+  title = buyAdUiTranslate(title);
   const label=document.createElement('label');label.textContent=title;label.style.fontWeight='600';body.appendChild(label);
   const input=document.createElement('input');input.type='text';input.placeholder=placeholder;input.className='admin-modal-control';body.appendChild(input);
   const lang=localStorage.getItem(LS.lang)||'ru',admin=getCurrentAdmin();
@@ -5535,18 +5564,30 @@ document.addEventListener('click', (e) => {
       String(item.admin_name || '').trim().toLowerCase() === normalized
     ) || null;
   }
-  function commandDescription(spec) {
+  function commandDescription(spec, command) {
+    const lang = localStorage.getItem(LS.lang) || 'ru';
+    const english = {
+      '/tban': ['/tban Token Reason Duration (1–60 days or -1 for permanent) no/yes', 'Blocks a user by token. “no” hides the administrator name; “yes” shows it.'],
+      '/untban': ['/untban Token', 'Removes a token ban.'],
+      '/sban': ['/sban IP address Reason Duration (1–60 days or -1 for permanent) no/yes', 'Blocks an IP address. “no” hides the administrator name; “yes” shows it.'],
+      '/unsban': ['/unsban IP address', 'Removes an IP ban.'],
+      '/tg_ban': ['/tg_ban Telegram_ID Reason Duration (1–60 days or -1 for permanent) no/yes', 'Blocks a user by Telegram ID. “no” hides the administrator name; “yes” shows it.'],
+      '/untg_ban': ['/untg_ban Telegram_ID', 'Removes a Telegram ID ban.'],
+      '/cblock': ['/cblock Type (1 token, 2 Telegram ID, 3 IP) Identifier Reason Duration (1–60 days or -1 for permanent) no/yes', 'Restricts creating and editing ads. “no” hides the administrator name; “yes” shows it.'],
+      '/uncblock': ['/uncblock Type (1 token, 2 Telegram ID, 3 IP) Identifier', 'Removes the restriction on creating and editing ads.']
+    };
+    if (lang === 'en' && english[command]) return { structure: english[command][0], description: english[command][1] };
     const pieces = String(spec || '').split(' — ');
     return { structure: pieces[0] || '', description: pieces.slice(1).join(' — ') || '' };
   }
   function renderAvailableCommandsDialog() {
     const groups = [
-      { title:'Проверка и работа с пользователями', commands:['/c','/relist','/users','/user','/stats','/alist','/warn','/unwarn'] },
-      { title:'Блокировки и ограничения', commands:['/tban','/untban','/sban','/unsban','/tg_ban','/untg_ban','/cblock','/uncblock'] },
-      { title:'Управление приложением', commands:['/app','/t_notify','/cban','/rban','/payments','/referals','/close_app','/gases'] },
-      { title:'Администраторы', commands:['/add_admin','/change_admin','/delete_admin'] },
-      { title:'Отключение и перезапуск', commands:['/kick','/kick_all','/reload','/reload_time','/reload_all','/reload_all_time'] },
-      { title:'Мои данные и настройки', commands:['/tcopy','/tdcopy','/icopy','/chat_off'] }
+      { title: buyAdUiText('Проверка и работа с пользователями','Review and users'), commands:['/c','/relist','/users','/user','/stats','/alist','/warn','/unwarn'] },
+      { title: buyAdUiText('Блокировки и ограничения','Bans and restrictions'), commands:['/tban','/untban','/sban','/unsban','/tg_ban','/untg_ban','/cblock','/uncblock'] },
+      { title: buyAdUiText('Управление приложением','App management'), commands:['/app','/t_notify','/cban','/rban','/payments','/referals','/close_app','/gases'] },
+      { title: buyAdUiText('Администраторы','Administrators'), commands:['/add_admin','/change_admin','/delete_admin'] },
+      { title: buyAdUiText('Отключение и перезапуск','Disconnect and restart'), commands:['/kick','/kick_all','/reload','/reload_time','/reload_all','/reload_all_time'] },
+      { title: buyAdUiText('Мои данные и настройки','My data and settings'), commands:['/tcopy','/tdcopy','/icopy','/chat_off'] }
     ];
     const root = document.createElement('div');
     root.className = 'available-commands-list';
@@ -5563,7 +5604,7 @@ document.addEventListener('click', (e) => {
       heading.textContent = group.title;
       section.appendChild(heading);
       available.forEach(command => {
-        const details = commandDescription(commandSpecs[command]);
+        const details = commandDescription(commandSpecs[command], command);
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'available-command-item';
@@ -6547,7 +6588,7 @@ document.addEventListener('click', (e) => {
     // и близкие по написанию команды. Искусственного лимита в 8 пунктов нет.
     const matches = getSimilarAdminCommands(first);
     matches.forEach(command => {
-      const details = commandDescription(commandSpecs[command]);
+      const details = commandDescription(commandSpecs[command], command);
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'command-hint-item';
