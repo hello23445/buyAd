@@ -55,6 +55,13 @@
       "reason": "",
       "adminName": "Администратор 3 уровня",
       "updatedAt": "2026-11-19T20:53:16.631Z"
+    },
+    "9163983319::ad_qibwuwr607sf": {
+      "userID": "9163983319",
+      "adName": "Ad_QIBWUWR607SF",
+      "reason": "Warn",
+      "adminName": "Главный администратор",
+      "updatedAt": "2026-11-21T06:05:04.599Z"
     }
   }
 }
