@@ -79,33 +79,6 @@ const ADMINS = [
       "issueWarnings": true,
       "removeWarnings": true
     }
-  },
-  {
-    "admin_name": "Ja",
-    "admin_level": 4,
-    "admin_token": "GoYy3n2oRheOiByJ",
-    "permissions": {
-      "reviewAds": true,
-      "viewRestricted": true,
-      "viewUserStatistics": true,
-      "banToken": true,
-      "unban": true,
-      "unbanTelegramId": true,
-      "unbanIp": true,
-      "restrictAds": true,
-      "banTelegramId": true,
-      "banIp": true,
-      "globalCreateToggle": true,
-      "manageAdmins": false,
-      "changeOwnLevelLocally": true,
-      "hideNameOnRejection": false,
-      "hideNameOnBan": false,
-      "viewOwnIp": true,
-      "kickUser": true,
-      "issueWarnings": true,
-      "removeWarnings": true
-    },
-    "custom_permissions": true
   }
 ];
 
