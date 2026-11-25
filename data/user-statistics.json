@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-25T17:05:08.842Z",
+  "updatedAt": "2026-11-25T17:06:38.438Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -539,7 +539,9 @@
         }
       ],
       "lastSeenToken": "FCT2BPIEM7U6A4CA",
-      "statsUpdatedAt": "2026-11-08T05:03:07.462Z"
+      "statsUpdatedAt": "2026-11-08T05:03:07.462Z",
+      "adCreatedCount": 1,
+      "lastAdCreatedAt": "2026-11-25T17:06:38.438Z"
     },
     "token:OAic3kfBMbI1zGwN": {
       "telegramId": "",
