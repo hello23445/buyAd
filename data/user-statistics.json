@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-26T17:45:52.820Z",
+  "updatedAt": "2026-11-26T17:46:50.154Z",
   "users": {
     "tg:6434781065": {
       "telegramId": "6434781065",
@@ -305,6 +305,42 @@
           "issuedAt": "2026-11-24T10:54:02.268Z",
           "expiresAt": "2026-11-26T10:54:02.268Z",
           "reason": "Снятие",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795715207087_0_tht6j",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-26T17:46:47.087Z",
+          "expiresAt": "2026-12-01T17:46:47.087Z",
+          "reason": "2.4, 2.7 и 2.15 пунктов правил.",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795715207087_1_bmga6",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-26T17:46:47.088Z",
+          "expiresAt": "2026-12-01T17:46:47.087Z",
+          "reason": "2.4, 2.7 и 2.15 пунктов правил.",
+          "adminName": "Главный администратор",
+          "adminNameHidden": false,
+          "adminLevel": 0
+        },
+        {
+          "id": "warning:warn_1795715207087_2_5mrc8",
+          "kind": "warning",
+          "identifier": "8085105056",
+          "identifierType": "telegram_id",
+          "issuedAt": "2026-11-26T17:46:47.089Z",
+          "expiresAt": "2026-12-01T17:46:47.087Z",
+          "reason": "2.4, 2.7 и 2.15 пунктов правил.",
           "adminName": "Главный администратор",
           "adminNameHidden": false,
           "adminLevel": 0
